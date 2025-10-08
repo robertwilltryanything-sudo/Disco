@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { CD } from './types';
@@ -25,7 +24,6 @@ const INITIAL_CDS: CD[] = [
 ];
 
 const COLLECTION_STORAGE_KEY = 'disco_collection_v2';
-const HAS_SYNCED_KEY = 'disco_has_synced_with_drive_v1';
 
 // Helper to fetch artwork for the initial collection using the reliable findCoverArt function.
 const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
@@ -66,6 +64,7 @@ const App: React.FC = () => {
   const { 
     isApiReady, 
     isSignedIn, 
+    signIn, 
     signOut, 
     loadCollection, 
     saveCollection, 
@@ -82,63 +81,26 @@ const App: React.FC = () => {
   // Initial data load effect
   useEffect(() => {
     const initialLoad = async () => {
-      // Priority 1: Google Drive (if signed in)
       if (isSignedIn && !hasLoadedFromDrive.current) {
         try {
-          const driveCds = await loadCollection(); // Returns CD[] or null on error
-          
-          if (driveCds !== null) { // A non-null response means the connection was successful.
-            hasLoadedFromDrive.current = true;
-            const hasSyncedBefore = localStorage.getItem(HAS_SYNCED_KEY);
-
-            // Case 1: First time syncing and Drive is empty.
-            // We should use local data if it exists, otherwise seed with initial data.
-            if (driveCds.length === 0 && !hasSyncedBefore) {
-              try {
-                const storedCds = localStorage.getItem(COLLECTION_STORAGE_KEY);
-                if (storedCds) {
-                  const localCds = JSON.parse(storedCds);
-                  if (localCds.length > 0) {
-                    console.log("First sync: Using existing local data and preparing to upload.");
-                    setCds(localCds);
-                    localStorage.setItem(HAS_SYNCED_KEY, 'true'); // Mark that we've now handled the first sync.
-                    return; // Done. The save effect will handle the upload.
-                  }
-                }
-              } catch (e) {
-                  console.error("Could not parse local storage during first sync check", e);
-              }
-              
-              // No valid local data, so this is a true first run. Seed the data.
-              console.log("First sync: No local data found. Populating initial album artwork.");
-              const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
-              setCds(cdsWithArt);
-              localStorage.setItem(HAS_SYNCED_KEY, 'true');
-              return;
-            }
-            
-            // Case 2: We have synced before OR Drive already has data.
-            // In this case, Drive is the definitive source of truth.
-            console.log("Loading collection from Google Drive as the source of truth.");
+          const driveCds = await loadCollection();
+          if (driveCds) {
             setCds(driveCds);
-            if (!hasSyncedBefore) {
-              localStorage.setItem(HAS_SYNCED_KEY, 'true');
-            }
+            hasLoadedFromDrive.current = true;
             return;
           }
         } catch(e) {
-          console.error("Failed to load from Google Drive, will fall back to local storage.", e);
+            console.error("Failed to load from Google Drive, falling back to local storage.", e);
         }
       }
       
-      // Priority 2: Local Storage (if not signed in, or if Drive sync failed)
       try {
         const storedCds = localStorage.getItem(COLLECTION_STORAGE_KEY);
         if (storedCds) {
           setCds(JSON.parse(storedCds));
         } else {
-          // This is a first run without sync enabled, or there's no data anywhere.
-          console.log("No local data found. Populating initial album artwork.");
+          // On first load, populate artwork for initial data using the reliable findCoverArt function.
+          console.log("No local data found. Populating initial album artwork...");
           const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
           setCds(cdsWithArt);
         }
@@ -297,6 +259,7 @@ const App: React.FC = () => {
         <Header 
           isApiReady={isApiReady}
           isSignedIn={isSignedIn}
+          signIn={signIn}
           signOut={signOut}
           syncStatus={syncStatus}
           driveError={driveError}

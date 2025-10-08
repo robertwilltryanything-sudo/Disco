@@ -9,6 +9,7 @@ import StatusIndicator from './StatusIndicator';
 interface HeaderProps {
     isApiReady: boolean;
     isSignedIn: boolean;
+    signIn: () => void;
     signOut: () => void;
     syncStatus: SyncStatus;
     driveError: string | null;
@@ -16,7 +17,7 @@ interface HeaderProps {
     collectionCount: number;
 }
 
-const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signOut, syncStatus, driveError, onAddClick, collectionCount }) => {
+const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut, syncStatus, driveError, onAddClick, collectionCount }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +97,7 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signOut, syncSt
                     <GoogleDriveSync 
                     isApiReady={isApiReady}
                     isSignedIn={isSignedIn}
+                    signIn={signIn}
                     signOut={signOut}
                     status={syncStatus}
                     error={driveError}
