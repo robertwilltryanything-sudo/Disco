@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD } from '../types';
@@ -20,6 +21,7 @@ export const useGoogleDrive = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fileIdRef = useRef<string | null>(null);
+  const initialSignInAttempted = useRef(false);
 
   const handleGapiLoad = useCallback(async () => {
     window.gapi.load('client', async () => {
@@ -93,6 +95,31 @@ export const useGoogleDrive = () => {
           delete (window as any).onGisLoad;
       };
   }, [handleGapiLoad, handleGisLoad]);
+
+  const signIn = useCallback(() => {
+      if (!isApiReady) {
+          setError("Google API is not ready yet. Please try again in a moment.");
+          return;
+      }
+      if (!GOOGLE_CLIENT_ID) {
+          setError("Google Sync is not configured. The administrator needs to provide a Google Client ID.");
+          return;
+      }
+      if (window.tokenClient) {
+          // This will trigger the Google sign-in flow.
+          // It will use an existing session if available, or prompt the user to sign in
+          // and grant permissions if necessary. This is more reliable than forcing consent.
+          window.tokenClient.requestAccessToken();
+      }
+  }, [isApiReady]);
+
+  useEffect(() => {
+    // Automatically trigger sign-in once when the API is ready and the user isn't signed in.
+    if (isApiReady && !isSignedIn && !initialSignInAttempted.current) {
+      initialSignInAttempted.current = true;
+      signIn();
+    }
+  }, [isApiReady, isSignedIn, signIn]);
   
   const getOrCreateFileId = useCallback(async () => {
     if (fileIdRef.current) return fileIdRef.current;
@@ -181,23 +208,6 @@ export const useGoogleDrive = () => {
     }
   }, [isSignedIn, getOrCreateFileId]);
 
-  const signIn = useCallback(() => {
-      if (!isApiReady) {
-          setError("Google API is not ready yet. Please try again in a moment.");
-          return;
-      }
-      if (!GOOGLE_CLIENT_ID) {
-          setError("Google Sync is not configured. The administrator needs to provide a Google Client ID.");
-          return;
-      }
-      if (window.tokenClient) {
-          // This will trigger the Google sign-in flow.
-          // It will use an existing session if available, or prompt the user to sign in
-          // and grant permissions if necessary. This is more reliable than forcing consent.
-          window.tokenClient.requestAccessToken();
-      }
-  }, [isApiReady]);
-
   const signOut = useCallback(() => {
     const token = window.gapi.client.getToken();
     if (token !== null) {
@@ -210,5 +220,5 @@ export const useGoogleDrive = () => {
     }
   }, []);
 
-  return { isApiReady, isSignedIn, signIn, signOut, loadCollection, saveCollection, syncStatus, error };
+  return { isApiReady, isSignedIn, signOut, loadCollection, saveCollection, syncStatus, error };
 };
