@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CD } from '../types';
 import { PlusIcon } from './icons/PlusIcon';
 import AlbumScanner from './AlbumScanner';
@@ -8,7 +8,7 @@ import { findCoverArt } from '../wikipedia';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { CameraIcon } from './icons/CameraIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
-import { UploadIcon } from './icons/UploadIcon';
+import { LinkIcon } from './icons/LinkIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
 import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
@@ -31,6 +31,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
   const [coverArtUrl, setCoverArtUrl] = useState<string | undefined>('');
+  const [manualUrl, setManualUrl] = useState('');
   const [notes, setNotes] = useState('');
   
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -41,8 +42,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (cdToEdit) {
@@ -71,6 +70,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
       setTags([]);
       setCurrentTag('');
       setCoverArtUrl(undefined);
+      setManualUrl('');
       setNotes('');
       setFormError(null);
   }, []);
@@ -159,20 +159,18 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
       }
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        setCoverArtUrl(loadEvent.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleSetArtFromUrl = useCallback(() => {
+    if (manualUrl.trim()) {
+      const url = manualUrl.trim();
+      // A basic check for http/https and common image extensions, allowing for query params
+      if (url.startsWith('http') && /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url)) {
+        setCoverArtUrl(url);
+        setFormError(null);
+      } else {
+        setFormError("Please enter a valid, direct image URL (e.g., ending in .jpg, .png).");
+      }
     }
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
+  }, [manualUrl]);
 
   const handleFindArt = useCallback(async () => {
     if (!artist || !title) {
@@ -308,26 +306,34 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                       </div>
                   )}
                 </div>
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                />
-                <div className="flex flex-col sm:flex-row gap-2 mt-3 w-full">
-                    <button
-                        type="button"
-                        onClick={handleUploadClick}
-                        className="flex-1 flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-md hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
-                    >
-                        <UploadIcon className="h-4 w-4" />
-                        Upload
-                    </button>
+                
+                <div className="space-y-2 mt-3 w-full">
+                    <div className="flex gap-2">
+                        <div className="relative flex-grow">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <LinkIcon className="h-4 w-4 text-zinc-400" />
+                            </div>
+                            <input
+                                type="url"
+                                placeholder="Paste image URL"
+                                value={manualUrl}
+                                onChange={(e) => setManualUrl(e.target.value)}
+                                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 pl-9 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleSetArtFromUrl}
+                            className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-md hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
+                        >
+                            Set
+                        </button>
+                    </div>
+
                     <button
                         type="button"
                         onClick={handleFindArt}
-                        className="flex-1 flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-md hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-md hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={!artist || !title}
                     >
                         <GlobeIcon className="h-4 w-4" />
