@@ -158,11 +158,14 @@ export async function getAlbumInfo(imageBase64: string): Promise<Partial<Omit<CD
 
 export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
     try {
-        const prompt = `Tell me a short, interesting, and fun piece of trivia about the album "${title}" by "${artist}". Focus on a single surprising fact and keep the response under 200 characters.`;
+        const prompt = `Provide one short, interesting, and fun piece of trivia about the album "${title}" by "${artist}". Focus on a single surprising fact about its creation, a specific song, or its legacy. Keep the response concise and under 200 characters.`;
         
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
+            config: {
+                systemInstruction: "You are a music expert who provides brief, engaging trivia for music fans. Your tone is enthusiastic and knowledgeable. You only provide factual information.",
+            }
         });
         
         const text = response.text;
