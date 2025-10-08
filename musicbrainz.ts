@@ -16,7 +16,7 @@
  * https://musicbrainz.org/doc/Development/XML_Web_Service/Rate_Limiting
  * https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
  */
-export async function findCoverArtFromMusicBrainz(artist: string, title: string, version: string): Promise<string[] | null> {
+export async function findCoverArtFromMusicBrainz(_artist: string, _title: string, _version: string): Promise<string[] | null> {
     // This console warning is for developers to understand why the fallback is happening.
     console.warn("MusicBrainz search is disabled due to browser User-Agent limitations. Falling back to Wikipedia search.");
     return null;

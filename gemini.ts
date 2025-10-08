@@ -81,7 +81,13 @@ export async function getAlbumDetails(artist: string, title: string): Promise<{ 
             },
         });
         
-        const jsonString = response.text.trim();
+        const text = response.text;
+        if (!text) {
+            console.warn(`Gemini response for album details for "${artist} - ${title}" was empty.`);
+            return null;
+        }
+
+        const jsonString = text.trim();
         if (jsonString) {
             try {
                 const albumData = JSON.parse(jsonString);
@@ -122,7 +128,13 @@ export async function getAlbumInfo(imageBase64: string): Promise<Partial<Omit<CD
             },
         });
         
-        const jsonString = response.text.trim();
+        const text = response.text;
+        if (!text) {
+            console.warn("Gemini response for scanned album info was empty.");
+            return null;
+        }
+
+        const jsonString = text.trim();
         if (jsonString) {
             try {
                 const albumData = JSON.parse(jsonString);
@@ -153,7 +165,8 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
             contents: prompt,
         });
         
-        return response.text.trim();
+        const text = response.text;
+        return text ? text.trim() : null;
 
     } catch (error) {
         console.error(`Error fetching trivia for "${artist} - ${title}" with Gemini:`, error);

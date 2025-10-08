@@ -130,7 +130,7 @@ async function getAllImageFilesFromArticle(pageTitle: string): Promise<string[]>
         return [];
     }
     
-    return pages[pageId].images.map((img: { title: string }) => img.title);
+    return pages[pageId].images.map(({ title }: { title: string }) => title);
 }
 
 /**
