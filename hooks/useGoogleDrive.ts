@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD } from '../types';
@@ -20,54 +21,65 @@ export const useGoogleDrive = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fileIdRef = useRef<string | null>(null);
+  // Use refs to safely track the initialization state of the two independent Google scripts.
+  const gapiInited = useRef(false);
+  const gisInited = useRef(false);
 
-  const handleGapiLoad = useCallback(async () => {
-    window.gapi.load('client', async () => {
-        // The API key is not required for OAuth2-based Drive API calls.
-        // The discovery document alone is sufficient for gapi to initialize the client.
-        // Authorization is handled by the token from Google Identity Services.
-        await window.gapi.client.init({
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        });
-        
-        if (window.google?.accounts?.oauth2) {
-             // Both scripts are loaded, API is ready
-             setIsApiReady(true);
-        }
-    });
-  }, []);
-
-  const handleGisLoad = useCallback(() => {
-    // Do not initialize if the client ID is missing.
-    if (!GOOGLE_CLIENT_ID) {
-      console.warn("Google Client ID is not configured. Google Drive Sync will be disabled.");
-      // Still set API as "ready" so the app doesn't hang, but sync functionality will be off.
-      if (window.gapi?.client) {
-          setIsApiReady(true);
-      }
-      return;
-    }
-      
-    window.tokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: GOOGLE_DRIVE_SCOPES,
-        callback: async (tokenResponse: any) => {
-            if (tokenResponse && tokenResponse.access_token) {
-                // The gapi client needs to be explicitly given the access token.
-                window.gapi.client.setToken(tokenResponse);
-                setIsSignedIn(true);
-            } else if (tokenResponse.error) {
-                setError(`Google Sign-In Error: ${tokenResponse.error}`);
-                console.error('Google Sign-In Error:', tokenResponse);
-            }
-        },
-    });
-
-    if (window.gapi?.client) {
-        // Both scripts are loaded, API is ready
+  // This function is called after each library attempts to initialize.
+  // It sets the API to "ready" only when both libraries have successfully loaded.
+  const checkApiReady = useCallback(() => {
+    if (gapiInited.current && gisInited.current) {
         setIsApiReady(true);
     }
   }, []);
+
+  const handleGapiLoad = useCallback(() => {
+    window.gapi.load('client', async () => {
+        try {
+            await window.gapi.client.init({
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            gapiInited.current = true;
+            checkApiReady();
+        } catch (e) {
+            console.error("GAPI client init error:", e);
+            setError("Failed to initialize Google API client.");
+            setSyncStatus('error');
+        }
+    });
+  }, [checkApiReady]);
+
+  const handleGisLoad = useCallback(() => {
+    if (!GOOGLE_CLIENT_ID) {
+      console.warn("Google Client ID is not configured. Google Drive Sync will be disabled.");
+      gisInited.current = true; // Mark as "inited" so the app doesn't hang if gapi loads.
+      checkApiReady();
+      return;
+    }
+      
+    try {
+        window.tokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: GOOGLE_DRIVE_SCOPES,
+            callback: async (tokenResponse: any) => {
+                if (tokenResponse && tokenResponse.access_token) {
+                    window.gapi.client.setToken(tokenResponse);
+                    setIsSignedIn(true);
+                    setError(null); // Clear previous errors on successful sign-in.
+                } else if (tokenResponse.error) {
+                    setError(`Google Sign-In Error: ${tokenResponse.error}`);
+                    console.error('Google Sign-In Error:', tokenResponse);
+                }
+            },
+        });
+        gisInited.current = true;
+        checkApiReady();
+    } catch (e) {
+        console.error("GIS token client init error:", e);
+        setError("Failed to initialize Google Sign-In.");
+        setSyncStatus('error');
+    }
+  }, [checkApiReady]);
 
   useEffect(() => {
       // Attach script load handlers to the window object
@@ -191,10 +203,10 @@ export const useGoogleDrive = () => {
           return;
       }
       if (window.tokenClient) {
-          // This will trigger the Google sign-in flow.
-          // It will use an existing session if available, or prompt the user to sign in
-          // and grant permissions if necessary. This is more reliable than forcing consent.
-          window.tokenClient.requestAccessToken();
+          // This will trigger the Google sign-in flow and request an access token.
+          window.tokenClient.requestAccessToken({ prompt: '' });
+      } else {
+          setError("Google Sign-In client is not available. Please refresh the page.");
       }
   }, [isApiReady]);
 
@@ -209,6 +221,12 @@ export const useGoogleDrive = () => {
       });
     }
   }, []);
+  
+  useEffect(() => {
+    if (isApiReady && !isSignedIn) {
+      signIn();
+    }
+  }, [isApiReady, isSignedIn, signIn]);
 
-  return { isApiReady, isSignedIn, signIn, signOut, loadCollection, saveCollection, syncStatus, error };
+  return { isApiReady, isSignedIn, signOut, loadCollection, saveCollection, syncStatus, error };
 };

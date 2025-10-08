@@ -64,7 +64,6 @@ const App: React.FC = () => {
   const { 
     isApiReady, 
     isSignedIn, 
-    signIn, 
     signOut, 
     loadCollection, 
     saveCollection, 
@@ -84,7 +83,9 @@ const App: React.FC = () => {
       if (isSignedIn && !hasLoadedFromDrive.current) {
         try {
           const driveCds = await loadCollection();
-          if (driveCds) {
+          // Only treat Drive as the source of truth if it returns a non-empty array.
+          // This prevents an empty Drive file from overwriting a local collection on first sync.
+          if (driveCds && driveCds.length > 0) {
             setCds(driveCds);
             hasLoadedFromDrive.current = true;
             return;
@@ -259,7 +260,6 @@ const App: React.FC = () => {
         <Header 
           isApiReady={isApiReady}
           isSignedIn={isSignedIn}
-          signIn={signIn}
           signOut={signOut}
           syncStatus={syncStatus}
           driveError={driveError}
