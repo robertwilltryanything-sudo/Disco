@@ -16,7 +16,19 @@
 // 5. Select "Web application" as the application type.
 // 6. Under "Authorized JavaScript origins", add your local development URL (e.g., http://localhost:5173) and your final deployment URL (from GitHub Pages).
 // 7. Click "Create" and copy the "Client ID".
-export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const clientId = process.env.GOOGLE_CLIENT_ID;
+
+// Vite replaces `process.env.VITE_GOOGLE_CLIENT_ID` with `JSON.stringify(...)`.
+// If the secret is missing, this can result in the literal string 'undefined'.
+// This logic cleans that up, ensuring the exported value is either a valid string or proper `undefined`.
+const cleanedClientId = (clientId === 'undefined' || !clientId) ? undefined : clientId;
+
+if (!cleanedClientId) {
+  // This warning is helpful for developers to know why sync is not working.
+  console.warn("VITE_GOOGLE_CLIENT_ID is not configured. Google Drive Sync will be disabled.");
+}
+
+export const GOOGLE_CLIENT_ID = cleanedClientId;
 
 // The scope for the Google Drive API.
 // 'drive.file' scope allows the app to create, read, and modify files it creates.

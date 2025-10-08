@@ -1,7 +1,13 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD } from './types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY;
+
+if (!apiKey || apiKey === 'undefined') {
+  throw new Error("VITE_API_KEY is not set. Please add it to your repository secrets.");
+}
+
+const ai = new GoogleGenAI({ apiKey });
 
 const albumInfoSchema = {
     type: Type.OBJECT,
