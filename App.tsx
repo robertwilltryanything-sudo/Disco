@@ -13,6 +13,7 @@ import AddCDForm from './components/AddCDForm';
 import { XIcon } from './components/icons/XIcon';
 import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
 import { areStringsSimilar } from './utils';
+import { useDebounce } from './hooks/useDebounce';
 
 // Initial data for demonstration purposes. Cover art will be found on first load.
 const INITIAL_CDS: CD[] = [
@@ -59,6 +60,7 @@ const findPotentialDuplicate = (newCd: Omit<CD, 'id'>, collection: CD[]): CD | n
 
 const App: React.FC = () => {
   const [cds, setCds] = useState<CD[]>([]);
+  const debouncedCds = useDebounce(cds, 1000);
   const { 
     isApiReady, 
     isSignedIn, 
@@ -115,7 +117,7 @@ const App: React.FC = () => {
     }
   }, [isApiReady, isSignedIn, loadCollection]);
 
-  // Data saving effect - now saves immediately on any change to the `cds` state.
+  // Data saving effect - now debounced to avoid excessive writes during rapid changes.
   useEffect(() => {
     if (isInitialLoad.current) {
       isInitialLoad.current = false;
@@ -123,15 +125,15 @@ const App: React.FC = () => {
     }
 
     try {
-      localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(cds));
+      localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(debouncedCds));
     } catch (error) {
       console.error("Error saving CDs to localStorage:", error);
     }
     
     if (isSignedIn) {
-      saveCollection(cds);
+      saveCollection(debouncedCds);
     }
-  }, [cds, isSignedIn, saveCollection]);
+  }, [debouncedCds, isSignedIn, saveCollection]);
   
   // FIX: Using a generic type `T` to preserve the exact type of the `cd` object passed in.
   // This ensures that if a `CD` with a required `id` is passed, the function returns a `CD`,
