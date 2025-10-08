@@ -15,7 +15,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
   "include": [
     "**/*.ts",
@@ -23,7 +23,6 @@
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "vite.config.ts"
+    "dist"
   ]
 }
