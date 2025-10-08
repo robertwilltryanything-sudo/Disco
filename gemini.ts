@@ -1,7 +1,15 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD } from './types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// This will be replaced by Vite during the build process.
+// We add a check to satisfy TypeScript's strict null checks and to provide a clear error
+// if the environment variable is missing from the deployment secrets.
+const API_KEY = process.env.API_KEY;
+if (!API_KEY) {
+    throw new Error("VITE_API_KEY is not defined. Please ensure this secret is set in your deployment environment.");
+}
+
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const albumInfoSchema = {
     type: Type.OBJECT,
