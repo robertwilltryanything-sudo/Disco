@@ -11,10 +11,7 @@ interface ArtistsViewProps {
 const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
   const artists = useMemo(() => {
     const artistSet = new Set(cds.map(cd => cd.artist));
-    // FIX: The type of elements from the Set was being inferred as 'unknown'.
-    // Casting the result of the spread operator to a string array ensures
-    // that the `sort` callback parameters are correctly typed as strings.
-    return ([...artistSet] as string[]).sort((a, b) => a.localeCompare(b));
+    return [...artistSet].sort((a, b) => a.localeCompare(b));
   }, [cds]);
 
   return (
