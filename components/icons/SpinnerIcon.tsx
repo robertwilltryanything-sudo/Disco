@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 export const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -6,6 +7,7 @@ export const SpinnerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
         xmlns="http://www.w3.org/2000/svg" 
         fill="none" 
         viewBox="0 0 24 24"
+        className={`animate-spin ${props.className || ''}`}
         {...props}
     >
         <path 

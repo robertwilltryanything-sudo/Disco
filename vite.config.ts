@@ -3,7 +3,21 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Custom plugin to remove the development-only import map from index.html before building.
+    // This is a more robust solution than using `sed` in the CI/CD pipeline.
+    {
+      name: 'remove-import-map-plugin',
+      transformIndexHtml: {
+        order: 'pre',
+        handler(html) {
+          // The 's' flag allows '.' to match newline characters, ensuring the entire multi-line script block is removed.
+          return html.replace(/<script type="importmap">.*?<\/script>/s, '');
+        },
+      },
+    },
+  ],
   // This base path is now set automatically during the GitHub Actions deployment.
   // The VITE_BASE_URL is generated from your repository's name in the deploy.yml workflow.
   // For local development, it defaults to '/' which is standard for Vite.

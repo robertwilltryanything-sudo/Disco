@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { CD } from './types';
@@ -6,6 +7,7 @@ import Header from './components/Header';
 import ListView from './views/ListView';
 import DetailView from './views/DetailView';
 import ArtistsView from './views/ArtistsView';
+import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
 import { useGoogleDrive } from './hooks/useGoogleDrive';
 import { findCoverArt } from './wikipedia';
@@ -63,7 +65,8 @@ const App: React.FC = () => {
   const debouncedCds = useDebounce(cds, 1000);
   const { 
     isApiReady, 
-    isSignedIn, 
+    isSignedIn,
+    signIn,
     signOut, 
     loadCollection, 
     saveCollection, 
@@ -213,19 +216,22 @@ const App: React.FC = () => {
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     if (cdData.id) {
-      // This is an update, no duplicate check needed
-      await handleUpdateCD(cdData as CD);
+      // This is an update. Reconstruct the object to be explicitly of type `CD`
+      // to satisfy TypeScript's strict checking, removing the need for a risky cast.
+      // This is the likely fix for the build failure.
+      const cdToUpdate: CD = { ...cdData, id: cdData.id };
+      await handleUpdateCD(cdToUpdate);
       handleCloseModal();
     } else {
-      // This is a new CD, check for duplicates
+      // This is a new CD, check for duplicates.
       const duplicate = findPotentialDuplicate(cdData, cds);
       if (duplicate) {
-        // Found a duplicate, open confirmation modal
-        // The add/edit modal remains open in the background
+        // Found a duplicate, open confirmation modal.
+        // The add/edit modal remains open in the background.
         setDuplicateInfo({ newCd: cdData, existingCd: duplicate });
       } else {
-        // No duplicate, proceed with adding and close the modal
-        await handleAddCD(cdData as Omit<CD, 'id'>);
+        // No duplicate, proceed with adding and close the modal.
+        await handleAddCD(cdData);
         handleCloseModal();
       }
     }
@@ -258,6 +264,7 @@ const App: React.FC = () => {
         <Header 
           isApiReady={isApiReady}
           isSignedIn={isSignedIn}
+          signIn={signIn}
           signOut={signOut}
           syncStatus={syncStatus}
           driveError={driveError}
@@ -283,6 +290,11 @@ const App: React.FC = () => {
           <Route path="/artists" element={
             <RouteWrapper>
               <ArtistsView cds={cds} />
+            </RouteWrapper>
+          } />
+          <Route path="/dashboard" element={
+            <RouteWrapper>
+              <DashboardView cds={cds} />
             </RouteWrapper>
           } />
         </Routes>

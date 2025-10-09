@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { SyncStatus } from '../hooks/useGoogleDrive';
@@ -6,12 +7,13 @@ import { SyncStatus } from '../hooks/useGoogleDrive';
 interface GoogleDriveSyncProps {
   isApiReady: boolean;
   isSignedIn: boolean;
+  signIn: () => void;
   signOut: () => void;
   status: SyncStatus;
   error: string | null;
 }
 
-const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ isApiReady, isSignedIn, signOut, status, error }) => {
+const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ isApiReady, isSignedIn, signIn, signOut, status, error }) => {
   if (!isApiReady) {
     return (
         <div className="flex flex-col items-center gap-2 p-2">
@@ -37,13 +39,24 @@ const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ isApiReady, isSignedI
             </>
         ) : (
             <>
-                <div className="flex flex-col items-center gap-2 p-2">
-                    <SpinnerIcon className="h-6 w-6 text-zinc-400" />
-                    <span className="text-sm text-zinc-500 text-center">Connecting to Google Drive...</span>
-                </div>
+                <p className="text-sm text-zinc-600 text-center max-w-xs">
+                    Sign in to back up your collection to Google Drive.
+                </p>
+                 <button
+                    onClick={signIn}
+                    className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    Sign In to Google Drive
+                </button>
                 {status === 'error' && error && (
-                  <p className="text-red-600 text-sm max-w-xs text-center">{error}</p>
+                  <p className="text-red-600 text-sm max-w-xs text-center mt-2">{error}</p>
                 )}
+                 {status !== 'error' && !error && (
+                    <div className="flex items-center gap-2 p-2">
+                        <SpinnerIcon className="h-4 w-4 text-zinc-400" />
+                        <span className="text-xs text-zinc-500 text-center">Waiting for sign in...</span>
+                    </div>
+                 )}
             </>
         )}
     </div>

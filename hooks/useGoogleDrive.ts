@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD } from '../types';
@@ -22,6 +23,31 @@ export const useGoogleDrive = () => {
 
   const fileIdRef = useRef<string | null>(null);
   const initialSignInAttempted = useRef(false);
+  
+  const clearAuthState = useCallback(() => {
+    window.gapi?.client?.setToken(null);
+    setIsSignedIn(false);
+    fileIdRef.current = null;
+    setSyncStatus('idle');
+    // Allow the auto-sign-in attempt to happen again after being signed out.
+    initialSignInAttempted.current = false; 
+  }, []);
+
+  const handleApiError = useCallback((e: any, context: string) => {
+    const errorDetails = e?.result?.error;
+    const errorCode = errorDetails?.code;
+    
+    console.error(`Error ${context}:`, e);
+
+    // If auth error (invalid credentials, revoked token, etc.), sign the user out.
+    if (errorCode === 401 || errorCode === 403) {
+      clearAuthState();
+      setError("Sync failed due to an authentication issue. Please sign in again.");
+    } else {
+      setError(`Could not ${context}. ${errorDetails?.message || 'Please try again later.'}`);
+    }
+    setSyncStatus('error');
+  }, [clearAuthState]);
 
   const handleGapiLoad = useCallback(async () => {
     window.gapi.load('client', async () => {
@@ -149,12 +175,10 @@ export const useGoogleDrive = () => {
         fileIdRef.current = fileId;
         return fileId;
     } catch (e: any) {
-        console.error("Error finding or creating Drive file:", e);
-        setError(`Could not access Google Drive file. ${e?.result?.error?.message || ''}`);
-        setSyncStatus('error');
+        handleApiError(e, 'access Google Drive file');
         throw e;
     }
-  }, []);
+  }, [handleApiError]);
   
   const loadCollection = useCallback(async (): Promise<CD[] | null> => {
     if (!isSignedIn) return null;
@@ -178,12 +202,10 @@ export const useGoogleDrive = () => {
         setSyncStatus('synced');
         return [];
     } catch (e: any) {
-        console.error("Error loading collection from Drive:", e);
-        setError(`Failed to load data from Drive. ${e?.result?.error?.message || ''}`);
-        setSyncStatus('error');
+        handleApiError(e, 'load data from Drive');
         return null;
     }
-  }, [isSignedIn, getOrCreateFileId]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
   const saveCollection = useCallback(async (cds: CD[]) => {
     if (!isSignedIn) return;
@@ -202,23 +224,20 @@ export const useGoogleDrive = () => {
         
         setTimeout(() => setSyncStatus('synced'), 500); // Add a small delay to show 'saving' status
     } catch (e: any) {
-        console.error("Error saving collection to Drive:", e);
-        setError(`Failed to save data to Drive. ${e?.result?.error?.message || ''}`);
-        setSyncStatus('error');
+        handleApiError(e, 'save data to Drive');
     }
-  }, [isSignedIn, getOrCreateFileId]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
   const signOut = useCallback(() => {
     const token = window.gapi.client.getToken();
-    if (token !== null) {
+    if (token !== null && window.google?.accounts?.oauth2) {
       window.google.accounts.oauth2.revoke(token.access_token, () => {
-        window.gapi.client.setToken(null);
-        setIsSignedIn(false);
-        fileIdRef.current = null;
-        setSyncStatus('idle');
+        clearAuthState();
       });
+    } else {
+      clearAuthState();
     }
-  }, []);
+  }, [clearAuthState]);
 
-  return { isApiReady, isSignedIn, signOut, loadCollection, saveCollection, syncStatus, error };
+  return { isApiReady, isSignedIn, signIn, signOut, loadCollection, saveCollection, syncStatus, error };
 };

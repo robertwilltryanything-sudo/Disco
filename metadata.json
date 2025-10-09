@@ -1,6 +1,6 @@
 {
-  "name": "DISCO",
-  "description": "DISCO helps you manage your personal CD collection. Easily add new titles and search your collection to avoid buying duplicates unless you really really wants to.",
+  "name": "DiscO",
+  "description": "DiscO helps you manage your personal CD collection. Easily add new titles and search your collection to avoid buying duplicates unless you really really wants to.",
   "requestFramePermissions": [
     "camera"
   ]

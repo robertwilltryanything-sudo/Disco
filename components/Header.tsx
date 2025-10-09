@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import GoogleDriveSync from './GoogleDriveSync';
@@ -9,6 +10,7 @@ import StatusIndicator from './StatusIndicator';
 interface HeaderProps {
     isApiReady: boolean;
     isSignedIn: boolean;
+    signIn: () => void;
     signOut: () => void;
     syncStatus: SyncStatus;
     driveError: string | null;
@@ -16,7 +18,7 @@ interface HeaderProps {
     collectionCount: number;
 }
 
-const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signOut, syncStatus, driveError, onAddClick, collectionCount }) => {
+const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut, syncStatus, driveError, onAddClick, collectionCount }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +51,14 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signOut, syncSt
         
         <nav className="flex-shrink-0">
             <ul className="flex items-center gap-4">
+            <li>
+                <NavLink 
+                to="/dashboard" 
+                className={({ isActive }) => `text-lg font-medium ${isActive ? 'text-zinc-900' : 'text-zinc-600'} hover:text-zinc-900 pb-1 border-b-2 ${isActive ? 'border-zinc-900' : 'border-transparent'}`}
+                >
+                Dashboard
+                </NavLink>
+            </li>
             <li>
                 <NavLink 
                 to="/artists" 
@@ -96,6 +106,7 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signOut, syncSt
                     <GoogleDriveSync 
                     isApiReady={isApiReady}
                     isSignedIn={isSignedIn}
+                    signIn={signIn}
                     signOut={signOut}
                     status={syncStatus}
                     error={driveError}

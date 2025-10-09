@@ -30,14 +30,14 @@ on:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# Allow only one concurrent deployment, cancelling runs queued between the run in-progress and latest queued.
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -58,8 +58,6 @@ jobs:
       - name: Extract repository name
         id: repo_name
         run: echo "name=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> $GITHUB_OUTPUT
-      - name: Remove Import Map for Build
-        run: sed -i '/<script type="importmap">/,/<\/script>/d' index.html
       - name: Build
         # The VITE_... environment variables are used by vite.config.ts
         # to make the secrets and the correct base URL available to the
