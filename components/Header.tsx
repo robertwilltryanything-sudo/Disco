@@ -18,6 +18,23 @@ interface HeaderProps {
     collectionCount: number;
 }
 
+const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
+  <li>
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `text-lg font-medium pb-1 border-b-2 ${
+          isActive
+            ? 'text-zinc-900 border-zinc-900'
+            : 'text-zinc-600 border-transparent'
+        } hover:text-zinc-900`
+      }
+    >
+      {children}
+    </NavLink>
+  </li>
+);
+
 const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut, syncStatus, driveError, onAddClick, collectionCount }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -51,31 +68,17 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
         
         <nav className="flex-shrink-0">
             <ul className="flex items-center gap-4">
-            <li>
-                <NavLink 
-                to="/dashboard" 
-                className={({ isActive }) => `text-lg font-medium ${isActive ? 'text-zinc-900' : 'text-zinc-600'} hover:text-zinc-900 pb-1 border-b-2 ${isActive ? 'border-zinc-900' : 'border-transparent'}`}
-                >
-                Dashboard
-                </NavLink>
-            </li>
-            <li>
-                <NavLink 
-                to="/artists" 
-                className={({ isActive }) => `text-lg font-medium ${isActive ? 'text-zinc-900' : 'text-zinc-600'} hover:text-zinc-900 pb-1 border-b-2 ${isActive ? 'border-zinc-900' : 'border-transparent'}`}
-                >
-                Artists
-                </NavLink>
-            </li>
-            <li>
-                <button
-                    onClick={onAddClick}
-                    className="text-lg font-medium text-zinc-600 hover:text-zinc-900"
-                    aria-label="Add a new CD"
-                >
-                    Add CD
-                </button>
-            </li>
+                <NavItem to="/dashboard">Dashboard</NavItem>
+                <NavItem to="/artists">Artists</NavItem>
+                <li>
+                    <button
+                        onClick={onAddClick}
+                        className="text-lg font-medium text-zinc-600 hover:text-zinc-900"
+                        aria-label="Add a new CD"
+                    >
+                        Add CD
+                    </button>
+                </li>
             </ul>
         </nav>
 
