@@ -54,7 +54,9 @@ jobs:
           node-version: 20
           cache: 'npm'
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm cache clean --force
+          npm ci
       - name: Extract repository name
         id: repo_name
         run: echo "name=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> $GITHUB_OUTPUT
