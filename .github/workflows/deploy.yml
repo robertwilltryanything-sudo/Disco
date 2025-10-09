@@ -14,8 +14,8 @@
 #      b) Name: VITE_GOOGLE_CLIENT_ID
 #         Value: Your Google Cloud OAuth 2.0 Client ID.
 #
-# NOTE: The base URL for the project is now set automatically from your
-# repository name. You no longer need to manually edit vite.config.ts.
+# NOTE: The base URL for the project is now set automatically by vite.config.ts
+# during the GitHub Actions build.
 # -----------------------------------------------------------
 
 name: Deploy to GitHub Pages
@@ -54,18 +54,14 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm ci
-      - name: Extract repository name
-        id: repo_name
-        run: echo "name=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> $GITHUB_OUTPUT
       - name: Build
         # The VITE_... environment variables are used by vite.config.ts
-        # to make the secrets and the correct base URL available to the
-        # application code at build time.
+        # to make the secrets available to the application code at build time.
+        # The base URL is now handled automatically within vite.config.ts.
         run: npm run build
         env:
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_BASE_URL: /${{ steps.repo_name.outputs.name }}/
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
