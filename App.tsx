@@ -137,10 +137,10 @@ const App: React.FC = () => {
     }
   }, [debouncedCds, isSignedIn, saveCollection]);
   
-  // FIX: Using a generic type `T` to preserve the exact type of the `cd` object passed in.
-  // This ensures that if a `CD` with a required `id` is passed, the function returns a `CD`,
-  // resolving a downstream type error in `handleUpdateCD`.
-  const fetchAndApplyAlbumDetails = useCallback(async <T extends Omit<CD, 'id'> & { id?: string }>(cd: T): Promise<T> => {
+  // Using a generic type `T` with a `Partial<CD>` constraint preserves the specific type of the
+  // `cd` object passed in (`CD` for updates, `Omit<CD, 'id'>` for additions). This resolves
+  // type errors at both call sites while ensuring type safety.
+  const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD>>(cd: T): Promise<T> => {
     const shouldFetch = !cd.genre || !cd.recordLabel || !cd.tags || cd.tags.length === 0;
 
     if (shouldFetch && cd.artist && cd.title) {
@@ -156,8 +156,8 @@ const App: React.FC = () => {
                 if (!enrichedCd.recordLabel && details.recordLabel) {
                     enrichedCd.recordLabel = details.recordLabel;
                 }
-                // FIX: The type of `year` is `number | undefined`, so it cannot be compared to an empty string.
-                // The check `!enrichedCd.year` is sufficient to see if the year is missing.
+                // The type of `year` is `number | undefined`, so the check `!enrichedCd.year`
+                // is sufficient to see if the year is missing.
                 if (!enrichedCd.year && details.year) {
                     enrichedCd.year = details.year;
                 }
@@ -217,8 +217,7 @@ const App: React.FC = () => {
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     if (cdData.id) {
       // This is an update. Reconstruct the object to be explicitly of type `CD`
-      // to satisfy TypeScript's strict checking, removing the need for a risky cast.
-      // This is the likely fix for the build failure.
+      // to satisfy TypeScript's strict checking.
       const cdToUpdate: CD = { ...cdData, id: cdData.id };
       await handleUpdateCD(cdToUpdate);
       handleCloseModal();

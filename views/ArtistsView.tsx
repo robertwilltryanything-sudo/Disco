@@ -11,7 +11,9 @@ interface ArtistsViewProps {
 const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
   const artists = useMemo(() => {
     const artistSet = new Set(cds.map(cd => cd.artist));
-    return [...artistSet].sort((a, b) => a.localeCompare(b));
+    // FIX: Explicitly type `a` and `b` as strings to inform TypeScript of their type,
+    // resolving the error where `localeCompare` was being called on an `unknown` type.
+    return [...artistSet].sort((a: string, b: string) => a.localeCompare(b));
   }, [cds]);
 
   return (
