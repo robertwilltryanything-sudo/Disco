@@ -97,7 +97,9 @@ export async function getAlbumDetails(artist: string, title: string): Promise<{ 
         if (jsonString) {
             try {
                 const albumData = JSON.parse(jsonString);
-                return albumData;
+                // The result from JSON.parse is of type 'any'. We must explicitly assert its type
+                // to match the function's return signature and satisfy the strict TypeScript compiler.
+                return albumData as { genre?: string; year?: number; recordLabel?: string; tags?: string[] };
             } catch (e) {
                 console.error("Failed to parse JSON response from Gemini for album details:", e);
                 return null;
