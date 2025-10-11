@@ -28,16 +28,29 @@ Deploying to other platforms like GitHub Pages is possible but often requires co
 
 ### Step 3: Configure Your Project
 
-Vercel will automatically detect that you are using Vite. **You do not need to change any settings.**
+Vercel automatically detects that you're using Vite, but we need to make two adjustments for a flawless deployment.
 
-1.  Expand the **Environment Variables** section.
-2.  Add the following two variables:
+#### 1. Add Environment Variables
+Expand the **Environment Variables** section and add your secret keys:
 
-    -   **Key:** `VITE_API_KEY`
-    -   **Value:** *Your Google Gemini API Key*
+-   **Key:** `VITE_API_KEY`
+-   **Value:** *Your Google Gemini API Key*
 
-    -   **Key:** `VITE_GOOGLE_CLIENT_ID`
-    -   **Value:** *Your Google Cloud OAuth 2.0 Client ID*
+-   **Key:** `VITE_GOOGLE_CLIENT_ID`
+-   **Value:** *Your Google Cloud OAuth 2.0 Client ID*
+
+#### 2. Override the Install Command (Crucial Fix for Build Errors)
+To prevent common caching errors during deployment, we'll force Vercel to perform a clean installation of all packages every time.
+
+1.  Go to your project's **Settings** tab.
+2.  In the left sidebar, select **General**.
+3.  Scroll down to the **Build & Development Settings** section.
+4.  Find **Install Command** and click the toggle to **Override** it.
+5.  In the input field that appears, enter the following command:
+    ```bash
+    npm install --force
+    ```
+This command tells Vercel to bypass its cache and download fresh copies of all dependencies, which is a robust way to fix the `EINTEGRITY` error you've been seeing.
 
 ### Step 4: Deploy!
 
