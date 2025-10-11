@@ -1,10 +1,12 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD } from './types';
 
+// The API key is injected at build time by Vite.
+// The user must set VITE_API_KEY in their environment (e.g., .env file or Vercel dashboard).
 const apiKey = process.env.API_KEY;
 
-if (!apiKey || apiKey === 'undefined') {
-  throw new Error("VITE_API_KEY is not set. Please add it to your repository secrets.");
+if (!apiKey) {
+  throw new Error("API_KEY is not set. Please ensure the VITE_API_KEY environment variable is configured correctly.");
 }
 
 const ai = new GoogleGenAI({ apiKey });

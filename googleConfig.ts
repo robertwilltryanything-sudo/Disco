@@ -5,8 +5,8 @@
 // 2. Add the following line to it, replacing the placeholder with your actual Client ID:
 //    VITE_GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
 //
-// For deployment (via the provided GitHub Action):
-// - This value is set using a repository secret named `VITE_GOOGLE_CLIENT_ID`.
+// For deployment (e.g., on Vercel):
+// - This value is set using an environment variable named `VITE_GOOGLE_CLIENT_ID`.
 //
 // If you don't have a Client ID, follow these instructions:
 // 1. Go to the Google Cloud Console: https://console.cloud.google.com/
@@ -14,21 +14,16 @@
 // 3. Go to "APIs & Services" > "Credentials".
 // 4. Click "Create Credentials" > "OAuth client ID".
 // 5. Select "Web application" as the application type.
-// 6. Under "Authorized JavaScript origins", add your local development URL (e.g., http://localhost:5173) and your final deployment URL (from GitHub Pages).
+// 6. Under "Authorized JavaScript origins", add your local development URL (e.g., http://localhost:5173) and your final deployment URL.
 // 7. Click "Create" and copy the "Client ID".
 const clientId = process.env.GOOGLE_CLIENT_ID;
 
-// Vite replaces `process.env.VITE_GOOGLE_CLIENT_ID` with `JSON.stringify(...)`.
-// If the secret is missing, this can result in the literal string 'undefined'.
-// This logic cleans that up, ensuring the exported value is either a valid string or proper `undefined`.
-const cleanedClientId = (clientId === 'undefined' || !clientId) ? undefined : clientId;
-
-if (!cleanedClientId) {
+if (!clientId) {
   // This warning is helpful for developers to know why sync is not working.
   console.warn("VITE_GOOGLE_CLIENT_ID is not configured. Google Drive Sync will be disabled.");
 }
 
-export const GOOGLE_CLIENT_ID = cleanedClientId;
+export const GOOGLE_CLIENT_ID = clientId;
 
 // The scope for the Google Drive API.
 // 'drive.file' scope allows the app to create, read, and modify files it creates.
