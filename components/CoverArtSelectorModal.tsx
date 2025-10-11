@@ -34,7 +34,7 @@ const CoverArtSelectorModal: React.FC<CoverArtSelectorModalProps> = ({ isOpen, o
             <button
               key={index}
               onClick={() => handleSelect(url)}
-              className="block group bg-white rounded-md border border-zinc-200 overflow-hidden hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+              className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
               aria-label={`Select cover art option ${index + 1}`}
             >
               <img src={url} alt={`Cover art option ${index + 1}`} className="w-full h-auto aspect-square object-cover" />
@@ -44,7 +44,7 @@ const CoverArtSelectorModal: React.FC<CoverArtSelectorModalProps> = ({ isOpen, o
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="py-2 px-4 rounded-md bg-white text-zinc-700 font-medium border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-800"
+            className="py-2 px-4 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-800"
           >
             Cancel
           </button>

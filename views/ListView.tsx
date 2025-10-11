@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
@@ -8,8 +6,9 @@ import SearchBar from '../components/SearchBar';
 import SortControls from '../components/SortControls';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { PlusIcon } from '../components/icons/PlusIcon';
-import FeaturedAlbum from '../components/FeaturedAlbum';
 import { useDebounce } from '../hooks/useDebounce';
+import FeaturedAlbum from '../components/FeaturedAlbum';
+import QuickStats from '../components/CollectionStats';
 
 interface ListViewProps {
   cds: CD[];
@@ -18,81 +17,15 @@ interface ListViewProps {
   onRequestEdit: (cd: CD) => void;
 }
 
-/**
- * Gets a consistent string for the start of the current week (Sunday).
- * This ensures the featured album only changes once per week.
- * @param date The current date.
- * @returns A string representing the date of the most recent Sunday.
- */
-const getWeekIdentifier = (date: Date): string => {
-    const d = new Date(date);
-    const day = d.getDay(); // Sunday is 0, Monday is 1, etc.
-    const diff = d.getDate() - day;
-    return new Date(d.setDate(diff)).toDateString();
-};
-
-
 const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRequestEdit }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms delay
   const [sortBy, setSortBy] = useState<SortKey>('artist');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [cdToDelete, setCdToDelete] = useState<CD | null>(null);
-  const [featuredCD, setFeaturedCD] = useState<CD | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
-
-  const selectNewFeaturedCD = useCallback(() => {
-    if (cds.length > 0) {
-      const randomIndex = Math.floor(Math.random() * cds.length);
-      const newFeaturedCD = cds[randomIndex];
-      setFeaturedCD(newFeaturedCD);
-
-      try {
-        const dataToStore = {
-          id: newFeaturedCD.id,
-          date: getWeekIdentifier(new Date()),
-        };
-        localStorage.setItem('featuredAlbum', JSON.stringify(dataToStore));
-      } catch (e) {
-        console.error("Failed to save featured album to localStorage", e);
-      }
-    }
-  }, [cds]);
-
-  useEffect(() => {
-    if (cds.length === 0) {
-      setFeaturedCD(null);
-      return;
-    }
-
-    const currentWeek = getWeekIdentifier(new Date());
-    let featuredAlbumData;
-
-    try {
-      const storedData = localStorage.getItem('featuredAlbum');
-      if (storedData) {
-        featuredAlbumData = JSON.parse(storedData);
-      }
-    } catch (e) {
-      console.error("Failed to parse featured album from localStorage", e);
-      localStorage.removeItem('featuredAlbum');
-    }
-
-    if (featuredAlbumData && featuredAlbumData.date === currentWeek) {
-      const existingFeaturedCD = cds.find(cd => cd.id === featuredAlbumData.id);
-      if (existingFeaturedCD) {
-        setFeaturedCD(existingFeaturedCD);
-      } else {
-        // The stored CD ID is no longer in the collection, so pick a new one
-        selectNewFeaturedCD();
-      }
-    } else {
-      // It's a new week or no featured album was stored, so pick a new one
-      selectNewFeaturedCD();
-    }
-  }, [cds, selectNewFeaturedCD]);
 
   // Effect to handle navigation state for editing or filtering
   useEffect(() => {
@@ -128,17 +61,26 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
     }
   }, [location.state, cds, navigate, onRequestEdit]);
 
+  const featuredCd = useMemo(() => {
+    if (cds.length === 0) return null;
+    // Feature the most recently added CD for freshness
+    return cds[0];
+  }, [cds]);
+
   const filteredAndSortedCds = useMemo(() => {
     return [...cds]
       .filter(cd => {
         const lowerCaseQuery = debouncedSearchQuery.toLowerCase();
+        // Handle decade searches like "1980s" by just checking for "1980"
+        const query = lowerCaseQuery.endsWith('s') && lowerCaseQuery.length === 5 ? lowerCaseQuery.slice(0, 4) : lowerCaseQuery;
+        
         return (
-          cd.artist.toLowerCase().includes(lowerCaseQuery) ||
-          cd.title.toLowerCase().includes(lowerCaseQuery) ||
-          (cd.year && cd.year.toString().includes(debouncedSearchQuery)) ||
-          (cd.genre && cd.genre.toLowerCase().includes(lowerCaseQuery)) ||
-          (cd.recordLabel && cd.recordLabel.toLowerCase().includes(lowerCaseQuery)) ||
-          (cd.tags && cd.tags.some(tag => tag.toLowerCase().includes(lowerCaseQuery)))
+          cd.artist.toLowerCase().includes(query) ||
+          cd.title.toLowerCase().includes(query) ||
+          (cd.year && cd.year.toString().includes(query)) ||
+          (cd.genre && cd.genre.toLowerCase().includes(query)) ||
+          (cd.recordLabel && cd.recordLabel.toLowerCase().includes(query)) ||
+          (cd.tags && cd.tags.some(tag => tag.toLowerCase().includes(query)))
         );
       })
       .sort((a, b) => {
@@ -180,13 +122,28 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
 
   return (
     <div>
-      {featuredCD && !searchQuery && (
-        <div className="mb-8">
-          <div className="w-full max-w-4xl mx-auto">
-            <FeaturedAlbum cd={featuredCD} />
-          </div>
+      <div className="lg:flex lg:gap-6 mb-8">
+        <div className="lg:w-2/3">
+          {featuredCd ? (
+            <FeaturedAlbum cd={featuredCd} />
+          ) : (
+            <div className="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center h-full text-center min-h-[250px]">
+                <h3 className="text-xl font-bold text-zinc-800">Your Collection is Empty</h3>
+                <p className="text-zinc-600 mt-2">Click the "Add CD" button to start building your collection.</p>
+                <button
+                    onClick={onRequestAdd}
+                    className="mt-4 flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+                >
+                    <PlusIcon className="h-5 w-5" />
+                    Add Your First CD
+                </button>
+            </div>
+          )}
         </div>
-      )}
+        <div className="hidden lg:block lg:w-1/3">
+          <QuickStats cds={cds} />
+        </div>
+      </div>
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <div className="w-full md:w-1/3">
@@ -198,7 +155,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
           </div>
           <button
             onClick={onRequestAdd}
-            className="flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-md hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 h-12"
+            className="flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 h-12"
           >
             <PlusIcon className="h-5 w-5" />
             <span className="hidden sm:inline">Add CD</span>

@@ -74,6 +74,30 @@ const albumDetailsSchema = {
     },
 };
 
+// FIX: Added the missing `getAlbumTrivia` function.
+export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
+    try {
+        const prompt = `Provide one interesting and brief piece of trivia about the album "${title}" by "${artist}". Respond with only a single, concise sentence.`;
+        
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        
+        const text = response.text;
+        if (!text) {
+            console.warn(`Gemini response for trivia for "${artist} - ${title}" was empty.`);
+            return null;
+        }
+
+        return text.trim();
+
+    } catch (error) {
+        console.error(`Error fetching trivia for "${artist} - ${title}" with Gemini:`, error);
+        throw error;
+    }
+}
+
 export async function getAlbumDetails(artist: string, title: string): Promise<{ genre?: string; year?: number; recordLabel?: string; tags?: string[] } | null> {
     try {
         const textPart = {
@@ -162,27 +186,6 @@ export async function getAlbumInfo(imageBase64: string): Promise<Partial<Omit<CD
 
     } catch (error) {
         console.error("Error analyzing album cover with Gemini:", error);
-        throw error;
-    }
-}
-
-export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
-    try {
-        const prompt = `Provide one short, interesting, and fun piece of trivia about the album "${title}" by "${artist}". Focus on a single surprising fact about its creation, a specific song, or its legacy. Keep the response concise and under 200 characters.`;
-        
-        const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                systemInstruction: "You are a music expert who provides brief, engaging trivia for music fans. Your tone is enthusiastic and knowledgeable. You only provide factual information.",
-            }
-        });
-        
-        const text = response.text;
-        return text ? text.trim() : null;
-
-    } catch (error) {
-        console.error(`Error fetching trivia for "${artist} - ${title}" with Gemini:`, error);
         throw error;
     }
 }

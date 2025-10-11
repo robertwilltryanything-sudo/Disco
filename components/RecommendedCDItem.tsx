@@ -15,7 +15,7 @@ const RecommendedCDItem: React.FC<RecommendedCDItemProps> = ({ cd }) => {
       className="block group"
       aria-label={`View details for ${cd.title} by ${cd.artist}`}
     >
-      <div className="bg-white rounded-md border border-zinc-200 overflow-hidden hover:border-zinc-300">
+      <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-300">
         <div className="relative">
           {cd.coverArtUrl ? (
             <img src={cd.coverArtUrl} alt={`${cd.title} cover`} className="w-full h-auto aspect-square object-cover" />
