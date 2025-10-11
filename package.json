@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "preinstall": "npm cache clean --force",
+    "preinstall": "rm -f package-lock.json && npm cache clean --force",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
