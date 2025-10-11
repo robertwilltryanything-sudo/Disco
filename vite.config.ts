@@ -5,18 +5,6 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [
     react(),
-    // Custom plugin to remove the development-only import map from index.html before building.
-    // This is a more robust solution than using `sed` in the CI/CD pipeline.
-    {
-      name: 'remove-import-map-plugin',
-      transformIndexHtml: {
-        order: 'pre',
-        handler(html) {
-          // The 's' flag allows '.' to match newline characters, ensuring the entire multi-line script block is removed.
-          return html.replace(/<script type="importmap">.*?<\/script>/s, '');
-        },
-      },
-    },
   ],
   // The base path is now '/', which is the default and correct for platforms like Netlify/Vercel.
   base: '/',
