@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preinstall": "rm -f package-lock.json && npm cache clean --force"
   },
   "dependencies": {
     "@google/genai": "^0.15.0",

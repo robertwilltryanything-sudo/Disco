@@ -22,14 +22,7 @@ Vercel is a great choice for this project because:
 
 ## Step 3: Configure Your Project
 
-Vercel will automatically detect your project is using Vite. You just need to adjust one setting to ensure the build is reliable.
-
-1.  In the project configuration screen, find the **Build & Development Settings**.
-2.  Locate the **Install Command** and click the switch to **Override** it.
-3.  In the text box that appears, enter: `npm install --force`
-4.  Leave all other settings as their defaults.
-
-This `--force` flag tells Vercel to download fresh copies of all dependencies, which fixes the `EINTEGRITY` error.
+Vercel will automatically detect your project is using Vite. The necessary fix for potential build errors is now included in the `package.json` file, so you can leave the settings as their defaults.
 
 ## Step 4: Add Environment Variables
 
