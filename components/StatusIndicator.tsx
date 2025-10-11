@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { SyncStatus } from '../hooks/useGoogleDrive';
 import { SpinnerIcon } from './icons/SpinnerIcon';
@@ -17,11 +18,13 @@ const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; text: string; col
   saving: { icon: SpinnerIcon, text: 'Saving', color: 'text-blue-500', tooltip: 'Saving changes to Google Drive...' },
   synced: { icon: CheckIcon, text: 'Synced', color: 'text-green-500', tooltip: 'Your collection is synced with Google Drive.' },
   error: { icon: XCircleIcon, text: 'Error', color: 'text-red-500', tooltip: 'An error occurred during sync.' },
+  disabled: { icon: XCircleIcon, text: 'Disabled', color: 'text-zinc-400', tooltip: 'Sync is disabled because it has not been configured.' },
 };
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error }) => {
   const { icon: Icon, color, tooltip } = statusMap[status];
-  const finalTooltip = status === 'error' && error ? error : tooltip;
+  // Show the specific error message from the hook for 'error' and 'disabled' states.
+  const finalTooltip = (status === 'error' || status === 'disabled') && error ? error : tooltip;
   
   return (
     <div className="relative group flex items-center">

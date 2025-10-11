@@ -14,6 +14,22 @@ interface GoogleDriveSyncProps {
 }
 
 const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ isApiReady, isSignedIn, signIn, signOut, status, error }) => {
+  // New state to handle when sync is not configured.
+  if (status === 'disabled') {
+    return (
+        <div className="flex flex-col items-center gap-3">
+            <p className="text-sm text-zinc-600 text-center max-w-xs">
+                Google Drive sync is not configured.
+            </p>
+            {error && (
+                <p className="text-yellow-700 bg-yellow-50 p-3 rounded-md text-xs max-w-xs text-center mt-1 border border-yellow-200">
+                    {error}
+                </p>
+            )}
+        </div>
+    );
+  }
+
   if (!isApiReady) {
     return (
         <div className="flex flex-col items-center gap-2 p-2">

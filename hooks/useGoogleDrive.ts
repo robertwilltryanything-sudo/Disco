@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD } from '../types';
 
-export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error';
+export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled';
 
 // Declare gapi and google on window for TypeScript
 declare global {
@@ -24,6 +24,17 @@ export const useGoogleDrive = () => {
   const fileIdRef = useRef<string | null>(null);
   const initialSignInAttempted = useRef(false);
   
+  // New effect to handle the unconfigured state
+  useEffect(() => {
+    // If the Client ID is missing, the sync feature is disabled.
+    if (!GOOGLE_CLIENT_ID) {
+      setSyncStatus('disabled');
+      setError('Google Sync is not configured. The administrator needs to provide a VITE_GOOGLE_CLIENT_ID.');
+      // Set API as "ready" so the UI doesn't hang in an initializing state.
+      setIsApiReady(true);
+    }
+  }, []);
+
   const clearAuthState = useCallback(() => {
     window.gapi?.client?.setToken(null);
     setIsSignedIn(false);
@@ -141,7 +152,8 @@ export const useGoogleDrive = () => {
 
   useEffect(() => {
     // Automatically trigger sign-in once when the API is ready and the user isn't signed in.
-    if (isApiReady && !isSignedIn && !initialSignInAttempted.current) {
+    // Added GOOGLE_CLIENT_ID check to prevent auto-sign-in when not configured.
+    if (isApiReady && !isSignedIn && !initialSignInAttempted.current && GOOGLE_CLIENT_ID) {
       initialSignInAttempted.current = true;
       signIn();
     }
