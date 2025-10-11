@@ -40,7 +40,7 @@ Expand the **Environment Variables** section and add your secret keys:
 -   **Value:** *Your Google Cloud OAuth 2.0 Client ID*
 
 #### 2. Override the Install Command (Crucial Fix for Build Errors)
-To prevent common caching errors during deployment, we'll force Vercel to perform a clean installation of all packages every time.
+To prevent stubborn caching and integrity errors (`EINTEGRITY`) during deployment, we'll force Vercel to perform a clean installation of all packages every time.
 
 1.  Go to your project's **Settings** tab.
 2.  In the left sidebar, select **General**.
@@ -48,9 +48,9 @@ To prevent common caching errors during deployment, we'll force Vercel to perfor
 4.  Find **Install Command** and click the toggle to **Override** it.
 5.  In the input field that appears, enter the following command:
     ```bash
-    npm install --force
+    npm cache clean --force && npm install --force
     ```
-This command tells Vercel to bypass its cache and download fresh copies of all dependencies, which is a robust way to fix the `EINTEGRITY` error you've been seeing.
+This command first clears any potentially corrupted packages from the build cache and then installs fresh copies. It is a highly effective way to solve the type of error you've been seeing.
 
 ### Step 4: Deploy!
 
