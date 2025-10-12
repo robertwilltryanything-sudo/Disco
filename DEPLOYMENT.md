@@ -16,15 +16,15 @@ Deploying to other platforms like GitHub Pages is possible but often requires co
 
 ## Important Note on Build Errors (`EINTEGRITY`)
 
-You may encounter `EINTEGRITY` errors during deployment. This is a common issue related to corrupt package caches on build servers. This project now includes a `vercel.json` file with the following content:
+You may encounter `EINTEGRITY` errors during deployment. This is a common issue related to corrupt package caches on build servers. To solve this, this project now includes a `vercel.json` file that instructs Vercel to use a more robust package manager.
 
 ```json
 {
-  "installCommand": "npm cache clean --force && npm install --force"
+  "installCommand": "pnpm install"
 }
 ```
 
-This file automatically tells Vercel to clear its cache and perform a clean install of all dependencies for every build, which reliably fixes this error. **You do not need to override the install command in the Vercel UI.**
+This file tells Vercel to use the `pnpm` package manager instead of `npm`. This is a more reliable solution to prevent package integrity errors that can occur with `npm`'s cache on build servers. Vercel will automatically use `pnpm`, install your dependencies cleanly, and build your project. **You do not need to override any settings in the Vercel UI.**
 
 ---
 
