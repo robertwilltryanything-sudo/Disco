@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
@@ -23,6 +24,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
   const [sortBy, setSortBy] = useState<SortKey>('artist');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [cdToDelete, setCdToDelete] = useState<CD | null>(null);
+  const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -64,10 +66,60 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
     }
   }, [location.state, cds, navigate, onRequestEdit]);
 
-  const featuredCd = useMemo(() => {
-    if (cds.length === 0) return null;
-    // Feature the most recently added CD for freshness
-    return cds[0];
+  useEffect(() => {
+    if (cds.length === 0) {
+        setFeaturedCd(null);
+        return;
+    }
+
+    const FEATURED_ALBUM_KEY = 'disco_featured_album';
+    const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+
+    const storedDataRaw = localStorage.getItem(FEATURED_ALBUM_KEY);
+    let storedData: { cdId: string; timestamp: number } | null = null;
+    if (storedDataRaw) {
+      try {
+        storedData = JSON.parse(storedDataRaw);
+      } catch (e) {
+        console.error("Could not parse featured album data from localStorage", e);
+        localStorage.removeItem(FEATURED_ALBUM_KEY);
+      }
+    }
+    
+    let currentFeaturedCdInCollection = null;
+    if (storedData && storedData.cdId) {
+        currentFeaturedCdInCollection = cds.find(cd => cd.id === storedData.cdId);
+    }
+    
+    const now = Date.now();
+    const needsNewFeaturedAlbum = 
+        !storedData || 
+        !currentFeaturedCdInCollection || // The old featured CD might have been deleted
+        (now - (storedData.timestamp || 0) > ONE_WEEK_IN_MS);
+
+    if (needsNewFeaturedAlbum) {
+        // Select a new random CD. To avoid picking the same one if it exists, filter it out first.
+        const potentialCds = currentFeaturedCdInCollection 
+            ? cds.filter(cd => cd.id !== currentFeaturedCdInCollection!.id) 
+            : cds;
+        
+        // If filtering out the only CD leaves an empty array, fall back to the full list.
+        const selectionPool = potentialCds.length > 0 ? potentialCds : cds;
+
+        const randomIndex = Math.floor(Math.random() * selectionPool.length);
+        const newFeaturedCd = selectionPool[randomIndex];
+        
+        if (newFeaturedCd) {
+            localStorage.setItem(FEATURED_ALBUM_KEY, JSON.stringify({
+                cdId: newFeaturedCd.id,
+                timestamp: now,
+            }));
+            setFeaturedCd(newFeaturedCd);
+        }
+    } else {
+        // Set the existing one
+        setFeaturedCd(currentFeaturedCdInCollection);
+    }
   }, [cds]);
 
   const filteredAndSortedCds = useMemo(() => {
