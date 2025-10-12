@@ -1,18 +1,22 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-  ],
-  // The base path is now '/', which is the default and correct for platforms like Netlify/Vercel.
-  base: '/',
-  define: {
-    // Vite replaces these expressions with string literals at build time.
-    // This makes environment variables from the build environment (e.g., hosting provider's UI)
-    // available to the client-side code.
-    'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY),
-    'process.env.GOOGLE_CLIENT_ID': JSON.stringify(process.env.VITE_GOOGLE_CLIENT_ID),
-  },
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory.
+  // The third parameter `''` loads all env variables without the `VITE_` prefix requirement.
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
+    plugins: [
+      react(),
+    ],
+    base: '/',
+    // Define `process.env` variables to be replaced at build time.
+    // This makes them available in the client-side code.
+    define: {
+      'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY),
+      'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID),
+    },
+  };
 });

@@ -38,12 +38,12 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
           This entry looks very similar to one already in your collection.
         </p>
 
-        <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-md flex items-center gap-4">
+        <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center gap-4">
             <div className="flex-shrink-0">
                 {existingCd.coverArtUrl ? (
-                    <img src={existingCd.coverArtUrl} alt={`${existingCd.title} cover`} className="w-16 h-16 object-cover rounded-md" />
+                    <img src={existingCd.coverArtUrl} alt={`${existingCd.title} cover`} className="w-16 h-16 object-cover rounded-lg" />
                 ) : (
-                    <div className="w-16 h-16 bg-zinc-200 flex items-center justify-center rounded-md">
+                    <div className="w-16 h-16 bg-zinc-200 flex items-center justify-center rounded-lg">
                         <MusicNoteIcon className="w-8 h-8 text-zinc-400" />
                     </div>
                 )}
@@ -65,7 +65,7 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
             value={version}
             onChange={(e) => setVersion(e.target.value)}
             placeholder="e.g., SACD, Remaster, Bonus DVD"
-            className="mt-1 w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+            className="mt-1 w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
           />
         </div>
 
@@ -76,13 +76,13 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
         <div className="mt-6 flex justify-end space-x-3">
           <button
             onClick={onClose}
-            className="py-2 px-4 rounded-md bg-white text-zinc-700 font-medium border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-800"
+            className="py-2 px-4 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-800"
           >
             Cancel
           </button>
           <button
             onClick={() => onConfirm(version)}
-            className="py-2 px-4 rounded-md bg-zinc-900 text-white font-bold hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-900"
+            className="py-2 px-4 rounded-lg bg-zinc-900 text-white font-bold hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-900"
           >
             Add Anyway
           </button>

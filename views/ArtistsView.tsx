@@ -30,7 +30,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
       </div>
 
       {artists.length === 0 ? (
-        <div className="text-center py-10 px-4 bg-zinc-50 rounded-md border border-dashed border-zinc-300">
+        <div className="text-center py-10 px-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300">
             <p className="text-zinc-600">No artists found in your collection.</p>
             <p className="text-sm text-zinc-500 mt-1">Add a new CD to get started!</p>
         </div>
@@ -42,7 +42,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
                 key={artist}
                 to="/"
                 state={{ filterByArtist: artist }}
-                className="block text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 p-2 rounded-md truncate"
+                className="block text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 p-2 rounded-lg truncate"
                 title={artist}
                 >
                 {capitalizeWords(artist)}

@@ -97,13 +97,13 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
                 <MenuIcon className="h-6 w-6" />
                 </button>
 
-                <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-max bg-zinc-800 text-white text-sm rounded-md py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none z-20">
+                <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-max bg-zinc-800 text-white text-sm rounded-lg py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none z-20">
                   Sync Settings
                 </div>
 
                 {isMenuOpen && (
                 <div 
-                    className="absolute top-full right-0 mt-2 w-max bg-white rounded-md shadow-lg border border-zinc-200 p-4 z-30"
+                    className="absolute top-full right-0 mt-2 w-max bg-white rounded-lg shadow-lg border border-zinc-200 p-4 z-30"
                     role="menu"
                 >
                     <GoogleDriveSync 

@@ -64,7 +64,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd, onRequestDelete, onRequestEdit }) =
   }, [cd.genre, cd.year]);
 
   return (
-    <Link ref={ref} to={`/cd/${cd.id}`} className="block group relative bg-white rounded-md border border-zinc-200 overflow-hidden hover:border-zinc-300">
+    <Link ref={ref} to={`/cd/${cd.id}`} className="block group relative bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-300">
        <div className="relative">
         {isIntersecting ? (
           cd.coverArtUrl ? (

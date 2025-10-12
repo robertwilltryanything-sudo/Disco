@@ -11,7 +11,7 @@ interface CDListProps {
 const CDList: React.FC<CDListProps> = ({ cds, onRequestDelete, onRequestEdit }) => {
   if (cds.length === 0) {
     return (
-      <div className="text-center py-10 px-4 bg-zinc-50 rounded-md border border-dashed border-zinc-300">
+      <div className="text-center py-10 px-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300">
         <p className="text-zinc-600">No CDs found in your collection.</p>
         <p className="text-sm text-zinc-500 mt-1">Try changing your search or adding a new CD!</p>
       </div>

@@ -274,13 +274,13 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
         <h2 className="text-xl font-bold text-zinc-900">{cdToEdit ? 'Edit CD' : 'Add New CD'}</h2>
         
         {isProcessing && (
-            <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <SpinnerIcon className="h-6 w-6 mr-3 text-blue-600" />
                 <p className="text-blue-700">{processingStatus}</p>
             </div>
         )}
         {formError && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
                 {formError}
             </div>
         )}
@@ -290,7 +290,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                 <div className="relative w-full group">
                   {coverArtUrl ? (
                       <>
-                        <img src={coverArtUrl} alt="Album cover preview" className="w-full h-auto aspect-square object-cover rounded-md" />
+                        <img src={coverArtUrl} alt="Album cover preview" className="w-full h-auto aspect-square object-cover rounded-lg" />
                         <button
                             type="button"
                             onClick={handleRemoveArt}
@@ -301,7 +301,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                         </button>
                       </>
                   ) : (
-                      <div className="w-full h-auto aspect-square bg-zinc-200 flex items-center justify-center rounded-md">
+                      <div className="w-full h-auto aspect-square bg-zinc-200 flex items-center justify-center rounded-lg">
                           <MusicNoteIcon className="w-16 h-16 text-zinc-400" />
                       </div>
                   )}
@@ -318,13 +318,13 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                                 placeholder="Paste image URL"
                                 value={manualUrl}
                                 onChange={(e) => setManualUrl(e.target.value)}
-                                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 pl-9 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
+                                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 pl-9 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
                             />
                         </div>
                         <button
                             type="button"
                             onClick={handleSetArtFromUrl}
-                            className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-md hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
+                            className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
                         >
                             Set
                         </button>
@@ -333,7 +333,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                     <button
                         type="button"
                         onClick={handleFindArt}
-                        className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-md hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={!artist || !title}
                     >
                         <GlobeIcon className="h-4 w-4" />
@@ -348,7 +348,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
                 required
-                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
               />
               <input
                 type="text"
@@ -356,35 +356,35 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
               />
               <input
                 type="text"
                 placeholder="Version (e.g., Remaster, Deluxe Edition)"
                 value={version}
                 onChange={(e) => setVersion(e.target.value)}
-                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
               />
               <input
                 type="text"
                 placeholder="Genre"
                 value={genre}
                 onChange={(e) => setGenre(e.target.value)}
-                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
               />
               <input
                 type="number"
                 placeholder="Year"
                 value={year}
                 onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
               />
               <input
                 type="text"
                 placeholder="Record Label"
                 value={recordLabel}
                 onChange={(e) => setRecordLabel(e.target.value)}
-                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
               />
               <div>
                 <div className="flex gap-2">
@@ -394,12 +394,12 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                     value={currentTag}
                     onChange={(e) => setCurrentTag(e.target.value)}
                     onKeyDown={handleTagInputKeyDown}
-                    className="flex-grow w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                    className="flex-grow w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                   />
                   <button
                     type="button"
                     onClick={handleAddTag}
-                    className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-md hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                    className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
                   >
                     Add
                   </button>
@@ -427,14 +427,14 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
               />
             </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
               type="submit"
-              className="flex-1 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-md hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+              className="flex-1 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
             >
               <PlusIcon className="h-5 w-5" />
               {cdToEdit ? 'Save Changes' : 'Add CD'}
@@ -443,7 +443,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-md border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
               >
                 Cancel
               </button>
@@ -451,7 +451,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
               <button
                   type="button"
                   onClick={() => setIsScannerOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                   <CameraIcon className="h-5 w-5" />
                   Scan Album

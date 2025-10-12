@@ -68,7 +68,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
     return (
         <Link
           to={`/cd/${cd.id}`}
-          className="block group bg-white rounded-md border border-zinc-200 overflow-hidden hover:border-zinc-300 flex flex-col md:flex-row"
+          className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-300 flex flex-col md:flex-row md:h-64"
           aria-label={`View details for featured album: ${cd.title} by ${cd.artist}`}
         >
             <div className="md:w-64 md:flex-shrink-0">
@@ -80,7 +80,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                     </div>
                 )}
             </div>
-            <div className="p-4 md:p-6 flex flex-col justify-start flex-grow">
+            <div className="p-4 md:p-6 flex flex-col justify-start flex-grow overflow-hidden">
                 <p className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Featured Album</p>
                 <h3 className="text-2xl font-bold text-zinc-900">{cd.title}</h3>
                 <button
@@ -90,7 +90,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                 >
                     {capitalizeWords(cd.artist)}
                 </button>
-                <div className="mt-4 pt-4 border-t border-zinc-200">
+                <div className="mt-4 pt-4 border-t border-zinc-200 flex-1 overflow-y-auto">
                      {isLoading ? (
                         <div className="flex items-center text-zinc-500">
                             <SpinnerIcon className="w-4 h-4 mr-2" />

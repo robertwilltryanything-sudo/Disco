@@ -19,7 +19,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuery }) =>
         placeholder="Search by artist or title..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full h-full bg-white border border-zinc-300 rounded-md py-2 pl-10 pr-10 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+        className="w-full h-full bg-white border border-zinc-300 rounded-lg py-2 pl-10 pr-10 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
       />
       {searchQuery && (
         <div className="absolute inset-y-0 right-0 pr-3 flex items-center">

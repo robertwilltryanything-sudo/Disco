@@ -110,7 +110,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
         <p className="text-zinc-600 mt-2">The CD you are looking for does not exist.</p>
         <Link
           to="/"
-          className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-md hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+          className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
         >
           <ArrowLeftIcon className="h-5 w-5" />
           Back to Collection
@@ -238,7 +238,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
                   href={wikipediaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-md hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                  className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
                   aria-label={`View Wikipedia page for ${cd.title}`}
                 >
                   <GlobeIcon className="h-5 w-5" />
@@ -259,7 +259,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
           {previousCd ? (
             <Link
               to={`/cd/${previousCd.id}`}
-              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-md hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-800"
               aria-label={`Previous album: ${previousCd.title}`}
             >
               <ArrowLeftIcon className="h-5 w-5" />
@@ -275,7 +275,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
           {nextCd ? (
             <Link
               to={`/cd/${nextCd.id}`}
-              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-md hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-800"
               aria-label={`Next album: ${nextCd.title}`}
             >
               <span>Next</span>

@@ -26,7 +26,7 @@ const SortControls: React.FC<SortControlsProps> = ({ sortBy, setSortBy, sortOrde
         id="sort-by"
         value={sortBy}
         onChange={(e) => setSortBy(e.target.value as SortKey)}
-        className="w-full bg-white border border-zinc-300 rounded-md py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 appearance-none text-center"
+        className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 appearance-none text-center"
         style={{ paddingRight: '2rem' }} // Add padding for custom arrow
       >
         <option value="artist">Artist</option>
@@ -37,7 +37,7 @@ const SortControls: React.FC<SortControlsProps> = ({ sortBy, setSortBy, sortOrde
       </select>
       <button
         onClick={toggleSortOrder}
-        className="p-2 rounded-md bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+        className="p-2 rounded-lg bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-800"
         aria-label={`Sort in ${sortOrder === 'asc' ? 'descending' : 'ascending'} order`}
       >
         {sortOrder === 'asc' ? <ArrowUpIcon className="h-5 w-5" /> : <ArrowDownIcon className="h-5 w-5" />}

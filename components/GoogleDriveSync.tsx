@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { SyncStatus } from '../hooks/useGoogleDrive';
@@ -17,16 +16,29 @@ const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ isApiReady, isSignedI
   // New state to handle when sync is not configured.
   if (status === 'disabled') {
     return (
-        <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-zinc-600 text-center max-w-xs">
-                Google Drive sync is not configured.
+      <div className="p-1 max-w-sm">
+        <h3 className="font-bold text-zinc-800 text-center">Sync Not Configured</h3>
+        <p className="mt-2 text-sm text-zinc-600 text-center">
+          To enable Google Drive backup, the environment variable for the Client ID must be set in your hosting provider's project settings.
+        </p>
+        <div className="mt-4 text-sm bg-zinc-100 border border-zinc-200 rounded-md p-3 space-y-2">
+          <div>
+            <span className="font-semibold text-zinc-700">Variable Name:</span>
+            <code className="ml-2 bg-zinc-200 text-zinc-800 text-xs font-mono py-0.5 px-1.5 rounded">
+              VITE_GOOGLE_CLIENT_ID
+            </code>
+          </div>
+          <div>
+            <span className="font-semibold text-zinc-700">Value:</span>
+            <p className="text-zinc-600 text-xs mt-1">
+              Your Google OAuth Client ID.
             </p>
-            {error && (
-                <p className="text-yellow-700 bg-yellow-50 p-3 rounded-md text-xs max-w-xs text-center mt-1 border border-yellow-200">
-                    {error}
-                </p>
-            )}
+          </div>
         </div>
+        <p className="mt-3 text-xs text-zinc-500 text-center">
+          After adding the variable, you will need to redeploy your application.
+        </p>
+      </div>
     );
   }
 
