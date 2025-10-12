@@ -14,6 +14,20 @@ Deploying to other platforms like GitHub Pages is possible but often requires co
 
 ---
 
+## Important Note on Build Errors (`EINTEGRITY`)
+
+You may encounter `EINTEGRITY` errors during deployment. This is a common issue related to corrupt package caches on build servers. This project now includes a `vercel.json` file with the following content:
+
+```json
+{
+  "installCommand": "npm cache clean --force && npm install --force"
+}
+```
+
+This file automatically tells Vercel to clear its cache and perform a clean install of all dependencies for every build, which reliably fixes this error. **You do not need to override the install command in the Vercel UI.**
+
+---
+
 ## 5-Minute Deployment Guide
 
 ### Step 1: Sign Up for Vercel
@@ -28,9 +42,9 @@ Deploying to other platforms like GitHub Pages is possible but often requires co
 
 ### Step 3: Configure Your Project
 
-Vercel automatically detects that you're using Vite, but we need to make two adjustments for a flawless deployment.
+Vercel automatically detects that you're using Vite. You only need to add your environment variables.
 
-#### 1. Add Environment Variables
+#### Add Environment Variables
 Expand the **Environment Variables** section and add your secret keys:
 
 -   **Key:** `VITE_API_KEY`
@@ -39,18 +53,7 @@ Expand the **Environment Variables** section and add your secret keys:
 -   **Key:** `VITE_GOOGLE_CLIENT_ID`
 -   **Value:** *Your Google Cloud OAuth 2.0 Client ID*
 
-#### 2. Override the Install Command (Crucial Fix for Build Errors)
-To prevent stubborn caching and integrity errors (`EINTEGRITY`) during deployment, we'll force Vercel to perform a clean installation of all packages every time.
-
-1.  Go to your project's **Settings** tab.
-2.  In the left sidebar, select **General**.
-3.  Scroll down to the **Build & Development Settings** section.
-4.  Find **Install Command** and click the toggle to **Override** it.
-5.  In the input field that appears, enter the following command:
-    ```bash
-    npm cache clean --force && npm install --force
-    ```
-This command first clears any potentially corrupted packages from the build cache and then installs fresh copies. It is a highly effective way to solve the type of error you've been seeing.
+The install command is handled by the `vercel.json` file in the repository.
 
 ### Step 4: Deploy!
 
