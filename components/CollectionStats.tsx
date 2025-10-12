@@ -9,10 +9,7 @@ import { StarIcon } from './icons/StarIcon';
 
 interface QuickStatsProps {
   cds: CD[];
-<<<<<<< HEAD
   className?: string;
-=======
->>>>>>> 34b680b38309cd1ff7826eb087107422294eea32
 }
 
 const StatItem: React.FC<{ label: string; value: string | number; icon: React.ReactNode; }> = ({ label, value, icon }) => (
@@ -25,11 +22,7 @@ const StatItem: React.FC<{ label: string; value: string | number; icon: React.Re
     </div>
 );
 
-<<<<<<< HEAD
 const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '' }) => {
-=======
-const QuickStats: React.FC<QuickStatsProps> = ({ cds }) => {
->>>>>>> 34b680b38309cd1ff7826eb087107422294eea32
   const { totalCDs, uniqueArtists, latestCD, mostProlificArtist } = useMemo(() => {
     if (cds.length === 0) {
       return {
@@ -65,11 +58,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds }) => {
   }, [cds]);
 
   return (
-<<<<<<< HEAD
     <div className={`bg-white rounded-lg border border-zinc-200 p-4 h-full flex flex-col ${className}`}>
-=======
-    <div className="bg-white rounded-lg border border-zinc-200 p-4 h-full flex flex-col">
->>>>>>> 34b680b38309cd1ff7826eb087107422294eea32
       <p className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Collection Snapshot</p>
       <div className="divide-y divide-zinc-200">
         <StatItem label="Total CDs" value={totalCDs} icon={<QueueListIcon className="w-5 h-5 text-zinc-400" />} />
@@ -98,13 +87,8 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds }) => {
                     </div>
                     <span
                         className="font-medium text-zinc-900 truncate group-hover:underline text-right"
-<<<<<<< HEAD
                         title={`${capitalizeWords(mostProlificArtist.artist)}`}>
                         {`${capitalizeWords(mostProlificArtist.artist)}`}
-=======
-                        title={`${capitalizeWords(mostProlificArtist.artist)} (${mostProlificArtist.count} albums)`}>
-                        {`${capitalizeWords(mostProlificArtist.artist)} (${mostProlificArtist.count})`}
->>>>>>> 34b680b38309cd1ff7826eb087107422294eea32
                     </span>
                 </div>
             </Link>
