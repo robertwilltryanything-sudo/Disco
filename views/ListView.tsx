@@ -29,10 +29,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
 
   // Effect to handle navigation state for editing or filtering
   useEffect(() => {
-    const { editCdId, filterByArtist, filterByYear, filterByGenre, filterByRecordLabel, filterByTag } = location.state || {};
+    const { editCdId, filterByArtist, filterByYear, filterByGenre, filterByRecordLabel, filterByTag, clearFilter } = location.state || {};
     let stateWasHandled = false;
 
-    if (editCdId) {
+    if (clearFilter) {
+      setSearchQuery('');
+      stateWasHandled = true;
+    } else if (editCdId) {
       const cd = cds.find(c => c.id === editCdId);
       if (cd) {
         onRequestEdit(cd);

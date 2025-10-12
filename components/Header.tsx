@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import GoogleDriveSync from './GoogleDriveSync';
 import { SyncStatus } from '../hooks/useGoogleDrive';
 import { MenuIcon } from './icons/MenuIcon';
@@ -38,6 +38,8 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut, syncStatus, driveError, onAddClick, collectionCount }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -51,18 +53,33 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
     };
   }, []);
 
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (location.pathname === '/') {
+      // If we are already on the homepage, clicking the logo should clear any active filters.
+      // We achieve this by navigating to the same page with a special state object that
+      // the ListView component can detect. Using `replace: true` prevents this action
+      // from adding a new entry to the browser's history.
+      navigate('/', { state: { clearFilter: true }, replace: true });
+    } else {
+      // If on any other page, simply navigate to the homepage.
+      navigate('/');
+    }
+  };
+
   return (
     <header className="p-4 md:p-6 bg-white sticky top-0 z-20 border-b border-zinc-200">
       <div className="container mx-auto flex items-center">
         <div className="flex-1 flex items-center">
-          <Link 
-            to="/" 
-            aria-label="Home" 
+          <a
+            href="/"
+            onClick={handleLogoClick}
+            aria-label="Home, clear search filter" 
             className="text-2xl font-black text-zinc-900 hover:text-black uppercase tracking-wider"
             style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
               disco
-          </Link>
+          </a>
           <span className="ml-3 text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full">{collectionCount}</span>
         </div>
         
