@@ -7,4 +7,8 @@ export default defineConfig({
     react(),
   ],
   base: '/',
+  define: {
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+    'process.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(process.env.VITE_GOOGLE_CLIENT_ID),
+  }
 });

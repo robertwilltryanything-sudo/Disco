@@ -1,16 +1,3 @@
-/// <reference types="vite/client" />
-
-// FIX: Manually define types for import.meta.env to resolve TypeScript errors
-// when vite/client types are not automatically picked up. This addresses the
-// "Cannot find type definition file for 'vite/client'" and "Property 'env' does not exist" errors.
-interface ImportMetaEnv {
-  readonly VITE_GOOGLE_CLIENT_ID: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
-
 // IMPORTANT: Your Google Client ID is sourced from the `VITE_GOOGLE_CLIENT_ID` environment variable.
 // This is a requirement for the execution environment, especially for deployment on platforms like Vercel.
 //
@@ -22,7 +9,7 @@ interface ImportMeta {
 // 5. Select "Web application" as the application type.
 // 6. Under "Authorized JavaScript origins", add your local development URL (e.g., http://localhost:5173) and your final deployment URL.
 // 7. Click "Create" and copy the "Client ID".
-const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const clientId = process.env.VITE_GOOGLE_CLIENT_ID;
 
 if (!clientId) {
   // This warning is helpful for developers to know why sync is not working.
