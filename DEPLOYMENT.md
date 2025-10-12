@@ -18,7 +18,7 @@ Deploying to other platforms like GitHub Pages is possible but often requires co
 
 You may encounter build errors during deployment. This is a common issue related to corrupt package caches or tool version inconsistencies on build servers. To solve this, this project has been configured to be more resilient:
 
-1.  **Using Stable Tool Versions**: The `package.json` file instructs Vercel to use **Node.js v18.x**. This long-term support (LTS) version is deliberately chosen to maximize stability and avoid rare, environment-specific bugs that can occur with newer toolchains.
+1.  **Using the Required Node.js Version**: The `package.json` file instructs Vercel to use **Node.js v22.x**. This version is now required by the Vercel build environment to ensure compatibility with their platform updates.
 2.  **Using `npm`**: The `vercel.json` file instructs Vercel to use the `npm` package manager. This is a strategic choice to bypass a persistent, environment-specific error that was occurring with `pnpm` on the Vercel build platform.
 3.  **Clean Dependency Resolution**: The project uses a minimal `package-lock.json`. This ensures that `npm` resolves and installs fresh dependencies during deployment, preventing conflicts from an outdated or corrupt lock file.
 
