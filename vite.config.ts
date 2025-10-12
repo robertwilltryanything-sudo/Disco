@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => {
     // Define `process.env` variables to be replaced at build time.
     // This makes them available in the client-side code.
     define: {
-      'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY),
-      'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID),
+      'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY || ''),
+      'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID || ''),
     },
   };
 });

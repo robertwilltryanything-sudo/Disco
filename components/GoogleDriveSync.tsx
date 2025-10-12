@@ -67,24 +67,19 @@ const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ isApiReady, isSignedI
             </>
         ) : (
             <>
-                <p className="text-sm text-zinc-600 text-center max-w-xs">
-                    Sign in to back up your collection to Google Drive.
-                </p>
-                 <button
-                    onClick={signIn}
-                    className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                    Sign In to Google Drive
-                </button>
-                {status === 'error' && error && (
-                  <p className="text-red-600 text-sm max-w-xs text-center mt-2">{error}</p>
+                {error ? (
+                    <p className="text-red-600 text-sm max-w-xs text-center">{error}</p>
+                ) : (
+                    <p className="text-sm text-zinc-600 text-center max-w-xs">
+                        Connect to Google Drive to back up your collection automatically.
+                    </p>
                 )}
-                 {status !== 'error' && !error && (
-                    <div className="flex items-center gap-2 p-2">
-                        <SpinnerIcon className="h-4 w-4 text-zinc-400" />
-                        <span className="text-xs text-zinc-500 text-center">Waiting for sign in...</span>
-                    </div>
-                 )}
+                <button
+                    onClick={signIn}
+                    className="w-full bg-white text-zinc-700 font-medium py-2 px-4 rounded-md border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
+                >
+                    {error ? 'Try Again' : 'Connect to Google'}
+                </button>
             </>
         )}
     </div>
