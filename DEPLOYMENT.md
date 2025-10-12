@@ -14,14 +14,15 @@ Deploying to other platforms like GitHub Pages is possible but often requires co
 
 ---
 
-## Important Note on Build Errors (`EINTEGRITY`)
+## Important Note on Build Errors
 
-You may encounter `EINTEGRITY` errors during deployment. This is a common issue related to corrupt package caches on build servers. To solve this, this project has been configured to be more resilient:
+You may encounter build errors during deployment. This is a common issue related to corrupt package caches or tool version inconsistencies on build servers. To solve this, this project has been configured to be more resilient:
 
 1.  **Using `pnpm`**: The `vercel.json` file instructs Vercel to use the `pnpm` package manager, which is generally faster and more reliable than `npm` for avoiding caching issues.
 2.  **Clean Dependency Resolution**: The old `package-lock.json` (for `npm`) has been removed. This ensures that `pnpm` creates a fresh, accurate `pnpm-lock.yaml` file from scratch during deployment, preventing conflicts from an outdated lock file.
+3.  **Locked `pnpm` Version**: The `package.json` file specifies an exact version of `pnpm` to use. This prevents rare, environment-specific bugs that can occur when Vercel uses a different version of the package manager.
 
-With these settings, Vercel will automatically use `pnpm`, install your dependencies cleanly, and build your project. **You do not need to override any settings in the Vercel UI.**
+With these settings, Vercel will automatically use the correct version of `pnpm`, install your dependencies cleanly, and build your project. **You do not need to override any settings in the Vercel UI.**
 
 ---
 
