@@ -1,4 +1,3 @@
-
 import React, { useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { CD } from '../types';
@@ -136,9 +135,9 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
         <div className="md:flex">
             <div className="md:flex-shrink-0">
                 {cd.coverArtUrl ? (
-                    <img src={cd.coverArtUrl} alt={`${cd.title} cover`} className="w-full aspect-square object-cover md:w-64" />
+                    <img src={cd.coverArtUrl} alt={`${cd.title} cover`} className="w-full aspect-square object-cover md:w-64 rounded-br-lg" />
                 ) : (
-                    <div className="w-full aspect-square bg-zinc-200 flex items-center justify-center md:w-64">
+                    <div className="w-full aspect-square bg-zinc-200 flex items-center justify-center md:w-64 rounded-br-lg">
                         <MusicNoteIcon className="w-24 h-24 text-zinc-400" />
                     </div>
                 )}
