@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import GoogleDriveSync from './GoogleDriveSync';
@@ -109,13 +108,13 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
                 className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-800"
                 aria-haspopup="true"
                 aria-expanded={isMenuOpen}
-                aria-label="Open sync menu"
+                aria-label="Open menu"
                 >
                 <MenuIcon className="h-6 w-6" />
                 </button>
 
                 <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-max bg-zinc-800 text-white text-sm rounded-lg py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none z-20">
-                  Sync Settings
+                  Menu
                 </div>
 
                 {isMenuOpen && (

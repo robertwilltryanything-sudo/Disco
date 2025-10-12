@@ -25,7 +25,7 @@ const GoogleDriveSync: React.FC<GoogleDriveSyncProps> = ({ isApiReady, isSignedI
           <div>
             <span className="font-semibold text-zinc-700">Variable Name:</span>
             <code className="ml-2 bg-zinc-200 text-zinc-800 text-xs font-mono py-0.5 px-1.5 rounded">
-              VITE_GOOGLE_CLIENT_ID
+              GOOGLE_CLIENT_ID
             </code>
           </div>
           <div>

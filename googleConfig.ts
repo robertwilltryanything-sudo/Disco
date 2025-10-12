@@ -1,12 +1,8 @@
-// IMPORTANT: Your Google Client ID is now sourced from environment variables.
-//
-// For local development:
-// 1. Create a file named `.env.local` in the root of your project.
-// 2. Add the following line to it, replacing the placeholder with your actual Client ID:
-//    VITE_GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+// IMPORTANT: Your Google Client ID is sourced from the `GOOGLE_CLIENT_ID` environment variable.
+// This is a requirement for the execution environment.
 //
 // For deployment (e.g., on Vercel):
-// - This value is set using an environment variable named `VITE_GOOGLE_CLIENT_ID`.
+// - This value is set using an environment variable named `GOOGLE_CLIENT_ID`.
 //
 // If you don't have a Client ID, follow these instructions:
 // 1. Go to the Google Cloud Console: https://console.cloud.google.com/
@@ -20,7 +16,7 @@ const clientId = process.env.GOOGLE_CLIENT_ID;
 
 if (!clientId) {
   // This warning is helpful for developers to know why sync is not working.
-  console.warn("VITE_GOOGLE_CLIENT_ID is not configured. Google Drive Sync will be disabled.");
+  console.warn("GOOGLE_CLIENT_ID is not configured. Google Drive Sync will be disabled.");
 }
 
 export const GOOGLE_CLIENT_ID = clientId;
