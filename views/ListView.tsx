@@ -86,9 +86,10 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
       }
     }
     
-    let currentFeaturedCdInCollection = null;
+    let currentFeaturedCdInCollection: CD | null = null;
     if (storedData && storedData.cdId) {
-        currentFeaturedCdInCollection = cds.find(cd => cd.id === storedData.cdId);
+        // .find() returns undefined if not found, so we coerce it to null to match the state's type.
+        currentFeaturedCdInCollection = cds.find(cd => cd.id === storedData.cdId) || null;
     }
     
     const now = Date.now();
