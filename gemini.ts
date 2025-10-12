@@ -2,11 +2,11 @@ import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD } from './types';
 
 // The API key is sourced from the environment variables.
-const apiKey = process.env.API_KEY;
+const apiKey = process.env.VITE_API_KEY;
 
 if (!apiKey) {
   // Updated error message to reflect the correct variable name.
-  throw new Error("API_KEY is not set. Please ensure the API_KEY environment variable is configured correctly.");
+  throw new Error("VITE_API_KEY is not set. Please ensure the VITE_API_KEY environment variable is configured correctly.");
 }
 
 const ai = new GoogleGenAI({ apiKey });
