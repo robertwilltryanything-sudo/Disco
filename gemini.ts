@@ -1,12 +1,13 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD } from './types';
 
-// The API key is sourced from the environment variables.
-const apiKey = process.env.VITE_API_KEY;
+// The API key is sourced from the environment variables via Vite's `define` config.
+// FIX: Use process.env.API_KEY as per Gemini API guidelines.
+const apiKey = process.env.API_KEY;
 
 if (!apiKey) {
-  // Updated error message to reflect the correct variable name.
-  throw new Error("VITE_API_KEY is not set. Please ensure the VITE_API_KEY environment variable is configured correctly.");
+  // FIX: Updated error message to reflect the use of API_KEY.
+  throw new Error("API_KEY is not set. Please ensure the API_KEY environment variable is configured correctly.");
 }
 
 const ai = new GoogleGenAI({ apiKey });
@@ -74,7 +75,6 @@ const albumDetailsSchema = {
     },
 };
 
-// FIX: Added the missing `getAlbumTrivia` function.
 export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
     try {
         const prompt = `Provide one interesting and brief piece of trivia about the album "${title}" by "${artist}". Respond with only a single, concise sentence.`;
@@ -101,7 +101,7 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
 export async function getAlbumDetails(artist: string, title: string): Promise<{ genre?: string; year?: number; recordLabel?: string; tags?: string[] } | null> {
     try {
         const textPart = {
-            text: `For the album "${title}" by "${artist}", provide the original release year, the primary genre, the original record label, and an array of 2-3 relevant tags (e.g., musical style, sub-genre). Respond in JSON format. If you cannot find the information, respond with an empty object.`,
+            text: `For the album "${title}" by "${artist}", provide the original release year, the primary genre, the original record label, and an array of 2-3 relevant tags (e.g., musical style, notable facts). Respond in JSON format. If you cannot find the information, respond with an empty object.`,
         };
         
         const response: GenerateContentResponse = await ai.models.generateContent({
@@ -123,8 +123,6 @@ export async function getAlbumDetails(artist: string, title: string): Promise<{ 
         if (jsonString) {
             try {
                 const albumData = JSON.parse(jsonString);
-                // The result from JSON.parse is of type 'any'. We must explicitly assert its type
-                // to match the function's return signature and satisfy the strict TypeScript compiler.
                 return albumData as { genre?: string; year?: number; recordLabel?: string; tags?: string[] };
             } catch (e) {
                 console.error("Failed to parse JSON response from Gemini for album details:", e);
@@ -173,7 +171,6 @@ export async function getAlbumInfo(imageBase64: string): Promise<Partial<Omit<CD
             try {
                 const albumData = JSON.parse(jsonString);
                 
-                // Basic validation to ensure we have at least artist and title
                 if (albumData.artist && albumData.title) {
                     return albumData as Partial<Omit<CD, 'id'>>;
                 }
