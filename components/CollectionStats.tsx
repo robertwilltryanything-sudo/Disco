@@ -72,8 +72,8 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '' }) => {
                 </div>
               <span 
                 className="font-medium text-zinc-900 truncate group-hover:underline text-right" 
-                title={`${capitalizeWords(latestCD.artist)} - ${latestCD.title}`}>
-                  {`${capitalizeWords(latestCD.artist)} - ${latestCD.title}`}
+                title={latestCD.title}>
+                  {latestCD.title}
               </span>
             </div>
           </Link>
