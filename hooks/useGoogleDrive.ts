@@ -24,6 +24,7 @@ export const useGoogleDrive = () => {
 
   const fileIdRef = useRef<string | null>(null);
   const initialSignInAttempted = useRef(false);
+  const scriptsInitiatedRef = useRef(false);
   
   // New effect to handle the unconfigured state
   useEffect(() => {
@@ -107,8 +108,17 @@ export const useGoogleDrive = () => {
     }
   }, [gapiLoaded, gisLoaded]);
 
-
+  // Effect to load the Google API scripts.
   useEffect(() => {
+    // This effect should only run once. The ref guard prevents it from re-running
+    // in React's Strict Mode, which would otherwise cause issues.
+    if (scriptsInitiatedRef.current) {
+      return;
+    }
+    
+    if (GOOGLE_CLIENT_ID) {
+      scriptsInitiatedRef.current = true;
+
       // Attach script load handlers to the window object
       (window as any).onGapiLoad = handleGapiLoad;
       (window as any).onGisLoad = handleGisLoad;
@@ -124,14 +134,12 @@ export const useGoogleDrive = () => {
       gisScript.async = true;
       gisScript.defer = true;
       document.body.appendChild(gisScript);
-
-      return () => {
-          document.body.removeChild(gapiScript);
-          document.body.removeChild(gisScript);
-          delete (window as any).onGapiLoad;
-          delete (window as any).onGisLoad;
-      };
+    }
+    // No cleanup function is returned. Removing these scripts from the DOM during
+    // development re-mounts in Strict Mode is what causes the loading to fail.
+    // They are intended to be loaded once for the lifetime of the page.
   }, [handleGapiLoad, handleGisLoad]);
+
 
   const signIn = useCallback(() => {
       if (!isApiReady) {
