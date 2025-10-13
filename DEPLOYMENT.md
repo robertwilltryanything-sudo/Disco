@@ -42,13 +42,23 @@ With these settings, Vercel will automatically use the correct versions of Node.
 
 Vercel automatically detects that you're using Vite. You only need to add your environment variables.
 
+#### Get your Simple Sync URL (Recommended)
+The easiest way to enable cloud backup is with the new "Simple Cloud Backup" feature. This requires a URL from a key-value database service. We recommend **kvdb.io** because it's free and instant.
+
+1.  Open a new tab and go to **[kvdb.io](https://kvdb.io/)**.
+2.  Click "**Create a new bucket**".
+3.  You will instantly get a URL. **Copy this entire URL**. It contains your secret token.
+
 #### Add Environment Variables
-Expand the **Environment Variables** section and add your secret keys:
+Expand the **Environment Variables** section in Vercel and add your secret keys:
+
+-   **Key:** `VITE_SIMPLE_SYNC_URL`
+-   **Value:** *The URL you just copied from kvdb.io*
 
 -   **Key:** `VITE_API_KEY`
 -   **Value:** *Your Google Gemini API Key*
 
--   **Key:** `VITE_GOOGLE_CLIENT_ID`
+-   **Key:** `VITE_GOOGLE_CLIENT_ID` (Optional, if you still want Google Drive sync)
 -   **Value:** *Your Google Cloud OAuth 2.0 Client ID*
 
 The install command is handled by the `vercel.json` file in the repository.
@@ -59,9 +69,9 @@ The install command is handled by the `vercel.json` file in the repository.
 2.  Vercel will build and deploy your project.
 3.  Once finished, you will get a live URL (e.g., `disco-app.vercel.app`).
 
-### Step 5: Update Google Cloud Console
+### Step 5: Update Google Cloud Console (Optional)
 
-For Google Sign-In to work on your new live URL, you must add it to your list of authorized origins.
+If you chose to configure Google Drive sync, you must add your new live URL to your list of authorized origins.
 
 1. Go to the [Google Cloud Console Credentials page](https://console.cloud.google.com/apis/credentials).
 2. Click on your OAuth 2.0 Client ID.

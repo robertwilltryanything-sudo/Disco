@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => {
       // in the app as process.env.API_KEY to align with Gemini guidelines.
       'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY),
       'process.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID),
+      // Add the new environment variable for the Simple Sync URL.
+      'process.env.VITE_SIMPLE_SYNC_URL': JSON.stringify(env.VITE_SIMPLE_SYNC_URL),
     }
   };
 });

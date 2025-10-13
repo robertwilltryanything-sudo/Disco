@@ -7,7 +7,8 @@ import DetailView from './views/DetailView';
 import ArtistsView from './views/ArtistsView';
 import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
-import { useGoogleDrive } from './hooks/useGoogleDrive';
+import { useGoogleDrive, SyncStatus as GoogleSyncStatus } from './hooks/useGoogleDrive';
+import { useSimpleSync, SyncStatus as SimpleSyncStatus } from './hooks/useSimpleSync';
 import { findCoverArt } from './wikipedia';
 import AddCDForm from './components/AddCDForm';
 import { XIcon } from './components/icons/XIcon';
@@ -17,6 +18,7 @@ import { useDebounce } from './hooks/useDebounce';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import { XCircleIcon } from './components/icons/XCircleIcon';
 import BottomNavBar from './components/BottomNavBar';
+import SyncSettingsModal from './components/SyncSettingsModal';
 
 // Initial data for demonstration purposes. Cover art will be found on first load.
 const INITIAL_CDS: CD[] = [
@@ -28,6 +30,10 @@ const INITIAL_CDS: CD[] = [
 ];
 
 const COLLECTION_STORAGE_KEY = 'disco_collection_v2';
+const SYNC_PROVIDER_KEY = 'disco_sync_provider';
+const SIMPLE_SYNC_ID_KEY = 'disco_simple_sync_id';
+
+export type SyncProvider = 'google' | 'simple' | 'none';
 
 // Helper to fetch artwork for the initial collection using the reliable findCoverArt function.
 const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
@@ -65,18 +71,15 @@ const findPotentialDuplicate = (newCd: Omit<CD, 'id'>, collection: CD[]): CD | n
 const App: React.FC = () => {
   const [cds, setCds] = useState<CD[]>([]);
   const debouncedCds = useDebounce(cds, 1000);
-  const { 
-    isApiReady, 
-    isSignedIn,
-    signIn,
-    signOut, 
-    loadCollection, 
-    saveCollection, 
-    syncStatus,
-    error: driveError,
-  } = useGoogleDrive();
+
+  const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => (localStorage.getItem(SYNC_PROVIDER_KEY) as SyncProvider) || 'none');
+  const [simpleSyncId, setSimpleSyncId] = useState<string | null>(() => localStorage.getItem(SIMPLE_SYNC_ID_KEY));
+
+  const googleDrive = useGoogleDrive();
+  const simpleSync = useSimpleSync();
+
   const isInitialLoad = useRef(true);
-  const hasLoadedFromDrive = useRef(false);
+  const hasLoadedFromCloud = useRef(false);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
@@ -84,20 +87,36 @@ const App: React.FC = () => {
   const [importData, setImportData] = useState<CD[] | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(true);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+
+  const activeSyncStatus: GoogleSyncStatus | SimpleSyncStatus = syncProvider === 'google' ? googleDrive.syncStatus : (syncProvider === 'simple' ? simpleSync.syncStatus : 'idle');
+  const activeSyncError: string | null = syncProvider === 'google' ? googleDrive.error : (syncProvider === 'simple' ? simpleSync.error : null);
 
   // Initial data load effect
   useEffect(() => {
     const initialLoad = async () => {
-      if (isSignedIn && !hasLoadedFromDrive.current) {
+      // Prioritize loading from the cloud if a provider is configured and signed in.
+      if (syncProvider === 'google' && googleDrive.isSignedIn && !hasLoadedFromCloud.current) {
         try {
-          const driveCds = await loadCollection();
+          const driveCds = await googleDrive.loadCollection();
           if (driveCds) {
             setCds(driveCds);
-            hasLoadedFromDrive.current = true;
+            hasLoadedFromCloud.current = true;
             return;
           }
-        } catch(e) {
+        } catch (e) {
             console.error("Failed to load from Google Drive, falling back to local storage.", e);
+        }
+      } else if (syncProvider === 'simple' && simpleSyncId && !hasLoadedFromCloud.current) {
+        try {
+          const simpleCds = await simpleSync.loadCollection(simpleSyncId);
+          if (simpleCds) {
+            setCds(simpleCds);
+            hasLoadedFromCloud.current = true;
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to load from Simple Sync, falling back to local storage.", e);
         }
       }
       
@@ -119,10 +138,17 @@ const App: React.FC = () => {
       }
     };
 
-    if (isApiReady) {
+    if (googleDrive.isApiReady) { // We can use googleDrive.isApiReady as a general "app is ready" signal
       initialLoad();
     }
-  }, [isApiReady, isSignedIn, loadCollection]);
+  }, [
+    googleDrive.isApiReady, 
+    googleDrive.isSignedIn, 
+    googleDrive.loadCollection,
+    simpleSync.loadCollection,
+    simpleSyncId,
+    syncProvider
+  ]);
 
   // Data saving effect - now debounced to avoid excessive writes during rapid changes.
   useEffect(() => {
@@ -137,14 +163,13 @@ const App: React.FC = () => {
       console.error("Error saving CDs to localStorage:", error);
     }
     
-    if (isSignedIn) {
-      saveCollection(debouncedCds);
+    if (syncProvider === 'google' && googleDrive.isSignedIn) {
+      googleDrive.saveCollection(debouncedCds);
+    } else if (syncProvider === 'simple' && simpleSyncId) {
+      simpleSync.saveCollection(simpleSyncId, debouncedCds);
     }
-  }, [debouncedCds, isSignedIn, saveCollection]);
+  }, [debouncedCds, syncProvider, googleDrive.isSignedIn, googleDrive.saveCollection, simpleSync.saveCollection, simpleSyncId]);
   
-  // Using a generic type `T` with a `Partial<CD>` constraint preserves the specific type of the
-  // `cd` object passed in (`CD` for updates, `Omit<CD, 'id'>` for additions). This resolves
-  // type errors at both call sites while ensuring type safety.
   const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD>>(cd: T): Promise<T> => {
     const shouldFetch = !cd.genre || !cd.recordLabel || !cd.tags || cd.tags.length === 0;
 
@@ -161,8 +186,6 @@ const App: React.FC = () => {
                 if (!enrichedCd.recordLabel && details.recordLabel) {
                     enrichedCd.recordLabel = details.recordLabel;
                 }
-                // The type of `year` is `number | undefined`, so the check `!enrichedCd.year`
-                // is sufficient to see if the year is missing.
                 if (!enrichedCd.year && details.year) {
                     enrichedCd.year = details.year;
                 }
@@ -177,17 +200,17 @@ const App: React.FC = () => {
             }
         } catch (error) {
             console.error("Could not fetch additional album details from Gemini:", error);
-            return cd; // Return original on error
+            return cd;
         }
     }
-    return cd; // Return original if no fetch was needed
+    return cd;
   }, []);
 
   const handleAddCD = useCallback(async (cdData: Omit<CD, 'id'>) => {
     const enrichedCdData = await fetchAndApplyAlbumDetails(cdData);
     const newCd: CD = {
       ...enrichedCdData,
-      id: `${new Date().getTime()}-${Math.random()}`, // More unique ID
+      id: `${new Date().getTime()}-${Math.random()}`,
     };
     setCds(prevCds => [newCd, ...prevCds]);
   }, [fetchAndApplyAlbumDetails]);
@@ -221,20 +244,14 @@ const App: React.FC = () => {
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     if (cdData.id) {
-      // This is an update. Reconstruct the object to be explicitly of type `CD`
-      // to satisfy TypeScript's strict checking.
       const cdToUpdate: CD = { ...cdData, id: cdData.id };
       await handleUpdateCD(cdToUpdate);
       handleCloseModal();
     } else {
-      // This is a new CD, check for duplicates.
       const duplicate = findPotentialDuplicate(cdData, cds);
       if (duplicate) {
-        // Found a duplicate, open confirmation modal.
-        // The add/edit modal remains open in the background.
         setDuplicateInfo({ newCd: cdData, existingCd: duplicate });
       } else {
-        // No duplicate, proceed with adding and close the modal.
         await handleAddCD(cdData);
         handleCloseModal();
       }
@@ -243,19 +260,15 @@ const App: React.FC = () => {
   
   const handleConfirmDuplicate = useCallback(async (version: string) => {
     if (duplicateInfo) {
-      const cdWithVersion = {
-        ...duplicateInfo.newCd,
-        version: version, // The version from the modal input
-      };
+      const cdWithVersion = { ...duplicateInfo.newCd, version };
       await handleAddCD(cdWithVersion);
       setDuplicateInfo(null);
-      handleCloseModal(); // Close the main form modal
+      handleCloseModal();
     }
   }, [duplicateInfo, handleAddCD, handleCloseModal]);
 
   const handleCancelDuplicate = useCallback(() => {
     setDuplicateInfo(null);
-    // Do nothing, user is back in the form to edit the entry
   }, []);
   
   const handleExportCollection = useCallback(() => {
@@ -280,8 +293,6 @@ const App: React.FC = () => {
             const text = e.target?.result;
             if (typeof text !== 'string') throw new Error("File content is not readable.");
             const data = JSON.parse(text);
-
-            // Basic validation
             if (Array.isArray(data) && (data.length === 0 || (data[0].artist && data[0].title))) {
                 setImportData(data);
             } else {
@@ -293,17 +304,12 @@ const App: React.FC = () => {
         }
     };
     reader.readAsText(file);
-    // Reset file input value to allow re-importing the same file
     event.target.value = '';
   };
 
   const handleMergeImport = () => {
     if (importData) {
-        // Generate new IDs for imported CDs to avoid conflicts.
-        const newCds = importData.map(cd => ({
-            ...cd,
-            id: `${new Date().getTime()}-${Math.random()}`
-        }));
+        const newCds = importData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}` }));
         setCds(prevCds => [...prevCds, ...newCds]);
         setImportData(null);
     }
@@ -320,12 +326,40 @@ const App: React.FC = () => {
     setIsErrorBannerVisible(false);
   };
 
-  // Show the banner again if a new error occurs
   useEffect(() => {
-    if (driveError) {
+    if (activeSyncError) {
       setIsErrorBannerVisible(true);
     }
-  }, [driveError]);
+  }, [activeSyncError]);
+
+  const handleSyncProviderChange = (provider: SyncProvider) => {
+    localStorage.setItem(SYNC_PROVIDER_KEY, provider);
+    setSyncProvider(provider);
+    if (provider === 'none') {
+      googleDrive.signOut();
+    } else if (provider === 'google') {
+      googleDrive.signIn();
+    } else if (provider === 'simple') {
+      if (!simpleSyncId) {
+        const newId = crypto.randomUUID();
+        localStorage.setItem(SIMPLE_SYNC_ID_KEY, newId);
+        setSimpleSyncId(newId);
+      }
+    }
+  };
+
+  const handleSimpleSyncIdChange = (id: string) => {
+    localStorage.setItem(SIMPLE_SYNC_ID_KEY, id);
+    setSimpleSyncId(id);
+    // Trigger a reload from the new sync ID
+    hasLoadedFromCloud.current = false;
+    simpleSync.loadCollection(id).then(cloudCds => {
+        if (cloudCds) {
+            setCds(cloudCds);
+            hasLoadedFromCloud.current = true;
+        }
+    });
+  };
 
   const RouteWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
     <main className="container mx-auto p-4 md:p-6 pb-24 md:pb-6">{children}</main>
@@ -334,7 +368,7 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <div className="flex flex-col min-h-screen">
-        {driveError && isErrorBannerVisible && (
+        {activeSyncError && isErrorBannerVisible && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 w-full sticky top-0 z-30" role="alert">
             <div className="flex items-start">
               <div className="py-1">
@@ -342,7 +376,7 @@ const App: React.FC = () => {
               </div>
               <div className="flex-grow">
                 <p className="font-bold">Sync Error</p>
-                <p className="text-sm">{driveError}</p>
+                <p className="text-sm">{activeSyncError}</p>
               </div>
               <button
                 onClick={handleDismissError}
@@ -355,16 +389,14 @@ const App: React.FC = () => {
           </div>
         )}
         <Header 
-          isApiReady={isApiReady}
-          isSignedIn={isSignedIn}
-          signIn={signIn}
-          signOut={signOut}
-          syncStatus={syncStatus}
-          driveError={driveError}
           onAddClick={handleRequestAdd}
           collectionCount={cds.length}
           onImport={handleImportClick}
           onExport={handleExportCollection}
+          onOpenSyncSettings={() => setIsSyncModalOpen(true)}
+          syncStatus={activeSyncStatus}
+          syncError={activeSyncError}
+          syncProvider={syncProvider}
         />
         <Routes>
           <Route path="/" element={
@@ -436,6 +468,18 @@ const App: React.FC = () => {
             onMerge={handleMergeImport}
             onReplace={handleReplaceImport}
         />
+       <SyncSettingsModal
+          isOpen={isSyncModalOpen}
+          onClose={() => setIsSyncModalOpen(false)}
+          currentProvider={syncProvider}
+          onProviderChange={handleSyncProviderChange}
+          simpleSyncId={simpleSyncId}
+          onSimpleSyncIdChange={handleSimpleSyncIdChange}
+          googleDriveStatus={googleDrive.syncStatus}
+          isGoogleSignedIn={googleDrive.isSignedIn}
+          onGoogleSignIn={googleDrive.signIn}
+          onGoogleSignOut={googleDrive.signOut}
+       />
         <input
             type="file"
             ref={importInputRef}
