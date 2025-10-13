@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CD } from '../types';
+import { CD, CollectionData } from '../types';
 
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled';
 
@@ -9,7 +9,7 @@ export const useSimpleSync = () => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(BUCKET_URL ? 'idle' : 'disabled');
     const [error, setError] = useState<string | null>(BUCKET_URL ? null : 'Simple Sync is not configured. The administrator needs to provide a VITE_SIMPLE_SYNC_URL.');
 
-    const loadCollection = useCallback(async (): Promise<CD[] | null> => {
+    const loadCollection = useCallback(async (): Promise<CollectionData | null> => {
         if (!BUCKET_URL) {
             setSyncStatus('disabled');
             return null;
@@ -19,10 +19,9 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
-            // To ensure the freshest data is always fetched and to prevent issues with
-            // aggressive caching on some networks or browsers, we include explicit
-            // cache-busting headers along with the standard `cache: 'no-store'` policy.
-            const response = await fetch(BUCKET_URL, {
+            const url = `${BUCKET_URL}?t=${new Date().getTime()}`;
+            
+            const response = await fetch(url, {
                 cache: 'no-store',
                 mode: 'cors',
                 headers: {
@@ -34,39 +33,37 @@ export const useSimpleSync = () => {
             
             if (response.ok) {
                 const text = await response.text();
-                // Handle empty bucket
                 if (!text) {
                     setSyncStatus('synced');
-                    return [];
+                    return { collection: [], lastUpdated: null };
                 }
 
                 const data = JSON.parse(text);
                 
-                // Handle new format { "collection": [...] }
-                if (data && data.collection && Array.isArray(data.collection)) {
+                // Handle new format { "collection": [...], "lastUpdated": "..." }
+                if (data && typeof data === 'object' && Array.isArray(data.collection)) {
                     setSyncStatus('synced');
-                    return data.collection as CD[];
+                    return data as CollectionData;
                 }
                 
                 // Handle old format [...] for backward compatibility
                 if (Array.isArray(data)) {
+                    console.log("Loaded collection in legacy format. It will be updated on the next save.");
                     setSyncStatus('synced');
-                    return data as CD[];
+                    // Provide a null timestamp to indicate it's a legacy format
+                    return { collection: data as CD[], lastUpdated: null };
                 }
 
-                // If format is unexpected, treat as empty
                 console.warn("Simple Sync data is in an unexpected format.", data);
                 setSyncStatus('synced');
-                return [];
+                return { collection: [], lastUpdated: null };
 
             }
             if (response.status === 404) {
-                // This can happen if the URL is wrong. Treat it as a new/empty collection but log a warning.
                 console.warn('404 Not Found for Simple Sync URL. A new backup will be created on the first save.');
                 setSyncStatus('synced');
-                return [];
+                return { collection: [], lastUpdated: null };
             }
-            // Handle other HTTP errors
             throw new Error(`Failed to load collection: ${response.statusText}`);
         } catch (e) {
             console.error('Simple Sync load error:', e);
@@ -76,7 +73,7 @@ export const useSimpleSync = () => {
         }
     }, []);
     
-    const saveCollection = useCallback(async (cds: CD[]) => {
+    const saveCollection = useCallback(async (data: CollectionData) => {
         if (!BUCKET_URL) {
             setSyncStatus('disabled');
             return;
@@ -86,13 +83,11 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
-            const payload = { collection: cds };
-
             const response = await fetch(BUCKET_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                mode: 'cors', // Explicitly set mode for cross-origin POST
+                body: JSON.stringify(data),
+                mode: 'cors',
             });
 
             if (!response.ok) {
@@ -107,5 +102,5 @@ export const useSimpleSync = () => {
         }
     }, []);
 
-    return { syncStatus, error, loadCollection, saveCollection };
+    return { syncStatus, error, loadCollection, saveCollection, setSyncStatus };
 };

@@ -7,6 +7,7 @@ import { UploadIcon } from './icons/UploadIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { SyncProvider } from '../App';
 import { SettingsIcon } from './icons/SettingsIcon';
+import { SyncIcon } from './icons/SyncIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -17,6 +18,7 @@ interface HeaderProps {
     syncStatus: SyncStatus;
     syncError: string | null;
     syncProvider: SyncProvider;
+    onManualSync: () => void;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -44,7 +46,8 @@ const Header: React.FC<HeaderProps> = ({
     onOpenSyncSettings,
     syncStatus,
     syncError,
-    syncProvider
+    syncProvider,
+    onManualSync
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -71,6 +74,11 @@ const Header: React.FC<HeaderProps> = ({
       navigate('/');
     }
   };
+  
+  const handleSyncClick = () => {
+    onManualSync();
+    setIsMenuOpen(false);
+  }
 
   return (
     <header className="p-4 md:p-6 bg-white sticky top-0 z-20 border-b border-zinc-200">
@@ -131,6 +139,15 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="p-2">
                         <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Sync & Backup</h3>
                          <div className="space-y-2">
+                            {syncProvider !== 'none' && (
+                                <button 
+                                    onClick={handleSyncClick}
+                                    className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"
+                                >
+                                    <SyncIcon className="w-5 h-5" />
+                                    <span className="font-medium">Sync Now</span>
+                                </button>
+                            )}
                             <button 
                                 onClick={onOpenSyncSettings}
                                 className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"

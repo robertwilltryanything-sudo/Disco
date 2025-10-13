@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
-import { CD } from './types';
+import { CD, CollectionData } from './types';
 import Header from './components/Header';
 import ListView from './views/ListView';
 import DetailView from './views/DetailView';
@@ -18,8 +18,8 @@ import ImportConfirmModal from './components/ImportConfirmModal';
 import { XCircleIcon } from './components/icons/XCircleIcon';
 import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
+import SyncConflictModal from './components/SyncConflictModal';
 
-// Initial data for demonstration purposes. Cover art will be found on first load.
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'] },
   { id: '1', artist: 'U2', title: 'War', genre: 'Post-Punk', year: 1983, recordLabel: 'Island', tags: ['80s rock', 'political', 'post-punk'] },
@@ -28,19 +28,17 @@ const INITIAL_CDS: CD[] = [
   { id: '7', artist: 'Jean Michel Jarre', title: 'Equinoxe', genre: 'Electronic', year: 1978, recordLabel: 'Disques Dreyfus', tags: ['electronic', 'ambient', '70s'] },
 ];
 
-const COLLECTION_STORAGE_KEY = 'disco_collection_v2';
+const COLLECTION_STORAGE_KEY = 'disco_collection_v3'; // Incremented key for new data structure
 const SYNC_PROVIDER_KEY = 'disco_sync_provider';
 
 export type SyncProvider = 'simple' | 'none';
 
-// Helper to fetch artwork for the initial collection using the reliable findCoverArt function.
 const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
   const cdsWithArtPromises = initialCds.map(async (cd) => {
     if (!cd.coverArtUrl) {
       try {
         const imageUrls = await findCoverArt(cd.artist, cd.title);
         if (imageUrls && imageUrls.length > 0) {
-          // Use the first result as the cover art
           return { ...cd, coverArtUrl: imageUrls[0] };
         }
       } catch (error) {
@@ -49,13 +47,11 @@ const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
     }
     return cd;
   });
-
   return Promise.all(cdsWithArtPromises);
 };
 
 const findPotentialDuplicate = (newCd: Omit<CD, 'id'>, collection: CD[]): CD | null => {
     for (const existingCd of collection) {
-        // Check if artist and title are very similar. A threshold of 0.85 handles minor typos.
         const artistSimilar = areStringsSimilar(newCd.artist, existingCd.artist, 0.85);
         const titleSimilar = areStringsSimilar(newCd.title, existingCd.title, 0.85);
         if (artistSimilar && titleSimilar) {
@@ -65,25 +61,19 @@ const findPotentialDuplicate = (newCd: Omit<CD, 'id'>, collection: CD[]): CD | n
     return null;
 };
 
-
 const App: React.FC = () => {
   const [cds, setCds] = useState<CD[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const debouncedCds = useDebounce(cds, 1000);
 
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
     const storedProvider = localStorage.getItem(SYNC_PROVIDER_KEY);
-    if (storedProvider === 'simple' || storedProvider === 'none') {
-        return storedProvider;
-    }
-    // Default to 'none' if the stored value is invalid (e.g., the old 'google' value)
-    return 'none';
+    return (storedProvider === 'simple' || storedProvider === 'none') ? storedProvider : 'none';
   });
   
   const simpleSync = useSimpleSync();
-
   const isInitialLoad = useRef(true);
-  const hasLoadedFromCloud = useRef(false);
-
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
@@ -91,94 +81,83 @@ const App: React.FC = () => {
   const importInputRef = useRef<HTMLInputElement>(null);
   const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(true);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [syncConflict, setSyncConflict] = useState<{ local: CollectionData, cloud: CollectionData } | null>(null);
 
   const activeSyncStatus: SimpleSyncStatus = syncProvider === 'simple' ? simpleSync.syncStatus : 'idle';
   const activeSyncError: string | null = syncProvider === 'simple' ? simpleSync.error : null;
+  
+  const updateCollection = (updater: (prevCds: CD[]) => CD[], newTimestamp: boolean = true) => {
+    setCds(updater);
+    if (newTimestamp) {
+        setLastUpdated(new Date().toISOString());
+    }
+  };
 
-  // Initial data load effect
   useEffect(() => {
     const loadData = async () => {
-      // If sync is enabled, this effect handles page refreshes.
-      // The initial switch TO sync is handled by handleSyncProviderChange.
+      let loadedData: CollectionData = { collection: [], lastUpdated: null };
+
       if (syncProvider === 'simple') {
-        if (!hasLoadedFromCloud.current) {
-          console.log("Page refresh with Simple Sync enabled. Loading from cloud.");
-          const simpleCds = await simpleSync.loadCollection();
-          if (simpleCds !== null) {
-            setCds(simpleCds);
-            hasLoadedFromCloud.current = true;
-          }
+        const cloudData = await simpleSync.loadCollection();
+        if (cloudData) {
+          loadedData = cloudData;
         }
-      } else { // syncProvider === 'none'
+      } else {
         try {
-          const storedCds = localStorage.getItem(COLLECTION_STORAGE_KEY);
-          if (storedCds) {
-            setCds(JSON.parse(storedCds));
+          const storedDataRaw = localStorage.getItem(COLLECTION_STORAGE_KEY);
+          if (storedDataRaw) {
+            loadedData = JSON.parse(storedDataRaw);
           } else {
-            console.log("No local data found. Populating initial album artwork...");
+            console.log("No local data found. Populating initial collection...");
             const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
-            setCds(cdsWithArt);
+            loadedData = { collection: cdsWithArt, lastUpdated: new Date().toISOString() };
           }
         } catch (error) {
-          console.error("Error loading CDs from localStorage:", error);
+          console.error("Error loading data from localStorage:", error);
           const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
-          setCds(cdsWithArt);
+          loadedData = { collection: cdsWithArt, lastUpdated: new Date().toISOString() };
         }
       }
+      setCds(loadedData.collection);
+      setLastUpdated(loadedData.lastUpdated);
     };
-
     loadData();
-  }, [simpleSync.loadCollection, syncProvider]);
+  }, [syncProvider]); // Only depends on syncProvider to trigger initial load
 
-  // Data saving effect - now debounced to avoid excessive writes during rapid changes.
   useEffect(() => {
     if (isInitialLoad.current) {
       isInitialLoad.current = false;
       return;
     }
 
+    const dataToSave: CollectionData = { collection: debouncedCds, lastUpdated };
     try {
-      localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(debouncedCds));
+      localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(dataToSave));
     } catch (error) {
-      console.error("Error saving CDs to localStorage:", error);
+      console.error("Error saving data to localStorage:", error);
     }
     
     if (syncProvider === 'simple') {
-      simpleSync.saveCollection(debouncedCds);
+      simpleSync.saveCollection(dataToSave);
     }
-  }, [debouncedCds, syncProvider, simpleSync.saveCollection]);
+  }, [debouncedCds, lastUpdated, syncProvider, simpleSync.saveCollection]);
   
   const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD>>(cd: T): Promise<T> => {
     const shouldFetch = !cd.genre || !cd.recordLabel || !cd.tags || cd.tags.length === 0;
-
     if (shouldFetch && cd.artist && cd.title) {
-        console.log(`Fetching missing details for ${cd.artist} - ${cd.title}`);
         try {
             const details = await getAlbumDetails(cd.artist, cd.title);
             if (details) {
-                const enrichedCd = { ...cd };
-
-                if (!enrichedCd.genre && details.genre) {
-                    enrichedCd.genre = details.genre;
-                }
-                if (!enrichedCd.recordLabel && details.recordLabel) {
-                    enrichedCd.recordLabel = details.recordLabel;
-                }
-                if (!enrichedCd.year && details.year) {
-                    enrichedCd.year = details.year;
-                }
-
-                const existingTags = new Set(enrichedCd.tags?.map(t => t.toLowerCase()) || []);
-                if (details.tags) {
-                    details.tags.forEach(tag => existingTags.add(tag.toLowerCase()));
-                }
-                enrichedCd.tags = Array.from(existingTags);
-                
-                return enrichedCd;
+                return { 
+                    ...cd, 
+                    genre: cd.genre || details.genre,
+                    recordLabel: cd.recordLabel || details.recordLabel,
+                    year: cd.year || details.year,
+                    tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])]
+                };
             }
         } catch (error) {
             console.error("Could not fetch additional album details from Gemini:", error);
-            return cd;
         }
     }
     return cd;
@@ -190,19 +169,18 @@ const App: React.FC = () => {
       ...enrichedCdData,
       id: `${new Date().getTime()}-${Math.random()}`,
     };
-    setCds(prevCds => [newCd, ...prevCds]);
+    updateCollection(prevCds => [newCd, ...prevCds]);
   }, [fetchAndApplyAlbumDetails]);
 
   const handleUpdateCD = useCallback(async (updatedCdData: CD) => {
     const enrichedCdData = await fetchAndApplyAlbumDetails(updatedCdData);
-    setCds(prevCds =>
+    updateCollection(prevCds =>
       prevCds.map(cd => (cd.id === enrichedCdData.id ? enrichedCdData : cd))
     );
   }, [fetchAndApplyAlbumDetails]);
 
-
   const handleDeleteCD = useCallback((id: string) => {
-    setCds(prevCds => prevCds.filter(cd => cd.id !== id));
+    updateCollection(prevCds => prevCds.filter(cd => cd.id !== id));
   }, []);
 
   const handleRequestAdd = useCallback(() => {
@@ -222,44 +200,38 @@ const App: React.FC = () => {
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     if (cdData.id) {
-      const cdToUpdate: CD = { ...cdData, id: cdData.id };
-      await handleUpdateCD(cdToUpdate);
-      handleCloseModal();
+      await handleUpdateCD({ ...cdData, id: cdData.id });
     } else {
       const duplicate = findPotentialDuplicate(cdData, cds);
       if (duplicate) {
         setDuplicateInfo({ newCd: cdData, existingCd: duplicate });
       } else {
         await handleAddCD(cdData);
-        handleCloseModal();
       }
     }
+    handleCloseModal();
   }, [handleUpdateCD, handleAddCD, handleCloseModal, cds]);
   
   const handleConfirmDuplicate = useCallback(async (version: string) => {
     if (duplicateInfo) {
-      const cdWithVersion = { ...duplicateInfo.newCd, version };
-      await handleAddCD(cdWithVersion);
+      await handleAddCD({ ...duplicateInfo.newCd, version });
       setDuplicateInfo(null);
       handleCloseModal();
     }
   }, [duplicateInfo, handleAddCD, handleCloseModal]);
 
-  const handleCancelDuplicate = useCallback(() => {
-    setDuplicateInfo(null);
-  }, []);
+  const handleCancelDuplicate = useCallback(() => setDuplicateInfo(null), []);
   
   const handleExportCollection = useCallback(() => {
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(cds, null, 2))}`;
+    const dataToExport: CollectionData = { collection: cds, lastUpdated };
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
     const link = document.createElement("a");
     link.href = jsonString;
     link.download = "disco_collection_backup.json";
     link.click();
-  }, [cds]);
+  }, [cds, lastUpdated]);
 
-  const handleImportClick = () => {
-    importInputRef.current?.click();
-  };
+  const handleImportClick = () => importInputRef.current?.click();
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -268,11 +240,12 @@ const App: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const text = e.target?.result;
-            if (typeof text !== 'string') throw new Error("File content is not readable.");
+            const text = e.target?.result as string;
             const data = JSON.parse(text);
-            if (Array.isArray(data) && (data.length === 0 || (data[0].artist && data[0].title))) {
-                setImportData(data);
+            // Support both new CollectionData format and old array format
+            const collectionToImport = Array.isArray(data) ? data : data?.collection;
+            if (Array.isArray(collectionToImport)) {
+                setImportData(collectionToImport);
             } else {
                 alert("Import failed: The file does not appear to be a valid collection.");
             }
@@ -288,26 +261,22 @@ const App: React.FC = () => {
   const handleMergeImport = () => {
     if (importData) {
         const newCds = importData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}` }));
-        setCds(prevCds => [...prevCds, ...newCds]);
+        updateCollection(prevCds => [...prevCds, ...newCds]);
         setImportData(null);
     }
   };
 
   const handleReplaceImport = () => {
     if (importData) {
-        setCds(importData);
+        updateCollection(() => importData);
         setImportData(null);
     }
   };
 
-  const handleDismissError = () => {
-    setIsErrorBannerVisible(false);
-  };
+  const handleDismissError = () => setIsErrorBannerVisible(false);
 
   useEffect(() => {
-    if (activeSyncError) {
-      setIsErrorBannerVisible(true);
-    }
+    if (activeSyncError) setIsErrorBannerVisible(true);
   }, [activeSyncError]);
 
   const handleSyncProviderChange = async (provider: SyncProvider) => {
@@ -316,51 +285,69 @@ const App: React.FC = () => {
       return;
     }
 
-    // Handle switching TO 'simple' sync
     if (provider === 'simple') {
-      console.log("Switching to Simple Sync. Performing initial sync check.");
-      
-      // 1. Check for local data first.
-      const storedCdsRaw = localStorage.getItem(COLLECTION_STORAGE_KEY);
-      const localCds: CD[] = storedCdsRaw ? JSON.parse(storedCdsRaw) : [];
-      
-      // 2. Check the state of the cloud.
-      const cloudCds = await simpleSync.loadCollection();
+      const storedDataRaw = localStorage.getItem(COLLECTION_STORAGE_KEY);
+      const localData: CollectionData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], lastUpdated: null };
+      const cloudData = await simpleSync.loadCollection();
 
-      // If cloud load fails, abort the switch and let the error banner show.
-      if (cloudCds === null) {
-        console.error("Failed to connect to cloud during provider switch. Aborting.");
+      if (!cloudData) {
         setIsSyncModalOpen(false);
         return;
       }
 
-      let finalCds: CD[] = [];
-
-      // 3. Decide the source of truth.
-      if (cloudCds.length > 0) {
-        // Cloud has data, so it's the source of truth.
-        console.log("Cloud has data. Using it as the new collection.");
-        finalCds = cloudCds;
-      } else if (localCds.length > 0) {
-        // Cloud is empty, but local data exists. Push local data to the cloud.
-        console.log("Cloud is empty, local data exists. Uploading local collection.");
-        finalCds = localCds;
-        await simpleSync.saveCollection(localCds); // Wait for the initial save to complete
+      let finalData: CollectionData;
+      if (cloudData.collection.length > 0) {
+        finalData = cloudData;
+      } else if (localData.collection.length > 0) {
+        finalData = { ...localData, lastUpdated: new Date().toISOString() };
+        await simpleSync.saveCollection(finalData);
+      } else {
+        finalData = { collection: [], lastUpdated: null };
       }
       
-      // 4. Update app state and persist the provider change.
-      setCds(finalCds);
-      hasLoadedFromCloud.current = true;
-      localStorage.setItem(SYNC_PROVIDER_KEY, provider);
-      setSyncProvider(provider);
-      setIsSyncModalOpen(false);
-
-    } else { // Handle switching TO 'none'
-      console.log(`Switching to '${provider}' sync.`);
-      localStorage.setItem(SYNC_PROVIDER_KEY, provider);
-      setSyncProvider(provider);
-      setIsSyncModalOpen(false);
+      setCds(finalData.collection);
+      setLastUpdated(finalData.lastUpdated);
     }
+    
+    localStorage.setItem(SYNC_PROVIDER_KEY, provider);
+    setSyncProvider(provider);
+    setIsSyncModalOpen(false);
+  };
+  
+  const handleManualSync = async () => {
+    if (syncProvider !== 'simple') return;
+
+    const cloudData = await simpleSync.loadCollection();
+    if (!cloudData) {
+        // Error is handled by the hook and will show in the banner
+        return;
+    }
+
+    const localData: CollectionData = { collection: cds, lastUpdated };
+    const cloudTimestamp = cloudData.lastUpdated ? new Date(cloudData.lastUpdated).getTime() : 0;
+    const localTimestamp = localData.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
+
+    if (cloudTimestamp > localTimestamp) {
+        setSyncConflict({ local: localData, cloud: cloudData });
+    } else {
+        // Local is same or newer, so we can safely push our version
+        const updatedLocalData = { ...localData, lastUpdated: new Date().toISOString() };
+        await simpleSync.saveCollection(updatedLocalData);
+        setLastUpdated(updatedLocalData.lastUpdated); // Update local timestamp to reflect successful sync
+    }
+  };
+  
+  const resolveSyncConflict = (useCloudVersion: boolean) => {
+    if (!syncConflict) return;
+    if (useCloudVersion) {
+        setCds(syncConflict.cloud.collection);
+        setLastUpdated(syncConflict.cloud.lastUpdated);
+    } else {
+        const updatedLocalData = { ...syncConflict.local, lastUpdated: new Date().toISOString() };
+        simpleSync.saveCollection(updatedLocalData);
+        setLastUpdated(updatedLocalData.lastUpdated);
+    }
+    setSyncConflict(null);
   };
 
   const RouteWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
@@ -373,20 +360,12 @@ const App: React.FC = () => {
         {activeSyncError && isErrorBannerVisible && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 w-full sticky top-0 z-30" role="alert">
             <div className="flex items-start">
-              <div className="py-1">
-                <XCircleIcon className="h-6 w-6 text-red-500 mr-4 flex-shrink-0" />
-              </div>
+              <div className="py-1"><XCircleIcon className="h-6 w-6 text-red-500 mr-4 flex-shrink-0" /></div>
               <div className="flex-grow">
                 <p className="font-bold">Sync Error</p>
                 <p className="text-sm">{activeSyncError}</p>
               </div>
-              <button
-                onClick={handleDismissError}
-                className="ml-auto p-2 rounded-full text-red-500 hover:bg-red-200 flex-shrink-0"
-                aria-label="Dismiss error message"
-              >
-                <XIcon className="h-5 w-5" />
-              </button>
+              <button onClick={handleDismissError} className="ml-auto p-2 rounded-full text-red-500 hover:bg-red-200 flex-shrink-0" aria-label="Dismiss"><XIcon className="h-5 w-5" /></button>
             </div>
           </div>
         )}
@@ -399,90 +378,29 @@ const App: React.FC = () => {
           syncStatus={activeSyncStatus}
           syncError={activeSyncError}
           syncProvider={syncProvider}
+          onManualSync={handleManualSync}
         />
         <Routes>
-          <Route path="/" element={
-            <RouteWrapper>
-              <ListView 
-                cds={cds} 
-                onDeleteCD={handleDeleteCD}
-                onRequestAdd={handleRequestAdd}
-                onRequestEdit={handleRequestEdit}
-              />
-            </RouteWrapper>
-          } />
-          <Route path="/cd/:id" element={
-            <RouteWrapper>
-              <DetailView cds={cds} />
-            </RouteWrapper>
-          } />
-          <Route path="/artists" element={
-            <RouteWrapper>
-              <ArtistsView cds={cds} />
-            </RouteWrapper>
-          } />
-          <Route path="/dashboard" element={
-            <RouteWrapper>
-              <DashboardView cds={cds} />
-            </RouteWrapper>
-          } />
+          <Route path="/" element={<RouteWrapper><ListView cds={cds} onDeleteCD={handleDeleteCD} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />
+          <Route path="/cd/:id" element={<RouteWrapper><DetailView cds={cds} /></RouteWrapper>} />
+          <Route path="/artists" element={<RouteWrapper><ArtistsView cds={cds} /></RouteWrapper>} />
+          <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
         </Routes>
         <BottomNavBar onAddClick={handleRequestAdd} />
       </div>
       {isAddModalOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-60 flex items-start md:items-center justify-center z-40 p-4 overflow-y-auto"
-          role="dialog"
-          aria-modal="true"
-        >
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start md:items-center justify-center z-40 p-4 overflow-y-auto" role="dialog" aria-modal="true">
           <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-2xl relative">
-            <button 
-              onClick={handleCloseModal}
-              className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10"
-              aria-label="Close form"
-            >
-              <XIcon className="w-6 h-6" />
-            </button>
-            <div className="p-1">
-              <AddCDForm 
-                key={cdToEdit ? cdToEdit.id : 'add'}
-                onSave={handleSaveCD}
-                cdToEdit={cdToEdit}
-                onCancel={handleCloseModal}
-              />
-            </div>
+            <button onClick={handleCloseModal} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10" aria-label="Close form"><XIcon className="w-6 h-6" /></button>
+            <div className="p-1"><AddCDForm key={cdToEdit ? cdToEdit.id : 'add'} onSave={handleSaveCD} cdToEdit={cdToEdit} onCancel={handleCloseModal} /></div>
           </div>
         </div>
       )}
-      {duplicateInfo && (
-        <ConfirmDuplicateModal
-            isOpen={!!duplicateInfo}
-            onClose={handleCancelDuplicate}
-            onConfirm={handleConfirmDuplicate}
-            newCdData={duplicateInfo.newCd}
-            existingCd={duplicateInfo.existingCd}
-        />
-      )}
-       <ImportConfirmModal
-            isOpen={!!importData}
-            importCount={importData?.length || 0}
-            onClose={() => setImportData(null)}
-            onMerge={handleMergeImport}
-            onReplace={handleReplaceImport}
-        />
-       <SyncSettingsModal
-          isOpen={isSyncModalOpen}
-          onClose={() => setIsSyncModalOpen(false)}
-          currentProvider={syncProvider}
-          onProviderChange={handleSyncProviderChange}
-       />
-        <input
-            type="file"
-            ref={importInputRef}
-            onChange={handleFileChange}
-            accept=".json"
-            className="hidden"
-        />
+      {duplicateInfo && <ConfirmDuplicateModal isOpen={!!duplicateInfo} onClose={handleCancelDuplicate} onConfirm={handleConfirmDuplicate} newCdData={duplicateInfo.newCd} existingCd={duplicateInfo.existingCd} />}
+      <ImportConfirmModal isOpen={!!importData} importCount={importData?.length || 0} onClose={() => setImportData(null)} onMerge={handleMergeImport} onReplace={handleReplaceImport} />
+      <SyncSettingsModal isOpen={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} currentProvider={syncProvider} onProviderChange={handleSyncProviderChange} />
+      {syncConflict && <SyncConflictModal isOpen={!!syncConflict} onClose={() => setSyncConflict(null)} onResolve={resolveSyncConflict} conflictData={syncConflict} />}
+      <input type="file" ref={importInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
     </HashRouter>
   );
 };
