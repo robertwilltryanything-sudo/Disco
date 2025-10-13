@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { SyncStatus } from '../hooks/useGoogleDrive';
+import { SyncStatus } from '../hooks/useSimpleSync';
 import { MenuIcon } from './icons/MenuIcon';
 import StatusIndicator from './StatusIndicator';
 import { UploadIcon } from './icons/UploadIcon';

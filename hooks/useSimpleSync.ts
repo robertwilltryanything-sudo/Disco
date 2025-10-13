@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { CD } from '../types';
 
@@ -87,9 +88,7 @@ export const useSimpleSync = () => {
                 throw new Error(`Failed to save collection: ${response.statusText} (${response.status})`);
             }
 
-            // Add a small delay so the user can see the 'saving' status
-            setTimeout(() => setSyncStatus('synced'), 500);
-
+            setSyncStatus('synced');
         } catch (e) {
             console.error('Simple Sync save error:', e);
             setError('Could not save your collection to the cloud. Please check your connection.');

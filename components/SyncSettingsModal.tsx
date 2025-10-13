@@ -1,6 +1,5 @@
 import React from 'react';
 import { SyncProvider } from '../App';
-import { SyncStatus } from '../hooks/useGoogleDrive';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
 
@@ -9,10 +8,6 @@ interface SyncSettingsModalProps {
     onClose: () => void;
     currentProvider: SyncProvider;
     onProviderChange: (provider: SyncProvider) => void;
-    googleDriveStatus: SyncStatus;
-    isGoogleSignedIn: boolean;
-    onGoogleSignIn: () => void;
-    onGoogleSignOut: () => void;
 }
 
 const ProviderOption: React.FC<{
@@ -46,16 +41,12 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     onClose,
     currentProvider,
     onProviderChange,
-    isGoogleSignedIn,
-    onGoogleSignIn,
-    onGoogleSignOut,
 }) => {
     if (!isOpen) {
         return null;
     }
 
     const isSimpleSyncConfigured = !!process.env.VITE_SIMPLE_SYNC_URL;
-    const isGoogleConfigured = !!process.env.VITE_GOOGLE_CLIENT_ID;
 
     return (
         <div
@@ -72,8 +63,8 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                 
                 <div className="p-6 space-y-4">
                     <ProviderOption
-                        title="Simple Cloud Backup (Recommended)"
-                        description="Easiest setup. Backs up your collection automatically using a pre-configured cloud endpoint."
+                        title="Simple Cloud Backup"
+                        description="Backs up your collection automatically using a pre-configured cloud endpoint."
                         isSelected={currentProvider === 'simple'}
                         onSelect={() => onProviderChange('simple')}
                     >
@@ -87,31 +78,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                                 <span>Simple Cloud Backup is enabled. Your data will sync automatically.</span>
                             </div>
                         )}
-                    </ProviderOption>
-
-                    <ProviderOption
-                        title="Google Drive Sync"
-                        description="Robust, automatic sync to your own Google Drive account. Requires a more complex one-time setup."
-                        isSelected={currentProvider === 'google'}
-                        onSelect={() => onProviderChange('google')}
-                    >
-                         {!isGoogleConfigured ? (
-                             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                                This option is not configured by the site administrator. Please set the <code>VITE_GOOGLE_CLIENT_ID</code> environment variable.
-                            </div>
-                         ) : (
-                            <div className="flex justify-center">
-                                {isGoogleSignedIn ? (
-                                    <button onClick={onGoogleSignOut} className="bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-4 rounded-lg hover:bg-zinc-100">
-                                        Sign Out of Google
-                                    </button>
-                                ) : (
-                                     <button onClick={onGoogleSignIn} className="bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-4 rounded-lg hover:bg-zinc-100">
-                                        Sign In with Google
-                                    </button>
-                                )}
-                            </div>
-                         )}
                     </ProviderOption>
                     
                      <ProviderOption

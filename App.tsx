@@ -7,7 +7,6 @@ import DetailView from './views/DetailView';
 import ArtistsView from './views/ArtistsView';
 import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
-import { useGoogleDrive, SyncStatus as GoogleSyncStatus } from './hooks/useGoogleDrive';
 import { useSimpleSync, SyncStatus as SimpleSyncStatus } from './hooks/useSimpleSync';
 import { findCoverArt } from './wikipedia';
 import AddCDForm from './components/AddCDForm';
@@ -32,7 +31,7 @@ const INITIAL_CDS: CD[] = [
 const COLLECTION_STORAGE_KEY = 'disco_collection_v2';
 const SYNC_PROVIDER_KEY = 'disco_sync_provider';
 
-export type SyncProvider = 'google' | 'simple' | 'none';
+export type SyncProvider = 'simple' | 'none';
 
 // Helper to fetch artwork for the initial collection using the reliable findCoverArt function.
 const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
@@ -71,9 +70,15 @@ const App: React.FC = () => {
   const [cds, setCds] = useState<CD[]>([]);
   const debouncedCds = useDebounce(cds, 1000);
 
-  const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => (localStorage.getItem(SYNC_PROVIDER_KEY) as SyncProvider) || 'none');
-
-  const googleDrive = useGoogleDrive();
+  const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
+    const storedProvider = localStorage.getItem(SYNC_PROVIDER_KEY);
+    if (storedProvider === 'simple' || storedProvider === 'none') {
+        return storedProvider;
+    }
+    // Default to 'none' if the stored value is invalid (e.g., the old 'google' value)
+    return 'none';
+  });
+  
   const simpleSync = useSimpleSync();
 
   const isInitialLoad = useRef(true);
@@ -87,25 +92,13 @@ const App: React.FC = () => {
   const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(true);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
-  const activeSyncStatus: GoogleSyncStatus | SimpleSyncStatus = syncProvider === 'google' ? googleDrive.syncStatus : (syncProvider === 'simple' ? simpleSync.syncStatus : 'idle');
-  const activeSyncError: string | null = syncProvider === 'google' ? googleDrive.error : (syncProvider === 'simple' ? simpleSync.error : null);
+  const activeSyncStatus: SimpleSyncStatus = syncProvider === 'simple' ? simpleSync.syncStatus : 'idle';
+  const activeSyncError: string | null = syncProvider === 'simple' ? simpleSync.error : null;
 
   // Initial data load effect
   useEffect(() => {
     const initialLoad = async () => {
-      // Prioritize loading from the cloud if a provider is configured and signed in.
-      if (syncProvider === 'google' && googleDrive.isSignedIn && !hasLoadedFromCloud.current) {
-        try {
-          const driveCds = await googleDrive.loadCollection();
-          if (driveCds) {
-            setCds(driveCds);
-            hasLoadedFromCloud.current = true;
-            return;
-          }
-        } catch (e) {
-            console.error("Failed to load from Google Drive, falling back to local storage.", e);
-        }
-      } else if (syncProvider === 'simple' && !hasLoadedFromCloud.current) {
+      if (syncProvider === 'simple' && !hasLoadedFromCloud.current) {
         try {
           const simpleCds = await simpleSync.loadCollection();
           if (simpleCds) {
@@ -136,16 +129,8 @@ const App: React.FC = () => {
       }
     };
 
-    if (googleDrive.isApiReady) { // We can use googleDrive.isApiReady as a general "app is ready" signal
-      initialLoad();
-    }
-  }, [
-    googleDrive.isApiReady, 
-    googleDrive.isSignedIn, 
-    googleDrive.loadCollection,
-    simpleSync.loadCollection,
-    syncProvider
-  ]);
+    initialLoad();
+  }, [simpleSync.loadCollection, syncProvider]);
 
   // Data saving effect - now debounced to avoid excessive writes during rapid changes.
   useEffect(() => {
@@ -160,12 +145,10 @@ const App: React.FC = () => {
       console.error("Error saving CDs to localStorage:", error);
     }
     
-    if (syncProvider === 'google' && googleDrive.isSignedIn) {
-      googleDrive.saveCollection(debouncedCds);
-    } else if (syncProvider === 'simple') {
+    if (syncProvider === 'simple') {
       simpleSync.saveCollection(debouncedCds);
     }
-  }, [debouncedCds, syncProvider, googleDrive.isSignedIn, googleDrive.saveCollection, simpleSync.saveCollection]);
+  }, [debouncedCds, syncProvider, simpleSync.saveCollection]);
   
   const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD>>(cd: T): Promise<T> => {
     const shouldFetch = !cd.genre || !cd.recordLabel || !cd.tags || cd.tags.length === 0;
@@ -332,11 +315,7 @@ const App: React.FC = () => {
   const handleSyncProviderChange = (provider: SyncProvider) => {
     localStorage.setItem(SYNC_PROVIDER_KEY, provider);
     setSyncProvider(provider);
-    if (provider === 'none') {
-      googleDrive.signOut();
-    } else if (provider === 'google') {
-      googleDrive.signIn();
-    } else if (provider === 'simple') {
+    if (provider === 'simple') {
       // When switching to simple sync, trigger a load from the cloud.
       hasLoadedFromCloud.current = false;
       simpleSync.loadCollection().then(cloudCds => {
@@ -460,10 +439,6 @@ const App: React.FC = () => {
           onClose={() => setIsSyncModalOpen(false)}
           currentProvider={syncProvider}
           onProviderChange={handleSyncProviderChange}
-          googleDriveStatus={googleDrive.syncStatus}
-          isGoogleSignedIn={googleDrive.isSignedIn}
-          onGoogleSignIn={googleDrive.signIn}
-          onGoogleSignOut={googleDrive.signOut}
        />
         <input
             type="file"

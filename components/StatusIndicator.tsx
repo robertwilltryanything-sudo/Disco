@@ -1,7 +1,5 @@
-
-
 import React from 'react';
-import { SyncStatus } from '../hooks/useGoogleDrive';
+import { SyncStatus } from '../hooks/useSimpleSync';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UploadIcon } from './icons/UploadIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -14,9 +12,9 @@ interface StatusIndicatorProps {
 
 const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; text: string; color: string; tooltip: string } } = {
   idle: { icon: UploadIcon, text: 'Idle', color: 'text-zinc-500', tooltip: 'Signed out from Google Drive.' },
-  loading: { icon: SpinnerIcon, text: 'Loading', color: 'text-blue-500', tooltip: 'Loading collection from Google Drive...' },
-  saving: { icon: SpinnerIcon, text: 'Saving', color: 'text-blue-500', tooltip: 'Saving changes to Google Drive...' },
-  synced: { icon: CheckIcon, text: 'Synced', color: 'text-green-500', tooltip: 'Your collection is synced with Google Drive.' },
+  loading: { icon: SpinnerIcon, text: 'Loading', color: 'text-blue-500', tooltip: 'Loading collection from the cloud...' },
+  saving: { icon: SpinnerIcon, text: 'Saving', color: 'text-blue-500', tooltip: 'Saving changes to the cloud...' },
+  synced: { icon: CheckIcon, text: 'Synced', color: 'text-green-500', tooltip: 'Your collection is synced with the cloud.' },
   error: { icon: XCircleIcon, text: 'Error', color: 'text-red-500', tooltip: 'An error occurred during sync.' },
   disabled: { icon: XCircleIcon, text: 'Disabled', color: 'text-zinc-400', tooltip: 'Sync is disabled because it has not been configured.' },
 };

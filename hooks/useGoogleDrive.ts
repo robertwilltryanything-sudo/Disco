@@ -268,7 +268,7 @@ export const useGoogleDrive = () => {
         });
         console.log('Save response:', response);
         
-        setTimeout(() => setSyncStatus('synced'), 500); // Add a small delay to show 'saving' status
+        setSyncStatus('synced');
     } catch (e: any) {
         handleApiError(e, 'save data to Drive');
     }
