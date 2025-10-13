@@ -47,6 +47,7 @@ export const useGoogleDrive = () => {
   }, []);
 
   const handleApiError = useCallback((e: any, context: string) => {
+    console.error(`Full error object during "${context}":`, e);
     const errorDetails = e?.result?.error;
     const errorCode = errorDetails?.code;
     const errorReason = errorDetails?.errors?.[0]?.reason;
@@ -97,6 +98,7 @@ export const useGoogleDrive = () => {
         client_id: GOOGLE_CLIENT_ID,
         scope: GOOGLE_DRIVE_SCOPES,
         callback: async (tokenResponse: any) => {
+            console.log('Google token response:', tokenResponse);
             if (tokenResponse && tokenResponse.access_token) {
                 // The gapi client needs to be explicitly given the access token.
                 window.gapi.client.setToken(tokenResponse);
@@ -191,10 +193,13 @@ export const useGoogleDrive = () => {
             spaces: 'appDataFolder',
             fields: 'files(id, name)',
         });
+        console.log('Searched for file in appDataFolder:', response);
 
         if (response.result.files.length > 0) {
             fileId = response.result.files[0].id;
+            console.log(`Found existing file ID: ${fileId}`);
         } else {
+            console.log('No existing file found. Creating a new one.');
             // If the file doesn't exist, create it in the appDataFolder.
             const createResponse = await window.gapi.client.drive.files.create({
                 resource: {
@@ -204,6 +209,7 @@ export const useGoogleDrive = () => {
                 },
                 fields: 'id',
             });
+            console.log('Created new file:', createResponse);
             fileId = createResponse.result.id;
         }
         
@@ -227,6 +233,7 @@ export const useGoogleDrive = () => {
             fileId: id,
             alt: 'media',
         });
+        console.log('Loaded file content response:', response);
         
         const content = response.body;
         if (content && content.length > 0) {
@@ -250,12 +257,16 @@ export const useGoogleDrive = () => {
         const id = await getOrCreateFileId();
         if (!id) throw new Error("Could not get file ID.");
 
-        await window.gapi.client.request({
+        const bodyContent = JSON.stringify(cds, null, 2);
+        console.log(`Saving to file ID ${id}. Content size: ${bodyContent.length} bytes.`);
+
+        const response = await window.gapi.client.request({
             path: `/upload/drive/v3/files/${id}`,
             method: 'PATCH',
             params: { uploadType: 'media' },
-            body: JSON.stringify(cds, null, 2),
+            body: bodyContent,
         });
+        console.log('Save response:', response);
         
         setTimeout(() => setSyncStatus('synced'), 500); // Add a small delay to show 'saving' status
     } catch (e: any) {

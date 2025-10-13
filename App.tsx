@@ -16,6 +16,7 @@ import { XIcon } from './components/icons/XIcon';
 import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
 import { areStringsSimilar } from './utils';
 import { useDebounce } from './hooks/useDebounce';
+import ImportConfirmModal from './components/ImportConfirmModal';
 
 // Initial data for demonstration purposes. Cover art will be found on first load.
 const INITIAL_CDS: CD[] = [
@@ -80,6 +81,8 @@ const App: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
+  const [importData, setImportData] = useState<CD[] | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   // Initial data load effect
   useEffect(() => {
@@ -254,6 +257,64 @@ const App: React.FC = () => {
     // Do nothing, user is back in the form to edit the entry
   }, []);
   
+  const handleExportCollection = useCallback(() => {
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(cds, null, 2))}`;
+    const link = document.createElement("a");
+    link.href = jsonString;
+    link.download = "disco_collection_backup.json";
+    link.click();
+  }, [cds]);
+
+  const handleImportClick = () => {
+    importInputRef.current?.click();
+  };
+  
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const text = e.target?.result;
+            if (typeof text !== 'string') throw new Error("File content is not readable.");
+            const data = JSON.parse(text);
+
+            // Basic validation
+            if (Array.isArray(data) && (data.length === 0 || (data[0].artist && data[0].title))) {
+                setImportData(data);
+            } else {
+                alert("Import failed: The file does not appear to be a valid collection.");
+            }
+        } catch (error) {
+            console.error("Error parsing import file:", error);
+            alert("Import failed: Could not parse the JSON file.");
+        }
+    };
+    reader.readAsText(file);
+    // Reset file input value to allow re-importing the same file
+    event.target.value = '';
+  };
+
+  const handleMergeImport = () => {
+    if (importData) {
+        // Generate new IDs for imported CDs to avoid conflicts.
+        const newCds = importData.map(cd => ({
+            ...cd,
+            id: `${new Date().getTime()}-${Math.random()}`
+        }));
+        setCds(prevCds => [...prevCds, ...newCds]);
+        setImportData(null);
+    }
+  };
+
+  const handleReplaceImport = () => {
+    if (importData) {
+        setCds(importData);
+        setImportData(null);
+    }
+  };
+
   const RouteWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
     <main className="container mx-auto p-4 md:p-6">{children}</main>
   );
@@ -270,6 +331,8 @@ const App: React.FC = () => {
           driveError={driveError}
           onAddClick={handleRequestAdd}
           collectionCount={cds.length}
+          onImport={handleImportClick}
+          onExport={handleExportCollection}
         />
         <Routes>
           <Route path="/" element={
@@ -333,6 +396,20 @@ const App: React.FC = () => {
             existingCd={duplicateInfo.existingCd}
         />
       )}
+       <ImportConfirmModal
+            isOpen={!!importData}
+            importCount={importData?.length || 0}
+            onClose={() => setImportData(null)}
+            onMerge={handleMergeImport}
+            onReplace={handleReplaceImport}
+        />
+        <input
+            type="file"
+            ref={importInputRef}
+            onChange={handleFileChange}
+            accept=".json"
+            className="hidden"
+        />
     </HashRouter>
   );
 };

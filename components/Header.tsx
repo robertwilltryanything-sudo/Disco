@@ -1,10 +1,13 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import GoogleDriveSync from './GoogleDriveSync';
 import { SyncStatus } from '../hooks/useGoogleDrive';
 import { MenuIcon } from './icons/MenuIcon';
 import StatusIndicator from './StatusIndicator';
+import { UploadIcon } from './icons/UploadIcon';
+import { DownloadIcon } from './icons/DownloadIcon';
 
 interface HeaderProps {
     isApiReady: boolean;
@@ -15,6 +18,8 @@ interface HeaderProps {
     driveError: string | null;
     onAddClick: () => void;
     collectionCount: number;
+    onImport: () => void;
+    onExport: () => void;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -34,7 +39,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
   </li>
 );
 
-const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut, syncStatus, driveError, onAddClick, collectionCount }) => {
+const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut, syncStatus, driveError, onAddClick, collectionCount, onImport, onExport }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -119,17 +124,38 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
 
                 {isMenuOpen && (
                 <div 
-                    className="absolute top-full right-0 mt-2 w-max bg-white rounded-lg shadow-lg border border-zinc-200 p-4 z-30"
+                    className="absolute top-full right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-zinc-200 p-2 z-30 divide-y divide-zinc-200"
                     role="menu"
                 >
-                    <GoogleDriveSync 
-                    isApiReady={isApiReady}
-                    isSignedIn={isSignedIn}
-                    signIn={signIn}
-                    signOut={signOut}
-                    status={syncStatus}
-                    error={driveError}
-                    />
+                    <div className="p-2">
+                        <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Manual Backup</h3>
+                         <div className="space-y-2">
+                            <button 
+                                onClick={onImport}
+                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"
+                            >
+                                <UploadIcon className="w-5 h-5" />
+                                <span className="font-medium">Import Collection...</span>
+                            </button>
+                             <button
+                                onClick={onExport}
+                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"
+                            >
+                                <DownloadIcon className="w-5 h-5" />
+                                <span className="font-medium">Export Collection</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div className="p-2">
+                        <GoogleDriveSync 
+                            isApiReady={isApiReady}
+                            isSignedIn={isSignedIn}
+                            signIn={signIn}
+                            signOut={signOut}
+                            status={syncStatus}
+                            error={driveError}
+                        />
+                    </div>
                 </div>
                 )}
             </div>
