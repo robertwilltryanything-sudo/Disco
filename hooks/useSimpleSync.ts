@@ -23,15 +23,31 @@ export const useSimpleSync = () => {
             
             if (response.ok) {
                 const text = await response.text();
-                // A new/empty bucket from kvdb.io returns an empty string, which is not valid JSON.
-                if (text) {
-                    const data = JSON.parse(text);
+                // Handle empty bucket
+                if (!text) {
+                    setSyncStatus('synced');
+                    return [];
+                }
+
+                const data = JSON.parse(text);
+                
+                // Handle new format { "collection": [...] }
+                if (data && data.collection && Array.isArray(data.collection)) {
+                    setSyncStatus('synced');
+                    return data.collection as CD[];
+                }
+                
+                // Handle old format [...] for backward compatibility
+                if (Array.isArray(data)) {
                     setSyncStatus('synced');
                     return data as CD[];
                 }
-                // If the response is empty, it's a new collection.
+
+                // If format is unexpected, treat as empty
+                console.warn("Simple Sync data is in an unexpected format.", data);
                 setSyncStatus('synced');
                 return [];
+
             }
             if (response.status === 404) {
                 // This can happen if the URL is wrong. Treat it as a new/empty collection but log a warning.
@@ -59,16 +75,19 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
+            // FIX: Wrap the array in an object. Some APIs reject top-level JSON arrays.
+            const payload = { collection: cds };
+
             const response = await fetch(BUCKET_URL, {
                 method: 'POST', // kvdb.io uses POST to create/update the bucket content.
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(cds),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to save collection: ${response.statusText}`);
+                throw new Error(`Failed to save collection: ${response.statusText} (${response.status})`);
             }
 
             // Add a small delay so the user can see the 'saving' status
