@@ -75,14 +75,11 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
-            // FIX: Wrap the array in an object. Some APIs reject top-level JSON arrays.
             const payload = { collection: cds };
 
             const response = await fetch(BUCKET_URL, {
                 method: 'POST', // kvdb.io uses POST to create/update the bucket content.
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                // headers: { 'Content-Type': 'application/json' }, // Removed for simplicity, as per kvdb.io examples. Let browser set default.
                 body: JSON.stringify(payload),
             });
 
