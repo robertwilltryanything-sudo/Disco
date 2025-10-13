@@ -1,6 +1,4 @@
 
-
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD } from '../types';
@@ -18,6 +16,8 @@ declare global {
 
 export const useGoogleDrive = () => {
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [gapiLoaded, setGapiLoaded] = useState(false);
+  const [gisLoaded, setGisLoaded] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -69,11 +69,7 @@ export const useGoogleDrive = () => {
         await window.gapi.client.init({
             discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
         });
-        
-        if (window.google?.accounts?.oauth2) {
-             // Both scripts are loaded, API is ready
-             setIsApiReady(true);
-        }
+        setGapiLoaded(true);
     });
   }, []);
 
@@ -81,10 +77,8 @@ export const useGoogleDrive = () => {
     // Do not initialize if the client ID is missing.
     if (!GOOGLE_CLIENT_ID) {
       console.warn("Google Client ID is not configured. Google Drive Sync will be disabled.");
-      // Still set API as "ready" so the app doesn't hang, but sync functionality will be off.
-      if (window.gapi?.client) {
-          setIsApiReady(true);
-      }
+      // Still set GIS as "loaded" so the API ready state can be triggered, but sync will remain off.
+      setGisLoaded(true);
       return;
     }
       
@@ -102,12 +96,17 @@ export const useGoogleDrive = () => {
             }
         },
     });
-
-    if (window.gapi?.client) {
-        // Both scripts are loaded, API is ready
-        setIsApiReady(true);
-    }
+    setGisLoaded(true);
   }, []);
+
+  // Effect to ensure both GAPI and GIS are fully loaded before marking the API as ready.
+  // This prevents race conditions.
+  useEffect(() => {
+    if (gapiLoaded && gisLoaded) {
+      setIsApiReady(true);
+    }
+  }, [gapiLoaded, gisLoaded]);
+
 
   useEffect(() => {
       // Attach script load handlers to the window object
