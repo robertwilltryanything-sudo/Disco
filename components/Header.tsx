@@ -1,23 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import GoogleDriveSync from './GoogleDriveSync';
 import { SyncStatus } from '../hooks/useGoogleDrive';
 import { MenuIcon } from './icons/MenuIcon';
 import StatusIndicator from './StatusIndicator';
 import { UploadIcon } from './icons/UploadIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
+import { SyncProvider } from '../App';
+import { SettingsIcon } from './icons/SettingsIcon';
 
 interface HeaderProps {
-    isApiReady: boolean;
-    isSignedIn: boolean;
-    signIn: () => void;
-    signOut: () => void;
-    syncStatus: SyncStatus;
-    driveError: string | null;
     onAddClick: () => void;
     collectionCount: number;
     onImport: () => void;
     onExport: () => void;
+    onOpenSyncSettings: () => void;
+    syncStatus: SyncStatus;
+    syncError: string | null;
+    syncProvider: SyncProvider;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -37,7 +36,16 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
   </li>
 );
 
-const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut, syncStatus, driveError, onAddClick, collectionCount, onImport, onExport }) => {
+const Header: React.FC<HeaderProps> = ({ 
+    onAddClick, 
+    collectionCount, 
+    onImport, 
+    onExport, 
+    onOpenSyncSettings,
+    syncStatus,
+    syncError,
+    syncProvider
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -58,13 +66,8 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     if (location.pathname === '/') {
-      // If we are already on the homepage, clicking the logo should clear any active filters.
-      // We achieve this by navigating to the same page with a special state object that
-      // the ListView component can detect. Using `replace: true` prevents this action
-      // from adding a new entry to the browser's history.
       navigate('/', { state: { clearFilter: true }, replace: true });
     } else {
-      // If on any other page, simply navigate to the homepage.
       navigate('/');
     }
   };
@@ -103,7 +106,7 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
 
         <div className="flex-1 flex justify-end">
           <div className="flex items-center gap-2">
-            {isSignedIn && <StatusIndicator status={syncStatus} error={driveError} />}
+            {syncProvider !== 'none' && <StatusIndicator status={syncStatus} error={syncError} />}
             
             <div ref={menuRef} className="relative group">
                 <button
@@ -126,6 +129,18 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
                     role="menu"
                 >
                     <div className="p-2">
+                        <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Sync & Backup</h3>
+                         <div className="space-y-2">
+                            <button 
+                                onClick={onOpenSyncSettings}
+                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"
+                            >
+                                <SettingsIcon className="w-5 h-5" />
+                                <span className="font-medium">Sync & Backup Settings...</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div className="p-2">
                         <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Manual Backup</h3>
                          <div className="space-y-2">
                             <button 
@@ -143,16 +158,6 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
                                 <span className="font-medium">Export Collection</span>
                             </button>
                         </div>
-                    </div>
-                    <div className="p-2">
-                        <GoogleDriveSync 
-                            isApiReady={isApiReady}
-                            isSignedIn={isSignedIn}
-                            signIn={signIn}
-                            signOut={signOut}
-                            status={syncStatus}
-                            error={driveError}
-                        />
                     </div>
                 </div>
                 )}
