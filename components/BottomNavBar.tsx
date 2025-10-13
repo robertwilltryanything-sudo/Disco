@@ -1,0 +1,61 @@
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { HomeIcon } from './icons/HomeIcon';
+import { DashboardIcon } from './icons/DashboardIcon';
+import { UserGroupIcon } from './icons/UserGroupIcon';
+import { PlusIcon } from './icons/PlusIcon';
+
+interface BottomNavBarProps {
+    onAddClick: () => void;
+}
+
+const NavItem: React.FC<{ to?: string; onClick?: () => void; children: React.ReactNode; label: string }> = ({ to, onClick, children, label }) => {
+  if (to) {
+    return (
+      <NavLink
+        to={to}
+        end={to === '/'}
+        className={({ isActive }) =>
+          `flex flex-col items-center justify-center gap-1 w-full h-full transition-colors duration-200 ${
+            isActive ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
+          }`
+        }
+      >
+        {children}
+        <span className="text-xs font-medium">{label}</span>
+      </NavLink>
+    );
+  }
+  return (
+     <button
+        onClick={onClick}
+        className="flex flex-col items-center justify-center gap-1 w-full h-full text-zinc-500 hover:text-zinc-700 transition-colors duration-200"
+      >
+        {children}
+        <span className="text-xs font-medium">{label}</span>
+      </button>
+  );
+};
+
+const BottomNavBar: React.FC<BottomNavBarProps> = ({ onAddClick }) => {
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-sm border-t border-zinc-200 z-20 grid grid-cols-4 md:hidden">
+        <NavItem to="/" label="Collection">
+            <HomeIcon className="w-6 h-6" />
+        </NavItem>
+        <NavItem to="/dashboard" label="Dashboard">
+            <DashboardIcon className="w-6 h-6" />
+        </NavItem>
+        <NavItem to="/artists" label="Artists">
+            <UserGroupIcon className="w-6 h-6" />
+        </NavItem>
+        <NavItem onClick={onAddClick} label="Add CD">
+             <div className="w-7 h-7 flex items-center justify-center bg-zinc-900 text-white rounded-lg shadow-sm">
+                <PlusIcon className="w-5 h-5" />
+            </div>
+        </NavItem>
+    </nav>
+  );
+};
+
+export default BottomNavBar;

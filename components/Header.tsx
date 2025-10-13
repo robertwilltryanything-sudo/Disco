@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import GoogleDriveSync from './GoogleDriveSync';
@@ -87,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({ isApiReady, isSignedIn, signIn, signOut
           <span className="ml-3 text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full">{collectionCount}</span>
         </div>
         
-        <nav className="flex-shrink-0">
+        <nav className="hidden md:flex flex-shrink-0">
             <ul className="flex items-center gap-4">
                 <NavItem to="/dashboard">Dashboard</NavItem>
                 <NavItem to="/artists">Artists</NavItem>

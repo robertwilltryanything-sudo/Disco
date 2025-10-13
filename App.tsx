@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { CD } from './types';
@@ -17,6 +15,8 @@ import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
 import { areStringsSimilar } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 import ImportConfirmModal from './components/ImportConfirmModal';
+import { XCircleIcon } from './components/icons/XCircleIcon';
+import BottomNavBar from './components/BottomNavBar';
 
 // Initial data for demonstration purposes. Cover art will be found on first load.
 const INITIAL_CDS: CD[] = [
@@ -83,6 +83,7 @@ const App: React.FC = () => {
   const [duplicateInfo, setDuplicateInfo] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
   const [importData, setImportData] = useState<CD[] | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(true);
 
   // Initial data load effect
   useEffect(() => {
@@ -315,13 +316,44 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDismissError = () => {
+    setIsErrorBannerVisible(false);
+  };
+
+  // Show the banner again if a new error occurs
+  useEffect(() => {
+    if (driveError) {
+      setIsErrorBannerVisible(true);
+    }
+  }, [driveError]);
+
   const RouteWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <main className="container mx-auto p-4 md:p-6">{children}</main>
+    <main className="container mx-auto p-4 md:p-6 pb-24 md:pb-6">{children}</main>
   );
 
   return (
     <HashRouter>
       <div className="flex flex-col min-h-screen">
+        {driveError && isErrorBannerVisible && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 w-full sticky top-0 z-30" role="alert">
+            <div className="flex items-start">
+              <div className="py-1">
+                <XCircleIcon className="h-6 w-6 text-red-500 mr-4 flex-shrink-0" />
+              </div>
+              <div className="flex-grow">
+                <p className="font-bold">Sync Error</p>
+                <p className="text-sm">{driveError}</p>
+              </div>
+              <button
+                onClick={handleDismissError}
+                className="ml-auto p-2 rounded-full text-red-500 hover:bg-red-200 flex-shrink-0"
+                aria-label="Dismiss error message"
+              >
+                <XIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
         <Header 
           isApiReady={isApiReady}
           isSignedIn={isSignedIn}
@@ -361,6 +393,7 @@ const App: React.FC = () => {
             </RouteWrapper>
           } />
         </Routes>
+        <BottomNavBar onAddClick={handleRequestAdd} />
       </div>
       {isAddModalOpen && (
         <div 
