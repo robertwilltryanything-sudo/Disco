@@ -49,10 +49,20 @@ export const useGoogleDrive = () => {
   const handleApiError = useCallback((e: any, context: string) => {
     const errorDetails = e?.result?.error;
     const errorCode = errorDetails?.code;
+    const errorReason = errorDetails?.errors?.[0]?.reason;
     
     console.error(`Error ${context}:`, e);
 
-    // If auth error (invalid credentials, revoked token, etc.), sign the user out.
+    // This is a specific, highly informative error from Google.
+    // It means the user has authenticated, but the API itself isn't turned on in their Cloud project.
+    if (errorReason === 'accessNotConfigured') {
+        setError("Sync failed: The Google Drive API is not enabled for your project. Please visit the Google Cloud Console to enable it.");
+        setSyncStatus('error');
+        // We don't sign the user out, allowing them to try again after enabling the API.
+        return;
+    }
+
+    // Handle generic authentication errors (e.g., revoked token) by signing the user out.
     if (errorCode === 401 || errorCode === 403) {
       clearAuthState();
       setError("Sync failed due to an authentication issue. Please sign in again.");
