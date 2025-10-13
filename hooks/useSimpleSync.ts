@@ -9,9 +9,7 @@ export const useSimpleSync = () => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(BUCKET_URL ? 'idle' : 'disabled');
     const [error, setError] = useState<string | null>(BUCKET_URL ? null : 'Simple Sync is not configured. The administrator needs to provide a VITE_SIMPLE_SYNC_URL.');
 
-    const getUrl = (id: string) => `${BUCKET_URL}/${id}`;
-
-    const loadCollection = useCallback(async (id: string): Promise<CD[] | null> => {
+    const loadCollection = useCallback(async (): Promise<CD[] | null> => {
         if (!BUCKET_URL) {
             setSyncStatus('disabled');
             return null;
@@ -21,15 +19,23 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
-            const response = await fetch(getUrl(id));
+            const response = await fetch(BUCKET_URL);
+            
             if (response.ok) {
-                const data = await response.json();
+                const text = await response.text();
+                // A new/empty bucket from kvdb.io returns an empty string, which is not valid JSON.
+                if (text) {
+                    const data = JSON.parse(text);
+                    setSyncStatus('synced');
+                    return data as CD[];
+                }
+                // If the response is empty, it's a new collection.
                 setSyncStatus('synced');
-                return data as CD[];
+                return [];
             }
             if (response.status === 404) {
-                // This is not an error, it just means no backup exists yet for this ID.
-                console.log('No backup found for this Sync ID. A new one will be created on the first save.');
+                // This can happen if the URL is wrong. Treat it as a new/empty collection but log a warning.
+                console.warn('404 Not Found for Simple Sync URL. A new backup will be created on the first save.');
                 setSyncStatus('synced');
                 return [];
             }
@@ -37,13 +43,13 @@ export const useSimpleSync = () => {
             throw new Error(`Failed to load collection: ${response.statusText}`);
         } catch (e) {
             console.error('Simple Sync load error:', e);
-            setError('Could not load your collection from the cloud. Please check your connection and Sync Key.');
+            setError('Could not load your collection from the cloud. Please check your connection and that the Simple Sync URL is correct.');
             setSyncStatus('error');
             return null;
         }
     }, []);
     
-    const saveCollection = useCallback(async (id: string, cds: CD[]) => {
+    const saveCollection = useCallback(async (cds: CD[]) => {
         if (!BUCKET_URL) {
             setSyncStatus('disabled');
             return;
@@ -53,8 +59,8 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
-            const response = await fetch(getUrl(id), {
-                method: 'PUT',
+            const response = await fetch(BUCKET_URL, {
+                method: 'POST', // kvdb.io uses POST to create/update the bucket content.
                 headers: {
                     'Content-Type': 'application/json',
                 },

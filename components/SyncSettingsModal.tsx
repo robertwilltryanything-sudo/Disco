@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { SyncProvider } from '../App';
 import { SyncStatus } from '../hooks/useGoogleDrive';
-import { SpinnerIcon } from './icons/SpinnerIcon';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
 
@@ -10,8 +9,6 @@ interface SyncSettingsModalProps {
     onClose: () => void;
     currentProvider: SyncProvider;
     onProviderChange: (provider: SyncProvider) => void;
-    simpleSyncId: string | null;
-    onSimpleSyncIdChange: (id: string) => void;
     googleDriveStatus: SyncStatus;
     isGoogleSignedIn: boolean;
     onGoogleSignIn: () => void;
@@ -49,34 +46,13 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     onClose,
     currentProvider,
     onProviderChange,
-    simpleSyncId,
-    onSimpleSyncIdChange,
     isGoogleSignedIn,
     onGoogleSignIn,
     onGoogleSignOut,
 }) => {
-    const [restoreId, setRestoreId] = useState('');
-    const [hasCopied, setHasCopied] = useState(false);
-
     if (!isOpen) {
         return null;
     }
-    
-    const handleCopyToClipboard = () => {
-        if (simpleSyncId) {
-            navigator.clipboard.writeText(simpleSyncId);
-            setHasCopied(true);
-            setTimeout(() => setHasCopied(false), 2000);
-        }
-    };
-    
-    const handleRestore = () => {
-        const trimmedId = restoreId.trim();
-        if (trimmedId) {
-            onSimpleSyncIdChange(trimmedId);
-            setRestoreId('');
-        }
-    };
 
     const isSimpleSyncConfigured = !!process.env.VITE_SIMPLE_SYNC_URL;
     const isGoogleConfigured = !!process.env.VITE_GOOGLE_CLIENT_ID;
@@ -97,7 +73,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                 <div className="p-6 space-y-4">
                     <ProviderOption
                         title="Simple Cloud Backup (Recommended)"
-                        description="Easiest setup. Backs up your collection automatically. Requires you to save a Sync Key to restore on other devices."
+                        description="Easiest setup. Backs up your collection automatically using a pre-configured cloud endpoint."
                         isSelected={currentProvider === 'simple'}
                         onSelect={() => onProviderChange('simple')}
                     >
@@ -105,42 +81,10 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
                                 This option is not configured by the site administrator. Please set the <code>VITE_SIMPLE_SYNC_URL</code> environment variable.
                             </div>
-                        ) : simpleSyncId ? (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-zinc-700">Your Unique Sync Key</label>
-                                    <p className="text-xs text-zinc-500 mb-2">Save this key! You'll need it to access your collection on other devices.</p>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            readOnly
-                                            value={simpleSyncId}
-                                            className="w-full bg-zinc-100 border border-zinc-300 rounded-lg py-2 px-3 text-zinc-700 font-mono text-sm"
-                                        />
-                                        <button onClick={handleCopyToClipboard} className="flex-shrink-0 bg-zinc-800 text-white font-semibold py-2 px-4 rounded-lg hover:bg-black w-28">
-                                            {hasCopied ? <><CheckIcon className="w-5 h-5 inline-block -ml-1 mr-1" /> Copied!</> : 'Copy'}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700">Restore from a Sync Key</label>
-                                    <div className="flex gap-2 mt-1">
-                                         <input
-                                            type="text"
-                                            placeholder="Paste an existing key here"
-                                            value={restoreId}
-                                            onChange={(e) => setRestoreId(e.target.value)}
-                                            className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                                        />
-                                        <button onClick={handleRestore} className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-4 rounded-lg hover:bg-zinc-100">
-                                            Restore
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         ) : (
-                            <div className="flex items-center justify-center p-4">
-                                <SpinnerIcon className="h-6 w-6 text-zinc-500" />
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center gap-3">
+                                <CheckIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                <span>Simple Cloud Backup is enabled. Your data will sync automatically.</span>
                             </div>
                         )}
                     </ProviderOption>
