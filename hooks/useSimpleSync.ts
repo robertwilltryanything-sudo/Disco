@@ -1,4 +1,5 @@
 
+
 import { useState, useCallback } from 'react';
 import { CD } from '../types';
 
@@ -20,7 +21,8 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
-            const response = await fetch(BUCKET_URL);
+            // Add cache: 'no-store' to bypass the browser cache and ensure the latest data is fetched.
+            const response = await fetch(BUCKET_URL, { cache: 'no-store' });
             
             if (response.ok) {
                 const text = await response.text();
