@@ -78,8 +78,8 @@ export const useSimpleSync = () => {
             const payload = { collection: cds };
 
             const response = await fetch(BUCKET_URL, {
-                method: 'POST', // kvdb.io uses POST to create/update the bucket content.
-                // headers: { 'Content-Type': 'application/json' }, // Removed for simplicity, as per kvdb.io examples. Let browser set default.
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
