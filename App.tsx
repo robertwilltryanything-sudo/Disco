@@ -97,28 +97,19 @@ const App: React.FC = () => {
 
   // Initial data load effect
   useEffect(() => {
-    const initialLoad = async () => {
+    const loadData = async () => {
+      // If sync is enabled, this effect handles page refreshes.
+      // The initial switch TO sync is handled by handleSyncProviderChange.
       if (syncProvider === 'simple') {
-        // When sync is enabled, the cloud is the single source of truth.
-        // We do NOT fall back to localStorage on failure, as this can cause
-        // fresh cloud data to be overwritten by stale local data.
         if (!hasLoadedFromCloud.current) {
-            try {
-                const simpleCds = await simpleSync.loadCollection();
-                // A null response from loadCollection indicates an error occurred.
-                if (simpleCds !== null) { 
-                    setCds(simpleCds);
-                    hasLoadedFromCloud.current = true;
-                }
-                // If simpleCds is null, the sync hook has set an error state,
-                // which will be displayed in the UI. The app will show an empty
-                // collection until the sync issue is resolved.
-            } catch (e) {
-                console.error("Unhandled error during Simple Sync load:", e);
-            }
+          console.log("Page refresh with Simple Sync enabled. Loading from cloud.");
+          const simpleCds = await simpleSync.loadCollection();
+          if (simpleCds !== null) {
+            setCds(simpleCds);
+            hasLoadedFromCloud.current = true;
+          }
         }
-      } else {
-        // Sync provider is 'none', so use localStorage as the source of truth.
+      } else { // syncProvider === 'none'
         try {
           const storedCds = localStorage.getItem(COLLECTION_STORAGE_KEY);
           if (storedCds) {
@@ -136,7 +127,7 @@ const App: React.FC = () => {
       }
     };
 
-    initialLoad();
+    loadData();
   }, [simpleSync.loadCollection, syncProvider]);
 
   // Data saving effect - now debounced to avoid excessive writes during rapid changes.
@@ -319,18 +310,56 @@ const App: React.FC = () => {
     }
   }, [activeSyncError]);
 
-  const handleSyncProviderChange = (provider: SyncProvider) => {
-    localStorage.setItem(SYNC_PROVIDER_KEY, provider);
-    setSyncProvider(provider);
+  const handleSyncProviderChange = async (provider: SyncProvider) => {
+    if (provider === syncProvider) {
+      setIsSyncModalOpen(false);
+      return;
+    }
+
+    // Handle switching TO 'simple' sync
     if (provider === 'simple') {
-      // When switching to simple sync, trigger a load from the cloud.
-      hasLoadedFromCloud.current = false;
-      simpleSync.loadCollection().then(cloudCds => {
-          if (cloudCds) {
-              setCds(cloudCds);
-              hasLoadedFromCloud.current = true;
-          }
-      });
+      console.log("Switching to Simple Sync. Performing initial sync check.");
+      
+      // 1. Check for local data first.
+      const storedCdsRaw = localStorage.getItem(COLLECTION_STORAGE_KEY);
+      const localCds: CD[] = storedCdsRaw ? JSON.parse(storedCdsRaw) : [];
+      
+      // 2. Check the state of the cloud.
+      const cloudCds = await simpleSync.loadCollection();
+
+      // If cloud load fails, abort the switch and let the error banner show.
+      if (cloudCds === null) {
+        console.error("Failed to connect to cloud during provider switch. Aborting.");
+        setIsSyncModalOpen(false);
+        return;
+      }
+
+      let finalCds: CD[] = [];
+
+      // 3. Decide the source of truth.
+      if (cloudCds.length > 0) {
+        // Cloud has data, so it's the source of truth.
+        console.log("Cloud has data. Using it as the new collection.");
+        finalCds = cloudCds;
+      } else if (localCds.length > 0) {
+        // Cloud is empty, but local data exists. Push local data to the cloud.
+        console.log("Cloud is empty, local data exists. Uploading local collection.");
+        finalCds = localCds;
+        await simpleSync.saveCollection(localCds); // Wait for the initial save to complete
+      }
+      
+      // 4. Update app state and persist the provider change.
+      setCds(finalCds);
+      hasLoadedFromCloud.current = true;
+      localStorage.setItem(SYNC_PROVIDER_KEY, provider);
+      setSyncProvider(provider);
+      setIsSyncModalOpen(false);
+
+    } else { // Handle switching TO 'none'
+      console.log(`Switching to '${provider}' sync.`);
+      localStorage.setItem(SYNC_PROVIDER_KEY, provider);
+      setSyncProvider(provider);
+      setIsSyncModalOpen(false);
     }
   };
 
