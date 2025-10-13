@@ -98,34 +98,41 @@ const App: React.FC = () => {
   // Initial data load effect
   useEffect(() => {
     const initialLoad = async () => {
-      if (syncProvider === 'simple' && !hasLoadedFromCloud.current) {
-        try {
-          const simpleCds = await simpleSync.loadCollection();
-          if (simpleCds) {
-            setCds(simpleCds);
-            hasLoadedFromCloud.current = true;
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to load from Simple Sync, falling back to local storage.", e);
+      if (syncProvider === 'simple') {
+        // When sync is enabled, the cloud is the single source of truth.
+        // We do NOT fall back to localStorage on failure, as this can cause
+        // fresh cloud data to be overwritten by stale local data.
+        if (!hasLoadedFromCloud.current) {
+            try {
+                const simpleCds = await simpleSync.loadCollection();
+                // A null response from loadCollection indicates an error occurred.
+                if (simpleCds !== null) { 
+                    setCds(simpleCds);
+                    hasLoadedFromCloud.current = true;
+                }
+                // If simpleCds is null, the sync hook has set an error state,
+                // which will be displayed in the UI. The app will show an empty
+                // collection until the sync issue is resolved.
+            } catch (e) {
+                console.error("Unhandled error during Simple Sync load:", e);
+            }
         }
-      }
-      
-      try {
-        const storedCds = localStorage.getItem(COLLECTION_STORAGE_KEY);
-        if (storedCds) {
-          setCds(JSON.parse(storedCds));
-        } else {
-          // On first load, populate artwork for initial data using the reliable findCoverArt function.
-          console.log("No local data found. Populating initial album artwork...");
+      } else {
+        // Sync provider is 'none', so use localStorage as the source of truth.
+        try {
+          const storedCds = localStorage.getItem(COLLECTION_STORAGE_KEY);
+          if (storedCds) {
+            setCds(JSON.parse(storedCds));
+          } else {
+            console.log("No local data found. Populating initial album artwork...");
+            const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
+            setCds(cdsWithArt);
+          }
+        } catch (error) {
+          console.error("Error loading CDs from localStorage:", error);
           const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
           setCds(cdsWithArt);
         }
-      } catch (error) {
-        console.error("Error loading CDs from localStorage:", error);
-        // Fallback if localStorage is corrupt.
-        const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
-        setCds(cdsWithArt);
       }
     };
 

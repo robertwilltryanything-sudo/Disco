@@ -1,5 +1,3 @@
-
-
 import { useState, useCallback } from 'react';
 import { CD } from '../types';
 
@@ -21,9 +19,18 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
-            // Add cache: 'no-store' to bypass the browser cache and ensure the latest data is fetched.
-            // Add mode: 'cors' to explicitly handle cross-origin requests, improving mobile compatibility.
-            const response = await fetch(BUCKET_URL, { cache: 'no-store', mode: 'cors' });
+            // To ensure the freshest data is always fetched and to prevent issues with
+            // aggressive caching on some networks or browsers, we include explicit
+            // cache-busting headers along with the standard `cache: 'no-store'` policy.
+            const response = await fetch(BUCKET_URL, {
+                cache: 'no-store',
+                mode: 'cors',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                },
+            });
             
             if (response.ok) {
                 const text = await response.text();
