@@ -1,5 +1,6 @@
 
 
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD } from '../types';
@@ -165,19 +166,24 @@ export const useGoogleDrive = () => {
     setError(null);
     let fileId: string | null = null;
     try {
+        // Search for the file in the appDataFolder instead of the main Drive space.
+        // This is a private folder only your app can access, ensuring data isolation
+        // and reliable sync across devices.
         const response = await window.gapi.client.drive.files.list({
             q: `name='${COLLECTION_FILENAME}' and mimeType='application/json' and trashed=false`,
-            spaces: 'drive',
+            spaces: 'appDataFolder',
             fields: 'files(id, name)',
         });
 
         if (response.result.files.length > 0) {
             fileId = response.result.files[0].id;
         } else {
+            // If the file doesn't exist, create it in the appDataFolder.
             const createResponse = await window.gapi.client.drive.files.create({
                 resource: {
                     name: COLLECTION_FILENAME,
                     mimeType: 'application/json',
+                    parents: ['appDataFolder'], // Specify the appDataFolder as the parent
                 },
                 fields: 'id',
             });
