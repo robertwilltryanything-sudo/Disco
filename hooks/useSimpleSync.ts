@@ -53,8 +53,6 @@ export const useSimpleSync = () => {
         setError(null);
 
         try {
-            // FIX: Use 'PUT' to create or update the resource at the specific URL.
-            // 'POST' is incorrect for this type of key-value store operation.
             const response = await fetch(getUrl(id), {
                 method: 'PUT',
                 headers: {
