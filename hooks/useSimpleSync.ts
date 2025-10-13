@@ -22,7 +22,8 @@ export const useSimpleSync = () => {
 
         try {
             // Add cache: 'no-store' to bypass the browser cache and ensure the latest data is fetched.
-            const response = await fetch(BUCKET_URL, { cache: 'no-store' });
+            // Add mode: 'cors' to explicitly handle cross-origin requests, improving mobile compatibility.
+            const response = await fetch(BUCKET_URL, { cache: 'no-store', mode: 'cors' });
             
             if (response.ok) {
                 const text = await response.text();
@@ -84,6 +85,7 @@ export const useSimpleSync = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
+                mode: 'cors', // Explicitly set mode for cross-origin POST
             });
 
             if (!response.ok) {
