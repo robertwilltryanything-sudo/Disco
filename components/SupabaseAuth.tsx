@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { SpinnerIcon } from './icons/SpinnerIcon';
+import { SettingsIcon } from './icons/SettingsIcon';
 
 interface SupabaseAuthProps {
     user: User | null;
     signIn: (email: string) => Promise<boolean>;
     syncStatus: string;
     error: string | null;
+    onOpenSyncSettings: () => void;
 }
 
-const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, syncStatus, error }) => {
+const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, syncStatus, error, onOpenSyncSettings }) => {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
 
@@ -24,16 +26,14 @@ const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, syncStatus, e
     };
 
     if (user) {
-        // This component is mainly for the sign-in form. Sign-out is handled in the Header.
-        // Returning null keeps the main view clean once authenticated.
         return null;
     }
 
     return (
-        <div className="p-6 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8">
-            <h2 className="text-xl font-bold text-zinc-800">Sign In with Supabase</h2>
+        <div className="p-6 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center">
+            <h2 className="text-xl font-bold text-zinc-800">Sign In for Cross-Device Sync</h2>
             <p className="text-zinc-600 mt-2">
-                Enter your email to sign in or create an account. We'll send you a magic link to get started.
+                To sync your collection across multiple devices using Supabase, you need a single account. Sign in with your email to get started.
             </p>
             <form onSubmit={handleSignIn} className="mt-4 flex flex-col sm:flex-row gap-2">
                 <input
@@ -55,6 +55,19 @@ const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, syncStatus, e
             </form>
             {message && <p className="mt-4 text-sm text-green-600">{message}</p>}
             {error && error !== "You are not signed in to Supabase." && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        
+            <div className="mt-6 pt-6 border-t border-zinc-200">
+                <p className="text-sm text-zinc-600">
+                    Alternatively, for automatic syncing without an account, you can use a different provider.
+                </p>
+                <button
+                    onClick={onOpenSyncSettings}
+                    className="mt-3 w-full flex items-center justify-center gap-2 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                >
+                    <SettingsIcon className="w-5 h-5" />
+                    Change Sync Settings
+                </button>
+            </div>
         </div>
     );
 };

@@ -404,6 +404,7 @@ const App: React.FC = () => {
                         signIn={supabaseSync.signIn}
                         syncStatus={supabaseSync.syncStatus}
                         error={supabaseSync.error}
+                        onOpenSyncSettings={() => setIsSyncModalOpen(true)}
                     />
                 </main>
             );
