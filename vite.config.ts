@@ -16,6 +16,9 @@ export default defineConfig(({ mode }) => {
       'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY),
       // Add the new environment variable for the Simple Sync URL.
       'process.env.VITE_SIMPLE_SYNC_URL': JSON.stringify(env.VITE_SIMPLE_SYNC_URL),
+      // Add Supabase environment variables
+      'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
+      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
     }
   };
 });

@@ -9,6 +9,8 @@ export interface CD {
   version?: string;
   recordLabel?: string;
   tags?: string[];
+  user_id?: string;
+  created_at?: string;
 }
 
 export interface CollectionData {
@@ -18,3 +20,5 @@ export interface CollectionData {
 
 export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'recordLabel';
 export type SortOrder = 'asc' | 'desc';
+
+export type SyncProvider = 'simple' | 'supabase' | 'none';

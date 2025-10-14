@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
-import { CD, CollectionData } from './types';
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { CD, CollectionData, SyncProvider } from './types';
 import Header from './components/Header';
 import ListView from './views/ListView';
 import DetailView from './views/DetailView';
@@ -8,6 +8,7 @@ import ArtistsView from './views/ArtistsView';
 import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
 import { useSimpleSync, SyncStatus as SimpleSyncStatus } from './hooks/useSimpleSync';
+import { useSupabaseSync, SyncStatus as SupabaseSyncStatus } from './hooks/useSupabaseSync';
 import { findCoverArt } from './wikipedia';
 import AddCDForm from './components/AddCDForm';
 import { XIcon } from './components/icons/XIcon';
@@ -19,6 +20,7 @@ import { XCircleIcon } from './components/icons/XCircleIcon';
 import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
 import SyncConflictModal from './components/SyncConflictModal';
+import SupabaseAuth from './components/SupabaseAuth';
 
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'] },
@@ -28,10 +30,8 @@ const INITIAL_CDS: CD[] = [
   { id: '7', artist: 'Jean Michel Jarre', title: 'Equinoxe', genre: 'Electronic', year: 1978, recordLabel: 'Disques Dreyfus', tags: ['electronic', 'ambient', '70s'] },
 ];
 
-const COLLECTION_STORAGE_KEY = 'disco_collection_v3'; // Incremented key for new data structure
+const COLLECTION_STORAGE_KEY = 'disco_collection_v3';
 const SYNC_PROVIDER_KEY = 'disco_sync_provider';
-
-export type SyncProvider = 'simple' | 'none';
 
 const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
   const cdsWithArtPromises = initialCds.map(async (cd) => {
@@ -48,6 +48,16 @@ const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
     return cd;
   });
   return Promise.all(cdsWithArtPromises);
+};
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
 };
 
 const findPotentialDuplicate = (newCd: Omit<CD, 'id'>, collection: CD[]): CD | null => {
@@ -68,10 +78,11 @@ const App: React.FC = () => {
 
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
     const storedProvider = localStorage.getItem(SYNC_PROVIDER_KEY);
-    return (storedProvider === 'simple' || storedProvider === 'none') ? storedProvider : 'none';
+    return (storedProvider === 'simple' || storedProvider === 'supabase' || storedProvider === 'none') ? storedProvider : 'none';
   });
   
   const simpleSync = useSimpleSync();
+  const supabaseSync = useSupabaseSync(setCds);
   const isInitialLoad = useRef(true);
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -83,32 +94,40 @@ const App: React.FC = () => {
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [syncConflict, setSyncConflict] = useState<{ local: CollectionData, cloud: CollectionData } | null>(null);
 
-  const activeSyncStatus: SimpleSyncStatus = syncProvider === 'simple' ? simpleSync.syncStatus : 'idle';
-  const activeSyncError: string | null = syncProvider === 'simple' ? simpleSync.error : null;
+  const activeSyncStatus: SimpleSyncStatus | SupabaseSyncStatus = syncProvider === 'simple' 
+    ? simpleSync.syncStatus 
+    : syncProvider === 'supabase'
+    ? supabaseSync.syncStatus
+    : 'idle';
+    
+  const activeSyncError: string | null = syncProvider === 'simple' 
+    ? simpleSync.error 
+    : syncProvider === 'supabase'
+    ? supabaseSync.error
+    : null;
   
-  const updateCollection = (updater: (prevCds: CD[]) => CD[], newTimestamp: boolean = true) => {
+  // This function is for local/simple sync providers only.
+  const updateCollectionLocal = (updater: (prevCds: CD[]) => CD[], newTimestamp: boolean = true) => {
     setCds(updater);
     if (newTimestamp) {
         setLastUpdated(new Date().toISOString());
     }
   };
 
+  // Initial Data Loading Effect
   useEffect(() => {
     const loadData = async () => {
       let loadedData: CollectionData = { collection: [], lastUpdated: null };
 
       if (syncProvider === 'simple') {
         const cloudData = await simpleSync.loadCollection();
-        if (cloudData) {
-          loadedData = cloudData;
-        }
-      } else {
+        if (cloudData) loadedData = cloudData;
+      } else if (syncProvider === 'none') {
         try {
           const storedDataRaw = localStorage.getItem(COLLECTION_STORAGE_KEY);
           if (storedDataRaw) {
             loadedData = JSON.parse(storedDataRaw);
           } else {
-            console.log("No local data found. Populating initial collection...");
             const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
             loadedData = { collection: cdsWithArt, lastUpdated: new Date().toISOString() };
           }
@@ -118,17 +137,24 @@ const App: React.FC = () => {
           loadedData = { collection: cdsWithArt, lastUpdated: new Date().toISOString() };
         }
       }
-      setCds(loadedData.collection);
-      setLastUpdated(loadedData.lastUpdated);
+      // Supabase loading is handled by its own hook via real-time subscription
+      if (syncProvider !== 'supabase') {
+        setCds(loadedData.collection);
+        setLastUpdated(loadedData.lastUpdated);
+      }
     };
     loadData();
-  }, [syncProvider]); // Only depends on syncProvider to trigger initial load
+  }, [syncProvider]);
 
+  // Data Saving Effect for non-Supabase providers
   useEffect(() => {
     if (isInitialLoad.current) {
       isInitialLoad.current = false;
       return;
     }
+    
+    // Supabase handles its own saving via direct function calls
+    if (syncProvider === 'supabase') return;
 
     const dataToSave: CollectionData = { collection: debouncedCds, lastUpdated };
     try {
@@ -165,23 +191,30 @@ const App: React.FC = () => {
 
   const handleAddCD = useCallback(async (cdData: Omit<CD, 'id'>) => {
     const enrichedCdData = await fetchAndApplyAlbumDetails(cdData);
-    const newCd: CD = {
-      ...enrichedCdData,
-      id: `${new Date().getTime()}-${Math.random()}`,
-    };
-    updateCollection(prevCds => [newCd, ...prevCds]);
-  }, [fetchAndApplyAlbumDetails]);
+    if (syncProvider === 'supabase') {
+        await supabaseSync.addCD(enrichedCdData);
+    } else {
+        const newCd: CD = { ...enrichedCdData, id: `${new Date().getTime()}-${Math.random()}` };
+        updateCollectionLocal(prevCds => [newCd, ...prevCds]);
+    }
+  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync.addCD]);
 
   const handleUpdateCD = useCallback(async (updatedCdData: CD) => {
     const enrichedCdData = await fetchAndApplyAlbumDetails(updatedCdData);
-    updateCollection(prevCds =>
-      prevCds.map(cd => (cd.id === enrichedCdData.id ? enrichedCdData : cd))
-    );
-  }, [fetchAndApplyAlbumDetails]);
+    if (syncProvider === 'supabase') {
+        await supabaseSync.updateCD(enrichedCdData);
+    } else {
+        updateCollectionLocal(prevCds => prevCds.map(cd => (cd.id === enrichedCdData.id ? enrichedCdData : cd)));
+    }
+  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync.updateCD]);
 
   const handleDeleteCD = useCallback((id: string) => {
-    updateCollection(prevCds => prevCds.filter(cd => cd.id !== id));
-  }, []);
+    if (syncProvider === 'supabase') {
+        supabaseSync.deleteCD(id);
+    } else {
+        updateCollectionLocal(prevCds => prevCds.filter(cd => cd.id !== id));
+    }
+  }, [syncProvider, supabaseSync.deleteCD]);
 
   const handleRequestAdd = useCallback(() => {
     setCdToEdit(null);
@@ -242,7 +275,6 @@ const App: React.FC = () => {
         try {
             const text = e.target?.result as string;
             const data = JSON.parse(text);
-            // Support both new CollectionData format and old array format
             const collectionToImport = Array.isArray(data) ? data : data?.collection;
             if (Array.isArray(collectionToImport)) {
                 setImportData(collectionToImport);
@@ -260,15 +292,23 @@ const App: React.FC = () => {
 
   const handleMergeImport = () => {
     if (importData) {
-        const newCds = importData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}` }));
-        updateCollection(prevCds => [...prevCds, ...newCds]);
+        if (syncProvider === 'supabase') {
+            importData.forEach(cd => supabaseSync.addCD(cd));
+        } else {
+            const newCds = importData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}` }));
+            updateCollectionLocal(prevCds => [...prevCds, ...newCds]);
+        }
         setImportData(null);
     }
   };
 
   const handleReplaceImport = () => {
     if (importData) {
-        updateCollection(() => importData);
+        if (syncProvider === 'supabase') {
+            alert("Replace is not supported for Supabase sync. Please clear your collection manually if needed.");
+        } else {
+            updateCollectionLocal(() => importData);
+        }
         setImportData(null);
     }
   };
@@ -291,8 +331,7 @@ const App: React.FC = () => {
       const cloudData = await simpleSync.loadCollection();
 
       if (!cloudData) {
-        setIsSyncModalOpen(false);
-        return;
+        setIsSyncModalOpen(false); return;
       }
 
       let finalData: CollectionData;
@@ -318,10 +357,7 @@ const App: React.FC = () => {
     if (syncProvider !== 'simple') return;
 
     const cloudData = await simpleSync.loadCollection();
-    if (!cloudData) {
-        // Error is handled by the hook and will show in the banner
-        return;
-    }
+    if (!cloudData) return;
 
     const localData: CollectionData = { collection: cds, lastUpdated };
     const cloudTimestamp = cloudData.lastUpdated ? new Date(cloudData.lastUpdated).getTime() : 0;
@@ -330,10 +366,9 @@ const App: React.FC = () => {
     if (cloudTimestamp > localTimestamp) {
         setSyncConflict({ local: localData, cloud: cloudData });
     } else {
-        // Local is same or newer, so we can safely push our version
         const updatedLocalData = { ...localData, lastUpdated: new Date().toISOString() };
         await simpleSync.saveCollection(updatedLocalData);
-        setLastUpdated(updatedLocalData.lastUpdated); // Update local timestamp to reflect successful sync
+        setLastUpdated(updatedLocalData.lastUpdated);
     }
   };
   
@@ -350,12 +385,26 @@ const App: React.FC = () => {
     setSyncConflict(null);
   };
 
-  const RouteWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <main className="container mx-auto p-4 md:p-6 pb-24 md:pb-6">{children}</main>
-  );
+  const RouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (syncProvider === 'supabase' && !supabaseSync.session) {
+        return (
+            <main className="container mx-auto p-4 md:p-6 pb-24 md:pb-6">
+                <SupabaseAuth 
+                    user={supabaseSync.user} 
+                    signIn={supabaseSync.signIn} 
+                    signOut={supabaseSync.signOut} 
+                    syncStatus={supabaseSync.syncStatus}
+                    error={supabaseSync.error}
+                />
+            </main>
+        );
+    }
+    return <main className="container mx-auto p-4 md:p-6 pb-24 md:pb-6">{children}</main>;
+  };
 
   return (
     <HashRouter>
+      <ScrollToTop />
       <div className="flex flex-col min-h-screen">
         {activeSyncError && isErrorBannerVisible && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 w-full sticky top-0 z-30" role="alert">
@@ -379,6 +428,8 @@ const App: React.FC = () => {
           syncError={activeSyncError}
           syncProvider={syncProvider}
           onManualSync={handleManualSync}
+          supabaseUser={supabaseSync.user}
+          onSupabaseSignOut={supabaseSync.signOut}
         />
         <Routes>
           <Route path="/" element={<RouteWrapper><ListView cds={cds} onDeleteCD={handleDeleteCD} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SyncProvider } from '../App';
+import { SyncProvider } from '../types';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
 
@@ -29,8 +29,13 @@ const ProviderOption: React.FC<{
         aria-checked={isSelected}
         tabIndex={0}
     >
-        <h3 className="font-bold text-zinc-900">{title}</h3>
-        <p className="text-sm text-zinc-600 mt-1">{description}</p>
+        <div className="flex justify-between items-start">
+            <div>
+                <h3 className="font-bold text-zinc-900">{title}</h3>
+                <p className="text-sm text-zinc-600 mt-1">{description}</p>
+            </div>
+            {isSelected && <CheckIcon className="w-6 h-6 text-zinc-800 flex-shrink-0 ml-4" />}
+        </div>
         {isSelected && <div className="mt-4">{children}</div>}
     </div>
 );
@@ -47,6 +52,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     }
 
     const isSimpleSyncConfigured = !!process.env.VITE_SIMPLE_SYNC_URL;
+    const isSupabaseConfigured = !!process.env.VITE_SUPABASE_URL && !!process.env.VITE_SUPABASE_ANON_KEY;
 
     return (
         <div
@@ -62,6 +68,24 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                 </div>
                 
                 <div className="p-6 space-y-4">
+                     <ProviderOption
+                        title="Supabase Real-time Sync"
+                        description="Sync your collection across devices in real-time with a secure user account."
+                        isSelected={currentProvider === 'supabase'}
+                        onSelect={() => onProviderChange('supabase')}
+                    >
+                        {!isSupabaseConfigured ? (
+                             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                                This option is not configured by the site administrator. Please set the <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> environment variables.
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center gap-3">
+                                <CheckIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                <span>Supabase is configured. Your data will sync in real-time when you are signed in.</span>
+                            </div>
+                        )}
+                    </ProviderOption>
+
                     <ProviderOption
                         title="Simple Cloud Backup"
                         description="Backs up your collection automatically using a pre-configured cloud endpoint."

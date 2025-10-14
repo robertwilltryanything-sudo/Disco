@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
@@ -123,6 +124,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
     }
   }, [cds]);
 
+  // Scroll to top whenever the filter criteria (debounced search query) changes.
+  // This handles both typing in the search bar and programmatic filtering via navigation state.
+  // The ScrollToTop component in App.tsx handles general page navigation.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [debouncedSearchQuery]);
+
   const filteredAndSortedCds = useMemo(() => {
     return [...cds]
       .filter(cd => {
@@ -178,28 +186,30 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
 
   return (
     <div>
-      <div className="lg:flex lg:gap-6 mb-8">
-        <div className="lg:w-2/3">
-          {featuredCd ? (
-            <FeaturedAlbum cd={featuredCd} />
-          ) : (
-            <div className="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center h-full text-center min-h-[250px]">
-                <h3 className="text-xl font-bold text-zinc-800">Your Collection is Empty</h3>
-                <p className="text-zinc-600 mt-2">Click the "Add CD" button to start building your collection.</p>
-                <button
-                    onClick={onRequestAdd}
-                    className="mt-4 flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
-                >
-                    <PlusIcon className="h-5 w-5" />
-                    Add Your First CD
-                </button>
-            </div>
-          )}
+      {!searchQuery && (
+        <div className="lg:flex lg:gap-6 mb-8">
+          <div className="lg:w-2/3">
+            {featuredCd ? (
+              <FeaturedAlbum cd={featuredCd} />
+            ) : (
+              <div className="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center h-full text-center min-h-[250px]">
+                  <h3 className="text-xl font-bold text-zinc-800">Your Collection is Empty</h3>
+                  <p className="text-zinc-600 mt-2">Click the "Add CD" button to start building your collection.</p>
+                  <button
+                      onClick={onRequestAdd}
+                      className="mt-4 flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+                  >
+                      <PlusIcon className="h-5 w-5" />
+                      Add Your First CD
+                  </button>
+              </div>
+            )}
+          </div>
+          <div className="hidden lg:block lg:w-1/3">
+            <QuickStats cds={cds} />
+          </div>
         </div>
-        <div className="hidden lg:block lg:w-1/3">
-          <QuickStats cds={cds} />
-        </div>
-      </div>
+      )}
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <div className="w-full md:w-1/3">
