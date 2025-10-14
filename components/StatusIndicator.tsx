@@ -27,12 +27,6 @@ const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; re
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, syncMode, onManualSync }) => {
   const isManualMode = syncProvider === 'supabase' && syncMode === 'manual';
   
-  let effectiveStatus = status;
-  // If in manual mode and idle/synced, show the manual sync icon instead.
-  if (isManualMode && (status === 'idle' || status === 'synced')) {
-    effectiveStatus = 'idle'; // Using 'idle' for the icon/color base
-  }
-  
   const currentStatusInfo = statusMap[status];
   const Icon = (isManualMode && (status === 'synced' || status === 'idle' || status === 'error')) ? SyncIcon : currentStatusInfo.icon;
   const color = currentStatusInfo.color;
