@@ -5,12 +5,11 @@ import { SpinnerIcon } from './icons/SpinnerIcon';
 interface SupabaseAuthProps {
     user: User | null;
     signIn: (email: string) => Promise<void>;
-    signOut: () => void;
     syncStatus: string;
     error: string | null;
 }
 
-const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, signOut, syncStatus, error }) => {
+const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, syncStatus, error }) => {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
 

@@ -10,13 +10,15 @@ interface StatusIndicatorProps {
   error: string | null;
 }
 
+// FIX: Added the 'authenticating' state to cover all sync statuses and made the 'idle' tooltip more generic.
 const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; text: string; color: string; tooltip: string } } = {
-  idle: { icon: UploadIcon, text: 'Idle', color: 'text-zinc-500', tooltip: 'Signed out from Google Drive.' },
+  idle: { icon: UploadIcon, text: 'Idle', color: 'text-zinc-500', tooltip: 'Signed out from sync provider.' },
   loading: { icon: SpinnerIcon, text: 'Loading', color: 'text-blue-500', tooltip: 'Loading collection from the cloud...' },
   saving: { icon: SpinnerIcon, text: 'Saving', color: 'text-blue-500', tooltip: 'Saving changes to the cloud...' },
   synced: { icon: CheckIcon, text: 'Synced', color: 'text-green-500', tooltip: 'Your collection is synced with the cloud.' },
   error: { icon: XCircleIcon, text: 'Error', color: 'text-red-500', tooltip: 'An error occurred during sync.' },
   disabled: { icon: XCircleIcon, text: 'Disabled', color: 'text-zinc-400', tooltip: 'Sync is disabled because it has not been configured.' },
+  authenticating: { icon: SpinnerIcon, text: 'Authenticating', color: 'text-blue-500', tooltip: 'Authenticating...' },
 };
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error }) => {

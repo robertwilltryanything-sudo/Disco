@@ -392,7 +392,6 @@ const App: React.FC = () => {
                 <SupabaseAuth 
                     user={supabaseSync.user} 
                     signIn={supabaseSync.signIn} 
-                    signOut={supabaseSync.signOut} 
                     syncStatus={supabaseSync.syncStatus}
                     error={supabaseSync.error}
                 />
