@@ -87,16 +87,18 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
     }, [session, setCollection]);
 
 
-    const signIn = async (email: string) => {
-        if (!supabase) return;
+    const signIn = async (email: string): Promise<boolean> => {
+        if (!supabase) return false;
         setError(null);
         setSyncStatus('authenticating');
         const { error } = await supabase.auth.signInWithOtp({ email });
         if (error) {
             setError(error.message);
             setSyncStatus('error');
+            return false;
         } else {
             setSyncStatus('idle'); // Waiting for user to click link
+            return true;
         }
     };
     

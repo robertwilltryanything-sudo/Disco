@@ -4,7 +4,7 @@ import { SpinnerIcon } from './icons/SpinnerIcon';
 
 interface SupabaseAuthProps {
     user: User | null;
-    signIn: (email: string) => Promise<void>;
+    signIn: (email: string) => Promise<boolean>;
     syncStatus: string;
     error: string | null;
 }
@@ -16,9 +16,11 @@ const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, syncStatus, e
     const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault();
         setMessage('');
-        await signIn(email);
-        setMessage('Check your email for the magic link!');
-        setEmail('');
+        const success = await signIn(email);
+        if (success) {
+            setMessage('Check your email for the magic link!');
+            setEmail('');
+        }
     };
 
     if (user) {
