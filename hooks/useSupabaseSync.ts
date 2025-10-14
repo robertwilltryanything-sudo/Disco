@@ -64,6 +64,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
 
             const channel = supabase.channel('cds-changes')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'cds' }, (payload) => {
+                    // Add the new CD, but filter by ID to prevent duplicates if an optimistic update already added it
                     setCollection(prev => [payload.new as CD, ...prev.filter(cd => cd.id !== payload.new.id)]);
                 })
                 .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'cds' }, (payload) => {
@@ -119,22 +120,35 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
         if (!supabase || !user) return null;
         setSyncStatus('saving');
         const { data, error } = await supabase.from('cds').insert({ ...cdData, user_id: user.id }).select();
+        
         if (error) {
             setError(error.message);
             setSyncStatus('error');
             return null;
         }
+        
+        const newCd = data?.[0] as CD ?? null;
+        if (newCd) {
+            // Optimistic update: Add the new CD to local state immediately.
+            setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
+        }
+        
         setSyncStatus('synced');
-        return data?.[0] as CD ?? null;
+        return newCd;
     };
 
     const updateCD = async (cd: CD) => {
         if (!supabase) return;
+        
+        // Optimistic update
+        setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
+        
         setSyncStatus('saving');
         const { error } = await supabase.from('cds').update(cd).eq('id', cd.id);
         if (error) {
             setError(error.message);
             setSyncStatus('error');
+            // Note: In a production app, you might want to roll back the optimistic update here.
         } else {
             setSyncStatus('synced');
         }
@@ -142,11 +156,16 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
 
     const deleteCD = async (id: string) => {
         if (!supabase) return;
+        
+        // Optimistic update
+        setCollection(prev => prev.filter(c => c.id !== id));
+
         setSyncStatus('saving');
         const { error } = await supabase.from('cds').delete().eq('id', id);
         if (error) {
             setError(error.message);
             setSyncStatus('error');
+            // Note: Consider rolling back on failure.
         } else {
             setSyncStatus('synced');
         }
