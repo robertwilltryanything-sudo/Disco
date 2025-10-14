@@ -8,6 +8,8 @@ import { DownloadIcon } from './icons/DownloadIcon';
 import { SyncProvider } from '../types';
 import { SettingsIcon } from './icons/SettingsIcon';
 import { SyncIcon } from './icons/SyncIcon';
+import { User } from '@supabase/supabase-js';
+import { LogoutIcon } from './icons/LogoutIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -19,6 +21,8 @@ interface HeaderProps {
     syncError: string | null;
     syncProvider: SyncProvider;
     onManualSync: () => void;
+    user: User | null;
+    onSignOut: () => void;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -48,6 +52,8 @@ const Header: React.FC<HeaderProps> = ({
     syncError,
     syncProvider,
     onManualSync,
+    user,
+    onSignOut,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -78,7 +84,12 @@ const Header: React.FC<HeaderProps> = ({
   const handleSyncClick = () => {
     onManualSync();
     setIsMenuOpen(false);
-  }
+  };
+  
+  const handleSignOutClick = () => {
+    onSignOut();
+    setIsMenuOpen(false);
+  };
 
   return (
     <header className="p-4 md:p-6 bg-white sticky top-0 z-20 border-b border-zinc-200">
@@ -136,6 +147,19 @@ const Header: React.FC<HeaderProps> = ({
                     className="absolute top-full right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-zinc-200 p-2 z-30 divide-y divide-zinc-200"
                     role="menu"
                 >
+                    {user?.email && syncProvider === 'supabase' && (
+                         <div className="p-2">
+                            <p className="text-sm font-medium text-zinc-500 px-2">Signed in as</p>
+                            <p className="text-sm font-semibold text-zinc-800 px-2 truncate">{user.email}</p>
+                            <button 
+                                onClick={handleSignOutClick}
+                                className="w-full flex items-center gap-3 p-2 mt-2 rounded-md text-zinc-700 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:bg-red-50"
+                            >
+                                <LogoutIcon className="w-5 h-5" />
+                                <span className="font-medium">Sign Out</span>
+                            </button>
+                        </div>
+                    )}
                     <div className="p-2">
                         <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Sync & Backup</h3>
                          <div className="space-y-2">

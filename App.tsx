@@ -21,7 +21,7 @@ import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
 import SyncConflictModal from './components/SyncConflictModal';
 import SupabaseNotConfigured from './components/SupabaseNotConfigured';
-import { SpinnerIcon } from './components/icons/SpinnerIcon';
+import SupabaseAuth from './components/SupabaseAuth';
 
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'] },
@@ -396,15 +396,15 @@ const App: React.FC = () => {
              );
         }
         
-        // Show a loading indicator while the anonymous session is being established
-        // or the initial data is being fetched.
-        if (supabaseSync.syncStatus === 'authenticating' || (supabaseSync.syncStatus === 'loading' && cds.length === 0)) {
+        if (!supabaseSync.session) {
             return (
                 <main className="container mx-auto p-4 md:p-6 flex-grow flex items-center justify-center">
-                    <div className="text-center">
-                        <SpinnerIcon className="h-12 w-12 text-zinc-500 mx-auto" />
-                        <p className="mt-4 text-zinc-600">Connecting to cloud sync...</p>
-                    </div>
+                    <SupabaseAuth 
+                        user={supabaseSync.user} 
+                        signIn={supabaseSync.signIn}
+                        syncStatus={supabaseSync.syncStatus}
+                        error={supabaseSync.error}
+                    />
                 </main>
             );
         }
@@ -438,6 +438,8 @@ const App: React.FC = () => {
           syncError={activeSyncError}
           syncProvider={syncProvider}
           onManualSync={handleManualSync}
+          user={supabaseSync.user}
+          onSignOut={supabaseSync.signOut}
         />
         <Routes>
           <Route path="/" element={<RouteWrapper><ListView cds={cds} onDeleteCD={handleDeleteCD} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />
