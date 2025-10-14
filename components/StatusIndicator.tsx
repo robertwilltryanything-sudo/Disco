@@ -1,5 +1,5 @@
 import React from 'react';
-import { SyncStatus } from '../hooks/useSimpleSync';
+import { SyncStatus } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UploadIcon } from './icons/UploadIcon';
 import { CheckIcon } from './icons/CheckIcon';

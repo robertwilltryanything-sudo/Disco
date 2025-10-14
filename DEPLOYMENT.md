@@ -42,18 +42,8 @@ With these settings, Vercel will automatically use the correct versions of Node.
 
 Vercel automatically detects that you're using Vite. You only need to add your environment variables.
 
-#### Get your Simple Sync URL
-To enable cloud backup, you need a URL from a key-value database service. We recommend **kvdb.io** because it's free and instant.
-
-1.  Open a new tab and go to **[kvdb.io](https://kvdb.io/)**.
-2.  Click "**Create a new bucket**".
-3.  You will instantly get a URL. **Copy this entire URL**. It contains your secret token.
-
 #### Add Environment Variables
 Expand the **Environment Variables** section in Vercel and add your secret keys:
-
--   **Key:** `VITE_SIMPLE_SYNC_URL`
--   **Value:** *The URL you just copied from kvdb.io*
 
 -   **Key:** `VITE_API_KEY`
 -   **Value:** *Your Google Gemini API Key*

@@ -1,14 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { CD, CollectionData, SyncProvider } from './types';
+import { CD, CollectionData, SyncProvider, SyncStatus } from './types';
 import Header from './components/Header';
 import ListView from './views/ListView';
 import DetailView from './views/DetailView';
 import ArtistsView from './views/ArtistsView';
 import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
-import { useSimpleSync, SyncStatus as SimpleSyncStatus } from './hooks/useSimpleSync';
-import { useSupabaseSync, SyncStatus as SupabaseSyncStatus } from './hooks/useSupabaseSync';
+import { useSupabaseSync } from './hooks/useSupabaseSync';
 import { findCoverArt } from './wikipedia';
 import AddCDForm from './components/AddCDForm';
 import { XIcon } from './components/icons/XIcon';
@@ -19,7 +18,6 @@ import ImportConfirmModal from './components/ImportConfirmModal';
 import { XCircleIcon } from './components/icons/XCircleIcon';
 import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
-import SyncConflictModal from './components/SyncConflictModal';
 import SupabaseNotConfigured from './components/SupabaseNotConfigured';
 import SupabaseAuth from './components/SupabaseAuth';
 
@@ -79,10 +77,9 @@ const App: React.FC = () => {
 
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
     const storedProvider = localStorage.getItem(SYNC_PROVIDER_KEY);
-    return (storedProvider === 'simple' || storedProvider === 'supabase' || storedProvider === 'none') ? storedProvider : 'none';
+    return (storedProvider === 'supabase' || storedProvider === 'none') ? storedProvider : 'none';
   });
   
-  const simpleSync = useSimpleSync();
   const supabaseSync = useSupabaseSync(setCds);
   const isInitialLoad = useRef(true);
   
@@ -93,22 +90,17 @@ const App: React.FC = () => {
   const importInputRef = useRef<HTMLInputElement>(null);
   const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(true);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
-  const [syncConflict, setSyncConflict] = useState<{ local: CollectionData, cloud: CollectionData } | null>(null);
 
-  const activeSyncStatus: SimpleSyncStatus | SupabaseSyncStatus = syncProvider === 'simple' 
-    ? simpleSync.syncStatus 
-    : syncProvider === 'supabase'
+  const activeSyncStatus: SyncStatus = syncProvider === 'supabase'
     ? supabaseSync.syncStatus
     : 'idle';
     
-  const activeSyncError: string | null = syncProvider === 'simple' 
-    ? simpleSync.error 
-    : syncProvider === 'supabase'
+  const activeSyncError: string | null = syncProvider === 'supabase'
     ? supabaseSync.error
     : null;
   
-  // This function is for local/simple sync providers only.
-  const updateCollectionLocal = (updater: (prevCds: CD[]) => CD[], newTimestamp: boolean = true) => {
+  // This function is for the local-only provider.
+  const updateLocalCollection = (updater: (prevCds: CD[]) => CD[], newTimestamp: boolean = true) => {
     setCds(updater);
     if (newTimestamp) {
         setLastUpdated(new Date().toISOString());
@@ -120,10 +112,7 @@ const App: React.FC = () => {
     const loadData = async () => {
       let loadedData: CollectionData = { collection: [], lastUpdated: null };
 
-      if (syncProvider === 'simple') {
-        const cloudData = await simpleSync.loadCollection();
-        if (cloudData) loadedData = cloudData;
-      } else if (syncProvider === 'none') {
+      if (syncProvider === 'none') {
         try {
           const storedDataRaw = localStorage.getItem(COLLECTION_STORAGE_KEY);
           if (storedDataRaw) {
@@ -163,11 +152,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Error saving data to localStorage:", error);
     }
-    
-    if (syncProvider === 'simple') {
-      simpleSync.saveCollection(dataToSave);
-    }
-  }, [debouncedCds, lastUpdated, syncProvider, simpleSync.saveCollection]);
+  }, [debouncedCds, lastUpdated, syncProvider]);
   
   const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD>>(cd: T): Promise<T> => {
     const shouldFetch = !cd.genre || !cd.recordLabel || !cd.tags || cd.tags.length === 0;
@@ -196,7 +181,7 @@ const App: React.FC = () => {
         await supabaseSync.addCD(enrichedCdData);
     } else {
         const newCd: CD = { ...enrichedCdData, id: `${new Date().getTime()}-${Math.random()}` };
-        updateCollectionLocal(prevCds => [newCd, ...prevCds]);
+        updateLocalCollection(prevCds => [newCd, ...prevCds]);
     }
   }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync.addCD]);
 
@@ -205,7 +190,7 @@ const App: React.FC = () => {
     if (syncProvider === 'supabase') {
         await supabaseSync.updateCD(enrichedCdData);
     } else {
-        updateCollectionLocal(prevCds => prevCds.map(cd => (cd.id === enrichedCdData.id ? enrichedCdData : cd)));
+        updateLocalCollection(prevCds => prevCds.map(cd => (cd.id === enrichedCdData.id ? enrichedCdData : cd)));
     }
   }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync.updateCD]);
 
@@ -213,7 +198,7 @@ const App: React.FC = () => {
     if (syncProvider === 'supabase') {
         supabaseSync.deleteCD(id);
     } else {
-        updateCollectionLocal(prevCds => prevCds.filter(cd => cd.id !== id));
+        updateLocalCollection(prevCds => prevCds.filter(cd => cd.id !== id));
     }
   }, [syncProvider, supabaseSync.deleteCD]);
 
@@ -297,7 +282,7 @@ const App: React.FC = () => {
             importData.forEach(cd => supabaseSync.addCD(cd));
         } else {
             const newCds = importData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}` }));
-            updateCollectionLocal(prevCds => [...prevCds, ...newCds]);
+            updateLocalCollection(prevCds => [...prevCds, ...newCds]);
         }
         setImportData(null);
     }
@@ -308,7 +293,7 @@ const App: React.FC = () => {
         if (syncProvider === 'supabase') {
             alert("Replace is not supported for Supabase sync. Please clear your collection manually if needed.");
         } else {
-            updateCollectionLocal(() => importData);
+            updateLocalCollection(() => importData);
         }
         setImportData(null);
     }
@@ -325,65 +310,10 @@ const App: React.FC = () => {
       setIsSyncModalOpen(false);
       return;
     }
-
-    if (provider === 'simple') {
-      const storedDataRaw = localStorage.getItem(COLLECTION_STORAGE_KEY);
-      const localData: CollectionData = storedDataRaw ? JSON.parse(storedDataRaw) : { collection: [], lastUpdated: null };
-      const cloudData = await simpleSync.loadCollection();
-
-      if (!cloudData) {
-        setIsSyncModalOpen(false); return;
-      }
-
-      let finalData: CollectionData;
-      if (cloudData.collection.length > 0) {
-        finalData = cloudData;
-      } else if (localData.collection.length > 0) {
-        finalData = { ...localData, lastUpdated: new Date().toISOString() };
-        await simpleSync.saveCollection(finalData);
-      } else {
-        finalData = { collection: [], lastUpdated: null };
-      }
-      
-      setCds(finalData.collection);
-      setLastUpdated(finalData.lastUpdated);
-    }
     
     localStorage.setItem(SYNC_PROVIDER_KEY, provider);
     setSyncProvider(provider);
     setIsSyncModalOpen(false);
-  };
-  
-  const handleManualSync = async () => {
-    if (syncProvider !== 'simple') return;
-
-    const cloudData = await simpleSync.loadCollection();
-    if (!cloudData) return;
-
-    const localData: CollectionData = { collection: cds, lastUpdated };
-    const cloudTimestamp = cloudData.lastUpdated ? new Date(cloudData.lastUpdated).getTime() : 0;
-    const localTimestamp = localData.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
-
-    if (cloudTimestamp > localTimestamp) {
-        setSyncConflict({ local: localData, cloud: cloudData });
-    } else {
-        const updatedLocalData = { ...localData, lastUpdated: new Date().toISOString() };
-        await simpleSync.saveCollection(updatedLocalData);
-        setLastUpdated(updatedLocalData.lastUpdated);
-    }
-  };
-  
-  const resolveSyncConflict = (useCloudVersion: boolean) => {
-    if (!syncConflict) return;
-    if (useCloudVersion) {
-        setCds(syncConflict.cloud.collection);
-        setLastUpdated(syncConflict.cloud.lastUpdated);
-    } else {
-        const updatedLocalData = { ...syncConflict.local, lastUpdated: new Date().toISOString() };
-        simpleSync.saveCollection(updatedLocalData);
-        setLastUpdated(updatedLocalData.lastUpdated);
-    }
-    setSyncConflict(null);
   };
 
   const RouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -438,7 +368,6 @@ const App: React.FC = () => {
           syncStatus={activeSyncStatus}
           syncError={activeSyncError}
           syncProvider={syncProvider}
-          onManualSync={handleManualSync}
           user={supabaseSync.user}
           onSignOut={supabaseSync.signOut}
         />
@@ -461,7 +390,6 @@ const App: React.FC = () => {
       {duplicateInfo && <ConfirmDuplicateModal isOpen={!!duplicateInfo} onClose={handleCancelDuplicate} onConfirm={handleConfirmDuplicate} newCdData={duplicateInfo.newCd} existingCd={duplicateInfo.existingCd} />}
       <ImportConfirmModal isOpen={!!importData} importCount={importData?.length || 0} onClose={() => setImportData(null)} onMerge={handleMergeImport} onReplace={handleReplaceImport} />
       <SyncSettingsModal isOpen={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} currentProvider={syncProvider} onProviderChange={handleSyncProviderChange} />
-      {syncConflict && <SyncConflictModal isOpen={!!syncConflict} onClose={() => setSyncConflict(null)} onResolve={resolveSyncConflict} conflictData={syncConflict} />}
       <input type="file" ref={importInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
     </HashRouter>
   );

@@ -21,4 +21,6 @@ export interface CollectionData {
 export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'recordLabel';
 export type SortOrder = 'asc' | 'desc';
 
-export type SyncProvider = 'simple' | 'supabase' | 'none';
+export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
+
+export type SyncProvider = 'supabase' | 'none';

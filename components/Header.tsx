@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { SyncStatus } from '../hooks/useSimpleSync';
+import { SyncStatus, SyncProvider } from '../types';
 import { MenuIcon } from './icons/MenuIcon';
 import StatusIndicator from './StatusIndicator';
 import { UploadIcon } from './icons/UploadIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
-import { SyncProvider } from '../types';
 import { SettingsIcon } from './icons/SettingsIcon';
-import { SyncIcon } from './icons/SyncIcon';
 import { User } from '@supabase/supabase-js';
 import { LogoutIcon } from './icons/LogoutIcon';
 
@@ -20,7 +18,6 @@ interface HeaderProps {
     syncStatus: SyncStatus;
     syncError: string | null;
     syncProvider: SyncProvider;
-    onManualSync: () => void;
     user: User | null;
     onSignOut: () => void;
 }
@@ -51,7 +48,6 @@ const Header: React.FC<HeaderProps> = ({
     syncStatus,
     syncError,
     syncProvider,
-    onManualSync,
     user,
     onSignOut,
 }) => {
@@ -79,11 +75,6 @@ const Header: React.FC<HeaderProps> = ({
     } else {
       navigate('/');
     }
-  };
-  
-  const handleSyncClick = () => {
-    onManualSync();
-    setIsMenuOpen(false);
   };
   
   const handleSignOutClick = () => {
@@ -163,15 +154,6 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="p-2">
                         <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Sync & Backup</h3>
                          <div className="space-y-2">
-                            {syncProvider === 'simple' && (
-                                <button 
-                                    onClick={handleSyncClick}
-                                    className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"
-                                >
-                                    <SyncIcon className="w-5 h-5" />
-                                    <span className="font-medium">Sync Now</span>
-                                </button>
-                            )}
                             <button 
                                 onClick={onOpenSyncSettings}
                                 className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"

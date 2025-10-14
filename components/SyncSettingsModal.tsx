@@ -51,7 +51,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
         return null;
     }
 
-    const isSimpleSyncConfigured = !!process.env.VITE_SIMPLE_SYNC_URL;
     const isSupabaseConfigured = !!process.env.VITE_SUPABASE_URL && !!process.env.VITE_SUPABASE_ANON_KEY;
 
     return (
@@ -82,24 +81,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                             <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center gap-3">
                                 <CheckIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
                                 <span>Supabase is configured. Your data will sync in real-time when you are signed in.</span>
-                            </div>
-                        )}
-                    </ProviderOption>
-
-                    <ProviderOption
-                        title="Simple Cloud Backup"
-                        description="Backs up your collection automatically using a pre-configured cloud endpoint."
-                        isSelected={currentProvider === 'simple'}
-                        onSelect={() => onProviderChange('simple')}
-                    >
-                        {!isSimpleSyncConfigured ? (
-                             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                                This option is not configured by the site administrator. Please set the <code>VITE_SIMPLE_SYNC_URL</code> environment variable.
-                            </div>
-                        ) : (
-                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center gap-3">
-                                <CheckIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
-                                <span>Simple Cloud Backup is enabled. Your data will sync automatically.</span>
                             </div>
                         )}
                     </ProviderOption>
