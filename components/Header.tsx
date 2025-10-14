@@ -19,8 +19,6 @@ interface HeaderProps {
     syncError: string | null;
     syncProvider: SyncProvider;
     onManualSync: () => void;
-    supabaseUser: { email?: string } | null;
-    onSupabaseSignOut: () => void;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -50,8 +48,6 @@ const Header: React.FC<HeaderProps> = ({
     syncError,
     syncProvider,
     onManualSync,
-    supabaseUser,
-    onSupabaseSignOut
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -81,11 +77,6 @@ const Header: React.FC<HeaderProps> = ({
   
   const handleSyncClick = () => {
     onManualSync();
-    setIsMenuOpen(false);
-  }
-
-  const handleSignOut = () => {
-    onSupabaseSignOut();
     setIsMenuOpen(false);
   }
 
@@ -123,14 +114,6 @@ const Header: React.FC<HeaderProps> = ({
 
         <div className="flex-1 flex justify-end">
           <div className="flex items-center gap-2">
-             {syncProvider === 'supabase' && supabaseUser && (
-                <div className="items-center gap-2 hidden sm:flex">
-                    <p className="text-sm text-zinc-600 truncate max-w-xs" title={supabaseUser.email}>
-                        {supabaseUser.email}
-                    </p>
-                    <button onClick={handleSignOut} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:underline">Sign Out</button>
-                </div>
-            )}
             {syncProvider !== 'none' && <StatusIndicator status={syncStatus} error={syncError} />}
             
             <div ref={menuRef} className="relative group">
@@ -174,22 +157,6 @@ const Header: React.FC<HeaderProps> = ({
                             </button>
                         </div>
                     </div>
-                    {syncProvider === 'supabase' && supabaseUser && (
-                         <div className="p-2 sm:hidden">
-                            <div className="space-y-2">
-                                <div className="px-2 py-1">
-                                    <p className="text-sm font-medium text-zinc-800 truncate" title={supabaseUser.email}>{supabaseUser.email}</p>
-                                    <p className="text-xs text-zinc-500">Signed in with Supabase</p>
-                                </div>
-                                <button
-                                    onClick={handleSignOut}
-                                    className="w-full text-left p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
-                                >
-                                    Sign Out
-                                </button>
-                            </div>
-                        </div>
-                    )}
                     <div className="p-2">
                         <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Manual Backup</h3>
                          <div className="space-y-2">

@@ -20,7 +20,8 @@ import { XCircleIcon } from './components/icons/XCircleIcon';
 import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
 import SyncConflictModal from './components/SyncConflictModal';
-import SupabaseAuth from './components/SupabaseAuth';
+import SupabaseNotConfigured from './components/SupabaseNotConfigured';
+import { SpinnerIcon } from './components/icons/SpinnerIcon';
 
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'] },
@@ -386,17 +387,27 @@ const App: React.FC = () => {
   };
 
   const RouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    if (syncProvider === 'supabase' && !supabaseSync.session) {
-        return (
-            <main className="container mx-auto p-4 md:p-6 pb-24 md:pb-6">
-                <SupabaseAuth 
-                    user={supabaseSync.user} 
-                    signIn={supabaseSync.signIn} 
-                    syncStatus={supabaseSync.syncStatus}
-                    error={supabaseSync.error}
-                />
-            </main>
-        );
+    if (syncProvider === 'supabase') {
+        if (!supabaseSync.isConfigured) {
+             return (
+                <main className="container mx-auto p-4 md:p-6 pb-24 md:pb-6">
+                    <SupabaseNotConfigured onOpenSyncSettings={() => setIsSyncModalOpen(true)} />
+                </main>
+             );
+        }
+        
+        // Show a loading indicator while the anonymous session is being established
+        // or the initial data is being fetched.
+        if (supabaseSync.syncStatus === 'authenticating' || (supabaseSync.syncStatus === 'loading' && cds.length === 0)) {
+            return (
+                <main className="container mx-auto p-4 md:p-6 flex-grow flex items-center justify-center">
+                    <div className="text-center">
+                        <SpinnerIcon className="h-12 w-12 text-zinc-500 mx-auto" />
+                        <p className="mt-4 text-zinc-600">Connecting to cloud sync...</p>
+                    </div>
+                </main>
+            );
+        }
     }
     return <main className="container mx-auto p-4 md:p-6 pb-24 md:pb-6">{children}</main>;
   };
@@ -427,8 +438,6 @@ const App: React.FC = () => {
           syncError={activeSyncError}
           syncProvider={syncProvider}
           onManualSync={handleManualSync}
-          supabaseUser={supabaseSync.user}
-          onSupabaseSignOut={supabaseSync.signOut}
         />
         <Routes>
           <Route path="/" element={<RouteWrapper><ListView cds={cds} onDeleteCD={handleDeleteCD} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />

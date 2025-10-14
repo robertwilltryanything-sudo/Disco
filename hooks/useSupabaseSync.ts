@@ -24,23 +24,36 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
     useEffect(() => {
         if (!supabase) return;
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            setSyncStatus(session ? 'idle' : 'disabled');
-            if (!session) {
-                setError("You are not signed in to Supabase.");
+        const handleAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setSession(session);
+                setUser(session.user);
+            } else {
+                setSyncStatus('authenticating');
+                const { data, error } = await supabase.auth.signInAnonymously();
+                if (error) {
+                    setError(`Supabase anonymous sign-in failed: ${error.message}`);
+                    setSyncStatus('error');
+                } else if (data.session) {
+                    setSession(data.session);
+                    setUser(data.session.user);
+                }
             }
-        });
+        };
+
+        handleAuth();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            setSyncStatus(session ? 'idle' : 'disabled');
-            if (!session) {
-                setError("You are not signed in to Supabase.");
+            if (session) {
+                 setSession(session);
+                 setUser(session.user);
+                 setError(null);
             } else {
-                setError(null);
+                // If session is lost, try to sign in again.
+                setSession(null);
+                setUser(null);
+                handleAuth();
             }
         });
 
@@ -74,8 +87,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
                 .subscribe();
 
             channelRef.current = channel;
-        } else {
-            setCollection([]);
+        } else if (!session && supabase) {
+            // User is signed out or anonymous session is being created, clear collection
+             setCollection([]);
         }
 
         return () => {
@@ -85,27 +99,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
             }
         };
     }, [session, setCollection]);
-
-
-    const signIn = async (email: string): Promise<boolean> => {
-        if (!supabase) return false;
-        setError(null);
-        setSyncStatus('authenticating');
-        const { error } = await supabase.auth.signInWithOtp({ email });
-        if (error) {
-            setError(error.message);
-            setSyncStatus('error');
-            return false;
-        } else {
-            setSyncStatus('idle'); // Waiting for user to click link
-            return true;
-        }
-    };
-    
-    const signOut = async () => {
-        if (!supabase) return;
-        await supabase.auth.signOut();
-    };
 
     const addCD = async (cdData: Omit<CD, 'id'>) => {
         if (!supabase || !user) return null;
@@ -149,9 +142,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
         syncStatus,
         error,
         session,
-        user,
-        signIn,
-        signOut,
         addCD,
         updateCD,
         deleteCD,
