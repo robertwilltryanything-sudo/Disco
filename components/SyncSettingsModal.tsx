@@ -71,52 +71,46 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                 </div>
                 
                 <div className="p-6 space-y-4">
-                     <ProviderOption
-                        title="Supabase Real-time Sync"
-                        description="Sync your collection across devices in real-time with a secure user account."
-                        isSelected={currentProvider === 'supabase'}
-                        onSelect={() => onProviderChange('supabase')}
-                    >
-                       {currentProvider === 'supabase' && (
-                         <>
-                            {!isSupabaseConfigured ? (
-                                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                                    This option is not configured by the site administrator. Please set the <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> environment variables.
+                    {isSupabaseConfigured && (
+                        <ProviderOption
+                            title="Supabase Real-time Sync"
+                            description="Sync your collection across devices in real-time with a secure user account."
+                            isSelected={currentProvider === 'supabase'}
+                            onSelect={() => onProviderChange('supabase')}
+                        >
+                        {currentProvider === 'supabase' && (
+                            <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
+                                <h4 className="text-sm font-bold text-zinc-800">Sync Mode</h4>
+                                <div 
+                                    onClick={() => onSyncModeChange('realtime')}
+                                    className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${syncMode === 'realtime' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-300'}`}
+                                    role="radio"
+                                    aria-checked={syncMode === 'realtime'}
+                                    tabIndex={0}
+                                >
+                                    <div className={`w-4 h-4 rounded-full border-2 ${syncMode === 'realtime' ? 'bg-zinc-800 border-zinc-800' : 'border-zinc-400'}`} />
+                                    <div>
+                                        <p className="font-medium text-zinc-800">Real-time</p>
+                                        <p className="text-xs text-zinc-600">Changes sync automatically and instantly.</p>
+                                    </div>
                                 </div>
-                            ) : (
-                               <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
-                                    <h4 className="text-sm font-bold text-zinc-800">Sync Mode</h4>
                                     <div 
-                                        onClick={() => onSyncModeChange('realtime')}
-                                        className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${syncMode === 'realtime' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-300'}`}
-                                        role="radio"
-                                        aria-checked={syncMode === 'realtime'}
-                                        tabIndex={0}
-                                    >
-                                        <div className={`w-4 h-4 rounded-full border-2 ${syncMode === 'realtime' ? 'bg-zinc-800 border-zinc-800' : 'border-zinc-400'}`} />
+                                    onClick={() => onSyncModeChange('manual')}
+                                    className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${syncMode === 'manual' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-300'}`}
+                                    role="radio"
+                                    aria-checked={syncMode === 'manual'}
+                                    tabIndex={0}
+                                >
+                                    <div className={`w-4 h-4 rounded-full border-2 ${syncMode === 'manual' ? 'bg-zinc-800 border-zinc-800' : 'border-zinc-400'}`} />
                                         <div>
-                                            <p className="font-medium text-zinc-800">Real-time</p>
-                                            <p className="text-xs text-zinc-600">Changes sync automatically and instantly.</p>
-                                        </div>
+                                        <p className="font-medium text-zinc-800">On Demand</p>
+                                        <p className="text-xs text-zinc-600">Click the sync button to get new updates.</p>
                                     </div>
-                                     <div 
-                                        onClick={() => onSyncModeChange('manual')}
-                                        className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${syncMode === 'manual' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-300'}`}
-                                        role="radio"
-                                        aria-checked={syncMode === 'manual'}
-                                        tabIndex={0}
-                                    >
-                                        <div className={`w-4 h-4 rounded-full border-2 ${syncMode === 'manual' ? 'bg-zinc-800 border-zinc-800' : 'border-zinc-400'}`} />
-                                         <div>
-                                            <p className="font-medium text-zinc-800">On Demand</p>
-                                            <p className="text-xs text-zinc-600">Click the sync button to get new updates.</p>
-                                        </div>
-                                    </div>
-                               </div>
-                            )}
-                         </>
-                       )}
-                    </ProviderOption>
+                                </div>
+                            </div>
+                        )}
+                        </ProviderOption>
+                    )}
                     
                      <ProviderOption
                         title="No Sync (Local Only)"

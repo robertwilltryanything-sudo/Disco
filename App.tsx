@@ -33,6 +33,8 @@ const COLLECTION_STORAGE_KEY = 'disco_collection_v3';
 const SYNC_PROVIDER_KEY = 'disco_sync_provider';
 const SYNC_MODE_KEY = 'disco_sync_mode';
 
+const isSupabaseConfigured = !!process.env.VITE_SUPABASE_URL && !!process.env.VITE_SUPABASE_ANON_KEY;
+
 const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
   const cdsWithArtPromises = initialCds.map(async (cd) => {
     if (!cd.coverArtUrl) {
@@ -78,6 +80,10 @@ const App: React.FC = () => {
 
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
     const storedProvider = localStorage.getItem(SYNC_PROVIDER_KEY);
+    // If supabase is stored as the provider but the app is not configured for it, default to 'none'.
+    if (storedProvider === 'supabase' && !isSupabaseConfigured) {
+      return 'none';
+    }
     return (storedProvider === 'supabase' || storedProvider === 'none') ? storedProvider : 'none';
   });
 
