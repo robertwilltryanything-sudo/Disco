@@ -1,34 +1,65 @@
 import React from 'react';
-import { SyncStatus } from '../types';
+import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UploadIcon } from './icons/UploadIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
+import { SyncIcon } from './icons/SyncIcon';
 
 interface StatusIndicatorProps {
   status: SyncStatus;
   error: string | null;
+  syncProvider: SyncProvider;
+  syncMode: SyncMode;
+  onManualSync: () => void;
 }
 
-// FIX: Added the 'authenticating' state to cover all sync statuses and made the 'idle' tooltip more generic.
-const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; text: string; color: string; tooltip: string } } = {
-  idle: { icon: UploadIcon, text: 'Idle', color: 'text-zinc-500', tooltip: 'Signed out from sync provider.' },
-  loading: { icon: SpinnerIcon, text: 'Loading', color: 'text-blue-500', tooltip: 'Loading collection from the cloud...' },
-  saving: { icon: SpinnerIcon, text: 'Saving', color: 'text-blue-500', tooltip: 'Saving changes to the cloud...' },
-  synced: { icon: CheckIcon, text: 'Synced', color: 'text-green-500', tooltip: 'Your collection is synced with the cloud.' },
-  error: { icon: XCircleIcon, text: 'Error', color: 'text-red-500', tooltip: 'An error occurred during sync.' },
-  disabled: { icon: XCircleIcon, text: 'Disabled', color: 'text-zinc-400', tooltip: 'Sync is disabled because it has not been configured.' },
-  authenticating: { icon: SpinnerIcon, text: 'Authenticating', color: 'text-blue-500', tooltip: 'Authenticating...' },
+const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; realtimeTooltip: string; manualTooltip: string } } = {
+  idle: { icon: UploadIcon, color: 'text-zinc-500', realtimeTooltip: 'Signed out from sync provider.', manualTooltip: 'Signed out. Sign in to sync.' },
+  loading: { icon: SpinnerIcon, color: 'text-blue-500', realtimeTooltip: 'Loading collection from the cloud...', manualTooltip: 'Syncing collection from the cloud...' },
+  saving: { icon: SpinnerIcon, color: 'text-blue-500', realtimeTooltip: 'Saving changes to the cloud...', manualTooltip: 'Saving changes to the cloud...' },
+  synced: { icon: CheckIcon, color: 'text-green-500', realtimeTooltip: 'Your collection is up to date.', manualTooltip: 'Collection is up to date. Click to sync again.' },
+  error: { icon: XCircleIcon, color: 'text-red-500', realtimeTooltip: 'An error occurred during sync.', manualTooltip: 'An error occurred. Click to try again.' },
+  disabled: { icon: XCircleIcon, color: 'text-zinc-400', realtimeTooltip: 'Sync is disabled because it has not been configured.', manualTooltip: 'Sync is disabled because it has not been configured.' },
+  authenticating: { icon: SpinnerIcon, color: 'text-blue-500', realtimeTooltip: 'Authenticating...', manualTooltip: 'Authenticating...' },
 };
 
-const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error }) => {
-  const { icon: Icon, color, tooltip } = statusMap[status];
-  // Show the specific error message from the hook for 'error' and 'disabled' states.
-  const finalTooltip = (status === 'error' || status === 'disabled') && error ? error : tooltip;
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, syncMode, onManualSync }) => {
+  const isManualMode = syncProvider === 'supabase' && syncMode === 'manual';
   
+  let effectiveStatus = status;
+  // If in manual mode and idle/synced, show the manual sync icon instead.
+  if (isManualMode && (status === 'idle' || status === 'synced')) {
+    effectiveStatus = 'idle'; // Using 'idle' for the icon/color base
+  }
+  
+  const currentStatusInfo = statusMap[status];
+  const Icon = (isManualMode && (status === 'synced' || status === 'idle' || status === 'error')) ? SyncIcon : currentStatusInfo.icon;
+  const color = currentStatusInfo.color;
+
+  let finalTooltip: string;
+  if (isManualMode) {
+    finalTooltip = currentStatusInfo.manualTooltip;
+  } else {
+    finalTooltip = currentStatusInfo.realtimeTooltip;
+  }
+  
+  if ((status === 'error' || status === 'disabled') && error) {
+    finalTooltip = error;
+  }
+
+  const isClickable = isManualMode && status !== 'loading' && status !== 'saving' && status !== 'authenticating';
+
   return (
     <div className="relative group flex items-center">
-      <Icon className={`h-6 w-6 ${color}`} />
+      <button
+        onClick={isClickable ? onManualSync : undefined}
+        disabled={!isClickable}
+        className={`p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-zinc-800 ${isClickable ? 'cursor-pointer hover:bg-zinc-100' : 'cursor-default'}`}
+        aria-label={finalTooltip}
+      >
+        <Icon className={`h-6 w-6 ${color}`} />
+      </button>
       <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-max max-w-xs bg-zinc-800 text-white text-sm rounded-md py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none z-20">
         {finalTooltip}
       </div>

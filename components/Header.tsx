@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { SyncStatus, SyncProvider } from '../types';
+import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { MenuIcon } from './icons/MenuIcon';
 import StatusIndicator from './StatusIndicator';
 import { UploadIcon } from './icons/UploadIcon';
@@ -18,6 +18,8 @@ interface HeaderProps {
     syncStatus: SyncStatus;
     syncError: string | null;
     syncProvider: SyncProvider;
+    syncMode: SyncMode;
+    onManualSync: () => void;
     user: User | null;
     onSignOut: () => void;
 }
@@ -48,6 +50,8 @@ const Header: React.FC<HeaderProps> = ({
     syncStatus,
     syncError,
     syncProvider,
+    syncMode,
+    onManualSync,
     user,
     onSignOut,
 }) => {
@@ -116,7 +120,15 @@ const Header: React.FC<HeaderProps> = ({
 
         <div className="flex-1 flex justify-end">
           <div className="flex items-center gap-2">
-            {syncProvider !== 'none' && <StatusIndicator status={syncStatus} error={syncError} />}
+            {syncProvider !== 'none' && (
+              <StatusIndicator 
+                status={syncStatus} 
+                error={syncError} 
+                syncProvider={syncProvider}
+                syncMode={syncMode}
+                onManualSync={onManualSync}
+              />
+            )}
             
             <div ref={menuRef} className="relative group">
                 <button

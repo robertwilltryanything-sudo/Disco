@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { CD, CollectionData, SyncProvider, SyncStatus } from './types';
+import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode } from './types';
 import Header from './components/Header';
 import ListView from './views/ListView';
 import DetailView from './views/DetailView';
@@ -31,6 +31,7 @@ const INITIAL_CDS: CD[] = [
 
 const COLLECTION_STORAGE_KEY = 'disco_collection_v3';
 const SYNC_PROVIDER_KEY = 'disco_sync_provider';
+const SYNC_MODE_KEY = 'disco_sync_mode';
 
 const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
   const cdsWithArtPromises = initialCds.map(async (cd) => {
@@ -79,8 +80,13 @@ const App: React.FC = () => {
     const storedProvider = localStorage.getItem(SYNC_PROVIDER_KEY);
     return (storedProvider === 'supabase' || storedProvider === 'none') ? storedProvider : 'none';
   });
+
+  const [syncMode, setSyncMode] = useState<SyncMode>(() => {
+    const storedMode = localStorage.getItem(SYNC_MODE_KEY);
+    return (storedMode === 'realtime' || storedMode === 'manual') ? storedMode : 'realtime';
+  });
   
-  const supabaseSync = useSupabaseSync(setCds);
+  const supabaseSync = useSupabaseSync(setCds, syncMode);
   const isInitialLoad = useRef(true);
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -316,6 +322,11 @@ const App: React.FC = () => {
     setIsSyncModalOpen(false);
   };
 
+  const handleSyncModeChange = (mode: SyncMode) => {
+    localStorage.setItem(SYNC_MODE_KEY, mode);
+    setSyncMode(mode);
+  };
+
   const RouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (syncProvider === 'supabase') {
         if (!supabaseSync.isConfigured) {
@@ -368,6 +379,8 @@ const App: React.FC = () => {
           syncStatus={activeSyncStatus}
           syncError={activeSyncError}
           syncProvider={syncProvider}
+          syncMode={syncMode}
+          onManualSync={supabaseSync.manualSync}
           user={supabaseSync.user}
           onSignOut={supabaseSync.signOut}
         />
@@ -389,7 +402,14 @@ const App: React.FC = () => {
       )}
       {duplicateInfo && <ConfirmDuplicateModal isOpen={!!duplicateInfo} onClose={handleCancelDuplicate} onConfirm={handleConfirmDuplicate} newCdData={duplicateInfo.newCd} existingCd={duplicateInfo.existingCd} />}
       <ImportConfirmModal isOpen={!!importData} importCount={importData?.length || 0} onClose={() => setImportData(null)} onMerge={handleMergeImport} onReplace={handleReplaceImport} />
-      <SyncSettingsModal isOpen={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} currentProvider={syncProvider} onProviderChange={handleSyncProviderChange} />
+      <SyncSettingsModal 
+        isOpen={isSyncModalOpen} 
+        onClose={() => setIsSyncModalOpen(false)} 
+        currentProvider={syncProvider} 
+        onProviderChange={handleSyncProviderChange}
+        syncMode={syncMode}
+        onSyncModeChange={handleSyncModeChange}
+      />
       <input type="file" ref={importInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
     </HashRouter>
   );

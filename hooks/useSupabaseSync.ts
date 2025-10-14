@@ -1,7 +1,7 @@
 // FIX: Import Dispatch and SetStateAction to use for typing state setters without the 'React' namespace.
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from 'react';
 import { createClient, SupabaseClient, Session, User, RealtimeChannel } from '@supabase/supabase-js';
-import { CD, SyncStatus } from '../types';
+import { CD, SyncStatus, SyncMode } from '../types';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
@@ -12,7 +12,7 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
 }
 
 // FIX: Use the imported Dispatch and SetStateAction types.
-export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) => {
+export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, syncMode: SyncMode) => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'disabled');
     const [error, setError] = useState<string | null>(supabase ? null : 'Supabase is not configured. The administrator needs to provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
     const [session, setSession] = useState<Session | null>(null);
@@ -48,6 +48,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
     
     useEffect(() => {
         if (session && supabase) {
+            // Initial load on session establishment
             setSyncStatus('loading');
             supabase.from('cds').select('*').order('created_at', { ascending: false })
                 .then(({ data, error }) => {
@@ -59,23 +60,24 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
                         setSyncStatus('synced');
                     }
                 });
+            
+            // Conditionally subscribe to real-time updates
+            if (syncMode === 'realtime') {
+                const channel = supabase.channel('cds-changes')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'cds' }, (payload) => {
+                        setCollection(prev => [payload.new as CD, ...prev.filter(cd => cd.id !== payload.new.id)]);
+                    })
+                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'cds' }, (payload) => {
+                        setCollection(prev => prev.map(cd => cd.id === payload.new.id ? payload.new as CD : cd));
+                    })
+                    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'cds' }, (payload) => {
+                        setCollection(prev => prev.filter(cd => cd.id !== payload.old.id));
+                    })
+                    .subscribe();
 
-            const channel = supabase.channel('cds-changes')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'cds' }, (payload) => {
-                    // Add the new CD, but filter by ID to prevent duplicates if an optimistic update already added it
-                    setCollection(prev => [payload.new as CD, ...prev.filter(cd => cd.id !== payload.new.id)]);
-                })
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'cds' }, (payload) => {
-                    setCollection(prev => prev.map(cd => cd.id === payload.new.id ? payload.new as CD : cd));
-                })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'cds' }, (payload) => {
-                    setCollection(prev => prev.filter(cd => cd.id !== payload.old.id));
-                })
-                .subscribe();
-
-            channelRef.current = channel;
+                channelRef.current = channel;
+            }
         } else if (!session && supabase) {
-            // User is signed out, clear collection
              setCollection([]);
         }
 
@@ -85,7 +87,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
                 channelRef.current = null;
             }
         };
-    }, [session, setCollection]);
+    }, [session, setCollection, syncMode]);
     
     const signIn = async (email: string): Promise<boolean> => {
         if (!supabase) return false;
@@ -127,7 +129,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
         
         const newCd = data?.[0] as CD ?? null;
         if (newCd) {
-            // Optimistic update: Add the new CD to local state immediately.
             setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
         }
         
@@ -138,7 +139,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
     const updateCD = async (cd: CD) => {
         if (!supabase) return;
         
-        // Optimistic update
         setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
         
         setSyncStatus('saving');
@@ -146,7 +146,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
         if (error) {
             setError(error.message);
             setSyncStatus('error');
-            // Note: In a production app, you might want to roll back the optimistic update here.
         } else {
             setSyncStatus('synced');
         }
@@ -155,7 +154,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
     const deleteCD = async (id: string) => {
         if (!supabase) return;
         
-        // Optimistic update
         setCollection(prev => prev.filter(c => c.id !== id));
 
         setSyncStatus('saving');
@@ -163,8 +161,21 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
         if (error) {
             setError(error.message);
             setSyncStatus('error');
-            // Note: Consider rolling back on failure.
         } else {
+            setSyncStatus('synced');
+        }
+    };
+    
+    const manualSync = async () => {
+        if (!supabase || !session) return;
+        setSyncStatus('loading');
+        setError(null);
+        const { data, error } = await supabase.from('cds').select('*').order('created_at', { ascending: false });
+        if (error) {
+            setError(error.message);
+            setSyncStatus('error');
+        } else {
+            setCollection(data || []);
             setSyncStatus('synced');
         }
     };
@@ -180,6 +191,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>) =
         addCD,
         updateCD,
         deleteCD,
+        manualSync,
         setSyncStatus,
     };
 };

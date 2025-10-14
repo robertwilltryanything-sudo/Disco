@@ -1,5 +1,5 @@
 import React from 'react';
-import { SyncProvider } from '../types';
+import { SyncProvider, SyncMode } from '../types';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
 
@@ -8,6 +8,8 @@ interface SyncSettingsModalProps {
     onClose: () => void;
     currentProvider: SyncProvider;
     onProviderChange: (provider: SyncProvider) => void;
+    syncMode: SyncMode;
+    onSyncModeChange: (mode: SyncMode) => void;
 }
 
 const ProviderOption: React.FC<{
@@ -36,7 +38,7 @@ const ProviderOption: React.FC<{
             </div>
             {isSelected && <CheckIcon className="w-6 h-6 text-zinc-800 flex-shrink-0 ml-4" />}
         </div>
-        {isSelected && <div className="mt-4">{children}</div>}
+        {children}
     </div>
 );
 
@@ -46,6 +48,8 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     onClose,
     currentProvider,
     onProviderChange,
+    syncMode,
+    onSyncModeChange,
 }) => {
     if (!isOpen) {
         return null;
@@ -73,16 +77,45 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                         isSelected={currentProvider === 'supabase'}
                         onSelect={() => onProviderChange('supabase')}
                     >
-                        {!isSupabaseConfigured ? (
-                             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                                This option is not configured by the site administrator. Please set the <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> environment variables.
-                            </div>
-                        ) : (
-                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center gap-3">
-                                <CheckIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
-                                <span>Supabase is configured. Your data will sync in real-time when you are signed in.</span>
-                            </div>
-                        )}
+                       {currentProvider === 'supabase' && (
+                         <>
+                            {!isSupabaseConfigured ? (
+                                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                                    This option is not configured by the site administrator. Please set the <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> environment variables.
+                                </div>
+                            ) : (
+                               <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
+                                    <h4 className="text-sm font-bold text-zinc-800">Sync Mode</h4>
+                                    <div 
+                                        onClick={() => onSyncModeChange('realtime')}
+                                        className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${syncMode === 'realtime' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-300'}`}
+                                        role="radio"
+                                        aria-checked={syncMode === 'realtime'}
+                                        tabIndex={0}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full border-2 ${syncMode === 'realtime' ? 'bg-zinc-800 border-zinc-800' : 'border-zinc-400'}`} />
+                                        <div>
+                                            <p className="font-medium text-zinc-800">Real-time</p>
+                                            <p className="text-xs text-zinc-600">Changes sync automatically and instantly.</p>
+                                        </div>
+                                    </div>
+                                     <div 
+                                        onClick={() => onSyncModeChange('manual')}
+                                        className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${syncMode === 'manual' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-300'}`}
+                                        role="radio"
+                                        aria-checked={syncMode === 'manual'}
+                                        tabIndex={0}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full border-2 ${syncMode === 'manual' ? 'bg-zinc-800 border-zinc-800' : 'border-zinc-400'}`} />
+                                         <div>
+                                            <p className="font-medium text-zinc-800">On Demand</p>
+                                            <p className="text-xs text-zinc-600">Click the sync button to get new updates.</p>
+                                        </div>
+                                    </div>
+                               </div>
+                            )}
+                         </>
+                       )}
                     </ProviderOption>
                     
                      <ProviderOption
@@ -91,7 +124,9 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                         isSelected={currentProvider === 'none'}
                         onSelect={() => onProviderChange('none')}
                     >
-                        <p className="text-sm text-center text-zinc-500 p-2">Sync is disabled.</p>
+                         {currentProvider === 'none' && (
+                           <p className="text-sm text-center text-zinc-500 p-2 mt-2">Sync is disabled.</p>
+                         )}
                     </ProviderOption>
                 </div>
                 
