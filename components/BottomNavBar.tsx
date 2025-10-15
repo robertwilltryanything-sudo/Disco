@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { HomeIcon } from './icons/HomeIcon';
 import { DashboardIcon } from './icons/DashboardIcon';
-import { UserGroupIcon } from './icons/UserGroupIcon';
+import { StarIcon } from './icons/StarIcon';
 import { PlusIcon } from './icons/PlusIcon';
 
 interface BottomNavBarProps {
@@ -47,7 +47,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ onAddClick }) => {
             <DashboardIcon className="w-6 h-6" />
         </NavItem>
         <NavItem to="/artists" label="Artists">
-            <UserGroupIcon className="w-6 h-6" />
+            <StarIcon className="w-6 h-6" />
         </NavItem>
         <NavItem onClick={onAddClick} label="Add CD">
              <div className="w-7 h-7 flex items-center justify-center bg-zinc-900 text-white rounded-lg shadow-sm">
