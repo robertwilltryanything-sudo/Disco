@@ -4,11 +4,9 @@ import CDItem from './CDItem';
 
 interface CDListProps {
   cds: CD[];
-  onRequestDelete: (id: string) => void;
-  onRequestEdit: (cd: CD) => void;
 }
 
-const CDList: React.FC<CDListProps> = ({ cds, onRequestDelete, onRequestEdit }) => {
+const CDList: React.FC<CDListProps> = ({ cds }) => {
   if (cds.length === 0) {
     return (
       <div className="text-center py-10 px-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300">
@@ -21,7 +19,7 @@ const CDList: React.FC<CDListProps> = ({ cds, onRequestDelete, onRequestEdit }) 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
       {cds.map(cd => (
-        <CDItem key={cd.id} cd={cd} onRequestDelete={onRequestDelete} onRequestEdit={onRequestEdit} />
+        <CDItem key={cd.id} cd={cd} />
       ))}
     </div>
   );

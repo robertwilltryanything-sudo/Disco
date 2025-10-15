@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { CD } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
@@ -9,14 +9,18 @@ import { GlobeIcon } from '../components/icons/GlobeIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
 import { capitalizeWords } from '../utils';
 import { PlusIcon } from '../components/icons/PlusIcon';
+import { TrashIcon } from '../components/icons/TrashIcon';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 interface DetailViewProps {
   cds: CD[];
+  onDeleteCD: (id: string) => void;
 }
 
-const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
+const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { cd, previousCd, nextCd } = useMemo(() => {
     const currentIndex = cds.findIndex(c => c.id === id);
@@ -80,6 +84,18 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
       navigate('/', { state: { addAlbumForArtist: cd.artist } });
     }
   }, [navigate, cd]);
+  
+  const handleRequestDelete = useCallback(() => {
+    setIsDeleteModalOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (cd) {
+        onDeleteCD(cd.id);
+        setIsDeleteModalOpen(false);
+        navigate('/', { replace: true });
+    }
+  }, [cd, onDeleteCD, navigate]);
 
   const handleArtistClick = useCallback(() => {
     if (cd) {
@@ -267,6 +283,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
                 >
                   <EditIcon className="w-6 h-6" />
                 </button>
+                <button
+                  onClick={handleRequestDelete}
+                  className="p-2 rounded-full bg-white/70 text-red-500 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  aria-label={`Delete ${cd.title}`}
+                >
+                  <TrashIcon className="w-6 h-6" />
+                </button>
               </div>
             </div>
         </div>
@@ -315,6 +338,12 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        cd={cd}
+      />
     </div>
   );
 };

@@ -1,13 +1,9 @@
-
-
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
 import CDList from '../components/CDList';
 import SearchBar from '../components/SearchBar';
 import SortControls from '../components/SortControls';
-import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { useDebounce } from '../hooks/useDebounce';
 import FeaturedAlbum from '../components/FeaturedAlbum';
@@ -15,17 +11,15 @@ import QuickStats from '../components/CollectionStats';
 
 interface ListViewProps {
   cds: CD[];
-  onDeleteCD: (id: string) => void;
   onRequestAdd: (artist?: string) => void;
   onRequestEdit: (cd: CD) => void;
 }
 
-const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRequestEdit }) => {
+const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms delay
   const [sortBy, setSortBy] = useState<SortKey>('artist');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [cdToDelete, setCdToDelete] = useState<CD | null>(null);
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
 
   const location = useLocation();
@@ -169,25 +163,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
       });
   }, [cds, debouncedSearchQuery, sortBy, sortOrder]);
 
-  const handleRequestDelete = useCallback((id: string) => {
-    const cd = cds.find(c => c.id === id);
-    if (cd) {
-      setCdToDelete(cd);
-    }
-  }, [cds]);
-
-  const handleConfirmDelete = useCallback(() => {
-    if (cdToDelete) {
-      onDeleteCD(cdToDelete.id);
-      setCdToDelete(null);
-    }
-  }, [cdToDelete, onDeleteCD]);
-
-  const handleRequestEdit = useCallback((cd: CD) => {
-    onRequestEdit(cd);
-  }, [onRequestEdit]);
-  
-
   return (
     <div>
       {!searchQuery && (
@@ -233,19 +208,12 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
         </div>
       </div>
 
-      <CDList cds={filteredAndSortedCds} onRequestDelete={handleRequestDelete} onRequestEdit={handleRequestEdit} />
+      <CDList cds={filteredAndSortedCds} />
       
       {/* Mobile-only Collection Snapshot Footer Section */}
       <div className="lg:hidden mt-8">
         <QuickStats cds={cds} className="!h-auto" />
       </div>
-      
-      <ConfirmDeleteModal
-        isOpen={!!cdToDelete}
-        onClose={() => setCdToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        cd={cdToDelete}
-      />
 
     </div>
   );

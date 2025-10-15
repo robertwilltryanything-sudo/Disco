@@ -394,8 +394,8 @@ const App: React.FC = () => {
           onSignOut={supabaseSync.signOut}
         />
         <Routes>
-          <Route path="/" element={<RouteWrapper><ListView cds={cds} onDeleteCD={handleDeleteCD} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />
-          <Route path="/cd/:id" element={<RouteWrapper><DetailView cds={cds} /></RouteWrapper>} />
+          <Route path="/" element={<RouteWrapper><ListView cds={cds} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />
+          <Route path="/cd/:id" element={<RouteWrapper><DetailView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
           <Route path="/artists" element={<RouteWrapper><ArtistsView cds={cds} /></RouteWrapper>} />
           <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
         </Routes>

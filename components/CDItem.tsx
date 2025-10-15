@@ -1,19 +1,14 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CD } from '../types';
-import { TrashIcon } from './icons/TrashIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
-import { EditIcon } from './icons/EditIcon';
 import { capitalizeWords } from '../utils';
 
 interface CDItemProps {
   cd: CD;
-  onRequestDelete: (id: string) => void;
-  onRequestEdit: (cd: CD) => void;
 }
 
-const CDItem: React.FC<CDItemProps> = ({ cd, onRequestDelete, onRequestEdit }) => {
+const CDItem: React.FC<CDItemProps> = ({ cd }) => {
   const [isIntersecting, setIsIntersecting] = useState(false);
   const ref = useRef<HTMLAnchorElement>(null);
   const navigate = useNavigate();
@@ -40,18 +35,6 @@ const CDItem: React.FC<CDItemProps> = ({ cd, onRequestDelete, onRequestEdit }) =
       }
     };
   }, []);
-  
-  const handleDelete = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onRequestDelete(cd.id);
-  }, [cd.id, onRequestDelete]);
-  
-  const handleEdit = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onRequestEdit(cd);
-  }, [cd, onRequestEdit]);
 
   const handleArtistClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -90,22 +73,6 @@ const CDItem: React.FC<CDItemProps> = ({ cd, onRequestDelete, onRequestEdit }) =
         </button>
         {details && <p className="text-sm text-zinc-500 mt-1">{details}</p>}
       </div>
-       <div className="absolute top-2 right-2 flex flex-col gap-2">
-         <button
-            onClick={handleEdit}
-            className="p-2 rounded-full bg-black bg-opacity-40 text-white opacity-0 group-hover:opacity-100 hover:bg-opacity-60 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label={`Edit ${cd.title}`}
-          >
-            <EditIcon className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleDelete}
-            className="p-2 rounded-full bg-black bg-opacity-40 text-white opacity-0 group-hover:opacity-100 hover:bg-opacity-60 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500"
-            aria-label={`Delete ${cd.title}`}
-          >
-            <TrashIcon className="w-5 h-5" />
-          </button>
-       </div>
     </Link>
   );
 };
