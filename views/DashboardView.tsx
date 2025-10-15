@@ -11,14 +11,27 @@ interface DashboardViewProps {
 // A simple, reusable bar chart component for the dashboard
 const BarChart = ({ data, title, onFilter }: { data: { label: string; value: number }[], title: string, onFilter: (value: string) => void }) => {
   const maxValue = Math.max(1, ...data.map(d => d.value)); // Use Math.max(1, ...) to avoid division by zero
+  const barColors = [
+    'bg-orange-500',
+    'bg-amber-500',
+    'bg-yellow-400',
+    'bg-lime-500',
+    'bg-green-500',
+    'bg-sky-500',
+    'bg-pink-500',
+    'bg-purple-600',
+    'bg-indigo-500',
+    'bg-rose-500',
+  ];
 
   return (
     <div className="bg-white rounded-lg border border-zinc-200 p-6">
       <h3 className="text-lg font-bold text-zinc-800 mb-4">{title}</h3>
       <div className="space-y-3">
         {data.length > 0 ? (
-          data.map((item) => {
+          data.map((item, index) => {
             const barWidthPercentage = (item.value / maxValue) * 100;
+            const barColor = barColors[index % barColors.length];
             return (
                 <div key={item.label} className="grid grid-cols-[80px_1fr_40px] items-center gap-3" aria-label={`${item.label}: ${item.value} albums`}>
                     <button 
@@ -30,7 +43,7 @@ const BarChart = ({ data, title, onFilter }: { data: { label: string; value: num
                     </button>
                     <div className="w-full bg-zinc-200 rounded-full h-6" role="presentation">
                         <div
-                            className="bg-zinc-900 h-6 rounded-full transition-all duration-500 ease-out"
+                            className={`${barColor} h-6 rounded-full transition-all duration-500 ease-out`}
                             style={{ width: `${barWidthPercentage}%` }}
                             role="progressbar"
                             aria-valuenow={item.value}
