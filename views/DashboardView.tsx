@@ -157,11 +157,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
                 <p className="text-sm font-medium text-zinc-500 uppercase">Total CDs</p>
-                <p className="text-4xl font-extrabold text-zinc-900 mt-1">{cds.length}</p>
+                <p className="text-4xl text-zinc-900 mt-1">{cds.length}</p>
             </div>
             <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
                 <p className="text-sm font-medium text-zinc-500 uppercase">Unique Artists</p>
-                <p className="text-4xl font-extrabold text-zinc-900 mt-1">{uniqueArtists}</p>
+                <p className="text-4xl text-zinc-900 mt-1">{uniqueArtists}</p>
             </div>
         </div>
         
