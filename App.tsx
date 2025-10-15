@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode } from './types';
@@ -12,7 +13,7 @@ import { findCoverArt } from './wikipedia';
 import AddCDForm from './components/AddCDForm';
 import { XIcon } from './components/icons/XIcon';
 import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
-import { areStringsSimilar } from './utils';
+import { areStringsSimilar, capitalizeWords } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import { XCircleIcon } from './components/icons/XCircleIcon';
@@ -233,14 +234,19 @@ const App: React.FC = () => {
   }, []);
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
-    if (cdData.id) {
-      await handleUpdateCD({ ...cdData, id: cdData.id });
+    const processedData = {
+      ...cdData,
+      title: capitalizeWords(cdData.title),
+    };
+
+    if (processedData.id) {
+      await handleUpdateCD({ ...processedData, id: processedData.id });
     } else {
-      const duplicate = findPotentialDuplicate(cdData, cds);
+      const duplicate = findPotentialDuplicate(processedData, cds);
       if (duplicate) {
-        setDuplicateInfo({ newCd: cdData, existingCd: duplicate });
+        setDuplicateInfo({ newCd: processedData, existingCd: duplicate });
       } else {
-        await handleAddCD(cdData);
+        await handleAddCD(processedData);
       }
     }
     handleCloseModal();
@@ -293,10 +299,14 @@ const App: React.FC = () => {
 
   const handleMergeImport = () => {
     if (importData) {
+        const processedImportData = importData.map(cd => ({
+            ...cd,
+            title: capitalizeWords(cd.title),
+        }));
         if (syncProvider === 'supabase') {
-            importData.forEach(cd => supabaseSync.addCD(cd));
+            processedImportData.forEach(cd => supabaseSync.addCD(cd));
         } else {
-            const newCds = importData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}` }));
+            const newCds = processedImportData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}` }));
             updateLocalCollection(prevCds => [...prevCds, ...newCds]);
         }
         setImportData(null);
@@ -305,10 +315,14 @@ const App: React.FC = () => {
 
   const handleReplaceImport = () => {
     if (importData) {
+        const processedImportData = importData.map(cd => ({
+            ...cd,
+            title: capitalizeWords(cd.title),
+        }));
         if (syncProvider === 'supabase') {
             alert("Replace is not supported for Supabase sync. Please clear your collection manually if needed.");
         } else {
-            updateLocalCollection(() => importData);
+            updateLocalCollection(() => processedImportData);
         }
         setImportData(null);
     }
