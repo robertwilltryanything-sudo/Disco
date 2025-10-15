@@ -131,7 +131,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
 
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-zinc-800">Collection Dashboard</h1>
             <Link
