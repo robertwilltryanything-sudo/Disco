@@ -19,9 +19,10 @@ interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => void;
   cdToEdit: CD | null;
   onCancel: () => void;
+  prefillData: { artist: string } | null;
 }
 
-const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => {
+const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefillData }) => {
   const [artist, setArtist] = useState('');
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
@@ -43,6 +44,21 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
 
+  const resetForm = useCallback(() => {
+    setArtist('');
+    setTitle('');
+    setGenre('');
+    setYear('');
+    setVersion('');
+    setRecordLabel('');
+    setTags([]);
+    setCurrentTag('');
+    setCoverArtUrl(undefined);
+    setManualUrl('');
+    setNotes('');
+    setFormError(null);
+  }, []);
+  
   useEffect(() => {
     if (cdToEdit) {
       setArtist(cdToEdit.artist);
@@ -55,25 +71,12 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel }) => 
       setCoverArtUrl(cdToEdit.coverArtUrl);
       setNotes(cdToEdit.notes || '');
     } else {
-      // Reset form when switching from edit to add mode
       resetForm();
+      if (prefillData?.artist) {
+        setArtist(prefillData.artist);
+      }
     }
-  }, [cdToEdit]);
-
-  const resetForm = useCallback(() => {
-      setArtist('');
-      setTitle('');
-      setGenre('');
-      setYear('');
-      setVersion('');
-      setRecordLabel('');
-      setTags([]);
-      setCurrentTag('');
-      setCoverArtUrl(undefined);
-      setManualUrl('');
-      setNotes('');
-      setFormError(null);
-  }, []);
+  }, [cdToEdit, prefillData, resetForm]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();

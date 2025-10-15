@@ -97,6 +97,7 @@ const App: React.FC = () => {
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
+  const [prefillData, setPrefillData] = useState<{ artist: string } | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
   const [importData, setImportData] = useState<CD[] | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -214,8 +215,9 @@ const App: React.FC = () => {
     }
   }, [syncProvider, supabaseSync.deleteCD]);
 
-  const handleRequestAdd = useCallback(() => {
+  const handleRequestAdd = useCallback((artist?: string) => {
     setCdToEdit(null);
+    setPrefillData(artist ? { artist } : null);
     setIsAddModalOpen(true);
   }, []);
 
@@ -227,6 +229,7 @@ const App: React.FC = () => {
   const handleCloseModal = useCallback(() => {
     setIsAddModalOpen(false);
     setCdToEdit(null);
+    setPrefillData(null);
   }, []);
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
@@ -377,7 +380,7 @@ const App: React.FC = () => {
           </div>
         )}
         <Header 
-          onAddClick={handleRequestAdd}
+          onAddClick={() => handleRequestAdd()}
           collectionCount={cds.length}
           onImport={handleImportClick}
           onExport={handleExportCollection}
@@ -396,13 +399,21 @@ const App: React.FC = () => {
           <Route path="/artists" element={<RouteWrapper><ArtistsView cds={cds} /></RouteWrapper>} />
           <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
         </Routes>
-        <BottomNavBar onAddClick={handleRequestAdd} />
+        <BottomNavBar onAddClick={() => handleRequestAdd()} />
       </div>
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start md:items-center justify-center z-40 p-4 overflow-y-auto" role="dialog" aria-modal="true">
           <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-2xl relative">
             <button onClick={handleCloseModal} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10" aria-label="Close form"><XIcon className="w-6 h-6" /></button>
-            <div className="p-1"><AddCDForm key={cdToEdit ? cdToEdit.id : 'add'} onSave={handleSaveCD} cdToEdit={cdToEdit} onCancel={handleCloseModal} /></div>
+            <div className="p-1">
+              <AddCDForm
+                key={cdToEdit ? cdToEdit.id : (prefillData ? `add-${prefillData.artist}` : 'add')}
+                onSave={handleSaveCD}
+                cdToEdit={cdToEdit}
+                onCancel={handleCloseModal}
+                prefillData={prefillData}
+              />
+            </div>
           </div>
         </div>
       )}

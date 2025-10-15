@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { Dispatch, SetStateAction } from 'react';
 import { SortKey, SortOrder } from '../types';
 import { ArrowUpIcon } from './icons/ArrowUpIcon';
 import { ArrowDownIcon } from './icons/ArrowDownIcon';
@@ -8,8 +7,7 @@ interface SortControlsProps {
   sortBy: SortKey;
   setSortBy: (key: SortKey) => void;
   sortOrder: SortOrder;
-  // FIX: Updated the type of setSortOrder to allow function updates from useState.
-  setSortOrder: React.Dispatch<React.SetStateAction<SortOrder>>;
+  setSortOrder: Dispatch<SetStateAction<SortOrder>>;
 }
 
 const SortControls: React.FC<SortControlsProps> = ({ sortBy, setSortBy, sortOrder, setSortOrder }) => {

@@ -8,6 +8,7 @@ import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { GlobeIcon } from '../components/icons/GlobeIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
 import { capitalizeWords } from '../utils';
+import { PlusIcon } from '../components/icons/PlusIcon';
 
 interface DetailViewProps {
   cds: CD[];
@@ -71,6 +72,12 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
   const handleEdit = useCallback(() => {
     if (cd) {
       navigate('/', { state: { editCdId: cd.id } });
+    }
+  }, [navigate, cd]);
+
+  const handleAddAnotherByArtist = useCallback(() => {
+    if (cd) {
+      navigate('/', { state: { addAlbumForArtist: cd.artist } });
     }
   }, [navigate, cd]);
 
@@ -245,13 +252,22 @@ const DetailView: React.FC<DetailViewProps> = ({ cds }) => {
                 </a>
               </div>
 
+              <div className="absolute top-4 right-4 flex gap-2">
+                <button
+                  onClick={handleAddAnotherByArtist}
+                  className="p-2 rounded-full bg-white/70 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                  aria-label={`Add another album by ${cd.artist}`}
+                >
+                  <PlusIcon className="w-6 h-6" />
+                </button>
                 <button
                   onClick={handleEdit}
-                  className="absolute top-4 right-4 p-2 rounded-full bg-white/70 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                  className="p-2 rounded-full bg-white/70 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
                   aria-label={`Edit ${cd.title}`}
                 >
                   <EditIcon className="w-6 h-6" />
                 </button>
+              </div>
             </div>
         </div>
         <div className="border-t border-zinc-200 bg-zinc-50 p-4 flex justify-between items-center">

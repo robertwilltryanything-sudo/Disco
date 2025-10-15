@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
@@ -15,7 +16,7 @@ import QuickStats from '../components/CollectionStats';
 interface ListViewProps {
   cds: CD[];
   onDeleteCD: (id: string) => void;
-  onRequestAdd: () => void;
+  onRequestAdd: (artist?: string) => void;
   onRequestEdit: (cd: CD) => void;
 }
 
@@ -32,7 +33,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
 
   // Effect to handle navigation state for editing or filtering
   useEffect(() => {
-    const { editCdId, filterByArtist, filterByYear, filterByGenre, filterByRecordLabel, filterByTag, clearFilter } = location.state || {};
+    const { editCdId, filterByArtist, filterByYear, filterByGenre, filterByRecordLabel, filterByTag, addAlbumForArtist, clearFilter } = location.state || {};
     let stateWasHandled = false;
 
     if (clearFilter) {
@@ -44,6 +45,9 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
         onRequestEdit(cd);
         stateWasHandled = true;
       }
+    } else if (addAlbumForArtist) {
+        onRequestAdd(addAlbumForArtist);
+        stateWasHandled = true;
     } else if (filterByArtist) {
         setSearchQuery(filterByArtist);
         stateWasHandled = true;
@@ -65,7 +69,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
       // Clear the state from history so the action doesn't re-trigger
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, cds, navigate, onRequestEdit]);
+  }, [location.state, cds, navigate, onRequestEdit, onRequestAdd]);
 
   useEffect(() => {
     if (cds.length === 0) {
@@ -196,7 +200,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
                   <h3 className="text-xl font-bold text-zinc-800">Your Collection is Empty</h3>
                   <p className="text-zinc-600 mt-2">Click the "Add CD" button to start building your collection.</p>
                   <button
-                      onClick={onRequestAdd}
+                      onClick={() => onRequestAdd()}
                       className="mt-4 flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
                   >
                       <PlusIcon className="h-5 w-5" />
@@ -220,7 +224,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onDeleteCD, onRequestAdd, onRe
             <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
           </div>
           <button
-            onClick={onRequestAdd}
+            onClick={() => onRequestAdd()}
             className="flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 h-12"
           >
             <PlusIcon className="h-5 w-5" />
