@@ -27,6 +27,7 @@ const SortControls: React.FC<SortControlsProps> = ({ sortBy, setSortBy, sortOrde
         className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 appearance-none text-center"
         style={{ paddingRight: '2rem' }} // Add padding for custom arrow
       >
+        <option value="created_at">Added Date</option>
         <option value="artist">Artist</option>
         <option value="title">Title</option>
         <option value="year">Year</option>

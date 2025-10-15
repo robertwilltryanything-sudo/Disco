@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode } from './types';
@@ -23,11 +24,11 @@ import SupabaseNotConfigured from './components/SupabaseNotConfigured';
 import SupabaseAuth from './components/SupabaseAuth';
 
 const INITIAL_CDS: CD[] = [
-  { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'] },
-  { id: '1', artist: 'U2', title: 'War', genre: 'Post-Punk', year: 1983, recordLabel: 'Island', tags: ['80s rock', 'political', 'post-punk'] },
-  { id: '3', artist: 'The Beatles', title: 'Abbey Road', genre: 'Rock', year: 1969, version: '2009 Remaster', recordLabel: 'Apple', tags: ['60s rock', 'classic rock'] },
-  { id: '6', artist: 'Fleetwood Mac', title: 'Rumours', genre: 'Rock', year: 1977, recordLabel: 'Warner Bros.', tags: ['70s rock', 'soft rock'] },
-  { id: '7', artist: 'Jean Michel Jarre', title: 'Equinoxe', genre: 'Electronic', year: 1978, recordLabel: 'Disques Dreyfus', tags: ['electronic', 'ambient', '70s'] },
+  { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'], created_at: '2024-07-29T10:00:04Z' },
+  { id: '1', artist: 'U2', title: 'War', genre: 'Post-Punk', year: 1983, recordLabel: 'Island', tags: ['80s rock', 'political', 'post-punk'], created_at: '2024-07-29T10:00:03Z' },
+  { id: '3', artist: 'The Beatles', title: 'Abbey Road', genre: 'Rock', year: 1969, version: '2009 Remaster', recordLabel: 'Apple', tags: ['60s rock', 'classic rock'], created_at: '2024-07-29T10:00:02Z' },
+  { id: '6', artist: 'Fleetwood Mac', title: 'Rumours', genre: 'Rock', year: 1977, recordLabel: 'Warner Bros.', tags: ['70s rock', 'soft rock'], created_at: '2024-07-29T10:00:01Z' },
+  { id: '7', artist: 'Jean Michel Jarre', title: 'Equinoxe', genre: 'Electronic', year: 1978, recordLabel: 'Disques Dreyfus', tags: ['electronic', 'ambient', '70s'], created_at: '2024-07-29T10:00:00Z' },
 ];
 
 const COLLECTION_STORAGE_KEY = 'disco_collection_v3';
@@ -194,7 +195,7 @@ const App: React.FC = () => {
     if (syncProvider === 'supabase') {
         await supabaseSync.addCD(enrichedCdData);
     } else {
-        const newCd: CD = { ...enrichedCdData, id: `${new Date().getTime()}-${Math.random()}` };
+        const newCd: CD = { ...enrichedCdData, id: `${new Date().getTime()}-${Math.random()}`, created_at: new Date().toISOString() };
         updateLocalCollection(prevCds => [newCd, ...prevCds]);
     }
   }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync.addCD]);
@@ -306,7 +307,7 @@ const App: React.FC = () => {
         if (syncProvider === 'supabase') {
             processedImportData.forEach(cd => supabaseSync.addCD(cd));
         } else {
-            const newCds = processedImportData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}` }));
+            const newCds = processedImportData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}`, created_at: cd.created_at || new Date().toISOString() }));
             updateLocalCollection(prevCds => [...prevCds, ...newCds]);
         }
         setImportData(null);
@@ -322,7 +323,12 @@ const App: React.FC = () => {
         if (syncProvider === 'supabase') {
             alert("Replace is not supported for Supabase sync. Please clear your collection manually if needed.");
         } else {
-            updateLocalCollection(() => processedImportData);
+            const processedForLocal = processedImportData.map((cd, index) => ({
+                ...cd,
+                id: cd.id || `${new Date().getTime()}-${index}`,
+                created_at: cd.created_at || new Date().toISOString(),
+            }));
+            updateLocalCollection(() => processedForLocal);
         }
         setImportData(null);
     }

@@ -18,7 +18,7 @@ export interface CollectionData {
   lastUpdated: string | null;
 }
 
-export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'recordLabel';
+export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'recordLabel' | 'created_at';
 export type SortOrder = 'asc' | 'desc';
 
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';

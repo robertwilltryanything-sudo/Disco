@@ -18,8 +18,8 @@ interface ListViewProps {
 const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms delay
-  const [sortBy, setSortBy] = useState<SortKey>('artist');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortBy, setSortBy] = useState<SortKey>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
 
   const location = useLocation();
