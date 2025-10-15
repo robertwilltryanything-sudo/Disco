@@ -12,16 +12,14 @@ interface DashboardViewProps {
 const BarChart = ({ data, title, onFilter }: { data: { label: string; value: number }[], title: string, onFilter: (value: string) => void }) => {
   const maxValue = Math.max(1, ...data.map(d => d.value)); // Use Math.max(1, ...) to avoid division by zero
   const barColors = [
-    'bg-orange-500',
-    'bg-amber-500',
-    'bg-yellow-400',
-    'bg-lime-500',
-    'bg-green-500',
-    'bg-sky-500',
-    'bg-pink-500',
-    'bg-purple-600',
-    'bg-indigo-500',
-    'bg-rose-500',
+    'bg-sky-300',
+    'bg-orange-200',
+    'bg-yellow-200',
+    'bg-pink-300',
+    'bg-teal-200',
+    'bg-indigo-200',
+    'bg-rose-200',
+    'bg-lime-200',
   ];
 
   return (
