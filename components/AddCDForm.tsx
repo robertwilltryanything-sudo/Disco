@@ -94,6 +94,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             id: cdToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined,
             version, recordLabel, tags, coverArtUrl, notes,
+            created_at: cdToEdit?.created_at,
         };
 
         // If it's a new CD without cover art, try to find it.
@@ -214,6 +215,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
           id: cdToEdit?.id, artist, title, genre,
           year: year ? Number(year) : undefined, version, recordLabel, tags,
           coverArtUrl: url, notes,
+          created_at: cdToEdit?.created_at,
         });
       } catch (error) {
         console.error("Error saving after art selection:", error);
@@ -237,6 +239,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             id: cdToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined, version, recordLabel, tags,
             coverArtUrl: undefined, notes,
+            created_at: cdToEdit?.created_at,
           });
       } catch (error) {
         console.error("Error saving after closing art selector:", error);
