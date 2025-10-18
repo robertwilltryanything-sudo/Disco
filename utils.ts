@@ -1,3 +1,5 @@
+import { CD } from "./types";
+
 /**
  * Capitalizes the first letter of each word in a string, and lowercases the rest.
  * @param str The input string.
@@ -58,4 +60,44 @@ export const areStringsSimilar = (s1: string, s2: string, threshold = 0.85): boo
     if (maxLength === 0) return true;
     const similarity = 1 - (distance / maxLength);
     return similarity >= threshold;
+};
+
+/**
+ * Heuristically determines the "best" CD from a group of duplicates.
+ * The "best" is determined by:
+ * 1. Having cover art.
+ * 2. Having the most non-empty fields.
+ * 3. Being the most recently created entry.
+ * @param cds The group of CDs to compare.
+ * @returns The CD deemed to be the best choice.
+ */
+export const getBestCD = (cds: CD[]): CD => {
+  if (cds.length === 0) {
+    throw new Error("Cannot get best CD from an empty array.");
+  }
+  if (cds.length === 1) {
+    return cds[0];
+  }
+
+  const scoreCD = (cd: CD): number => {
+    let score = 0;
+    if (cd.coverArtUrl) score += 100;
+    if (cd.genre) score += 10;
+    if (cd.year) score += 10;
+    if (cd.recordLabel) score += 10;
+    if (cd.version) score += 5;
+    if (cd.notes) score += 5;
+    if (cd.tags && cd.tags.length > 0) score += cd.tags.length;
+    return score;
+  };
+
+  return cds.sort((a, b) => {
+    const scoreA = scoreCD(a);
+    const scoreB = scoreCD(b);
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA; // Higher score first
+    }
+    // If scores are equal, prefer the newest one
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  })[0];
 };

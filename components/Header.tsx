@@ -8,6 +8,7 @@ import { DownloadIcon } from './icons/DownloadIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
 import { User } from '@supabase/supabase-js';
 import { LogoutIcon } from './icons/LogoutIcon';
+import { SparklesIcon } from './icons/SparklesIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -163,6 +164,17 @@ const Header: React.FC<HeaderProps> = ({
                             </button>
                         </div>
                     )}
+                    <div className="p-2">
+                        <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Tools</h3>
+                        <NavLink
+                            to="/duplicates"
+                            onClick={() => setIsMenuOpen(false)}
+                            className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-md ${isActive ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'} focus:outline-none focus:bg-zinc-100`}
+                        >
+                            <SparklesIcon className="w-5 h-5" />
+                            <span className="font-medium">Find Duplicates</span>
+                        </NavLink>
+                    </div>
                     <div className="p-2">
                         <h3 className="text-sm font-bold text-zinc-800 px-2 mb-2">Sync & Backup</h3>
                          <div className="space-y-2">
