@@ -17,7 +17,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
   }, [cds]);
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div>
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-3xl font-bold text-zinc-800">All Artists ({artists.length})</h1>
         <Link
