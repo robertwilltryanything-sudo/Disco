@@ -30,7 +30,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `text-lg font-medium pb-1 border-b-2 ${
+        `text-base font-medium pb-1 border-b-2 uppercase tracking-wide ${
           isActive
             ? 'text-zinc-900 border-zinc-900'
             : 'text-zinc-600 border-transparent'
@@ -110,7 +110,7 @@ const Header: React.FC<HeaderProps> = ({
                 <li>
                     <button
                         onClick={onAddClick}
-                        className="text-lg font-medium text-zinc-600 hover:text-zinc-900"
+                        className="text-base font-medium text-zinc-600 hover:text-zinc-900 uppercase tracking-wide"
                         aria-label="Add a new CD"
                     >
                         Add CD
