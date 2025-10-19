@@ -1,5 +1,5 @@
 // FIX: Import Dispatch and SetStateAction to use for typing state setters without the 'React' namespace.
-import { useState, useEffect, useRef, Dispatch, SetStateAction } from 'react';
+import { useState, useEffect, useRef, Dispatch, SetStateAction, useCallback } from 'react';
 import { createClient, SupabaseClient, Session, User, RealtimeChannel } from '@supabase/supabase-js';
 import { CD, SyncStatus, SyncMode, WantlistItem } from '../types';
 
@@ -19,6 +19,46 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const [user, setUser] = useState<User | null>(null);
     const cdsChannelRef = useRef<RealtimeChannel | null>(null);
     const wantlistChannelRef = useRef<RealtimeChannel | null>(null);
+    
+    const loadDataFromSupabase = useCallback(async () => {
+        if (!supabase) return;
+        setSyncStatus('loading');
+        setError(null);
+        
+        const [cdsResult, wantlistResult] = await Promise.all([
+            supabase.from('cds').select('*').order('created_at', { ascending: false }),
+            supabase.from('wantlist').select('*').order('created_at', { ascending: false })
+        ]);
+
+        const errors: string[] = [];
+
+        if (cdsResult.error) {
+            let errorMessage = `Failed to load collection: ${cdsResult.error.message}`;
+            if (cdsResult.error.message.toLowerCase().includes('does not exist') || cdsResult.error.message.toLowerCase().includes('could not find the table')) {
+                errorMessage = "The 'cds' table seems to be missing in your database. Please see supabase_setup.md for instructions.";
+            }
+            errors.push(errorMessage);
+        } else {
+            setCollection(cdsResult.data || []);
+        }
+
+        if (wantlistResult.error) {
+            let errorMessage = `Failed to load wantlist: ${wantlistResult.error.message}`;
+            if (wantlistResult.error.message.toLowerCase().includes('does not exist') || wantlistResult.error.message.toLowerCase().includes('could not find the table')) {
+                errorMessage = "The 'wantlist' table seems to be missing in your database. Please see supabase_setup.md for instructions.";
+            }
+            errors.push(errorMessage);
+        } else {
+            setWantlist(wantlistResult.data || []);
+        }
+
+        if (errors.length > 0) {
+            setError(errors.join('\n'));
+            setSyncStatus('error');
+        } else {
+            setSyncStatus('synced');
+        }
+    }, [setCollection, setWantlist]);
 
     useEffect(() => {
         if (!supabase) return;
@@ -49,30 +89,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     
     useEffect(() => {
         if (session && supabase) {
-            setSyncStatus('loading');
-
-            // Initial load for collection
-            supabase.from('cds').select('*').order('created_at', { ascending: false })
-                .then(({ data, error }) => {
-                    if (error) {
-                        setError(`Failed to load collection: ${error.message}`);
-                        setSyncStatus('error');
-                    } else {
-                        setCollection(data || []);
-                        setSyncStatus('synced');
-                    }
-                });
-
-            // Initial load for wantlist
-            supabase.from('wantlist').select('*').order('created_at', { ascending: false })
-                .then(({ data, error }) => {
-                    if (error) {
-                        setError(`Failed to load wantlist: ${error.message}`);
-                        setSyncStatus('error');
-                    } else {
-                        setWantlist(data || []);
-                    }
-                });
+            loadDataFromSupabase();
             
             if (syncMode === 'realtime') {
                 // Subscribe to CD changes
@@ -119,7 +136,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
                 wantlistChannelRef.current = null;
             }
         };
-    }, [session, setCollection, setWantlist, syncMode]);
+    }, [session, setCollection, setWantlist, syncMode, loadDataFromSupabase]);
     
     const signIn = async (email: string): Promise<boolean> => {
         if (!supabase) return false;
@@ -257,34 +274,10 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
     };
 
-    const manualSync = async () => {
+    const manualSync = useCallback(async () => {
         if (!supabase || !session) return;
-        setSyncStatus('loading');
-        setError(null);
-        
-        const [cdsResult, wantlistResult] = await Promise.all([
-            supabase.from('cds').select('*').order('created_at', { ascending: false }),
-            supabase.from('wantlist').select('*').order('created_at', { ascending: false })
-        ]);
-
-        if (cdsResult.error) {
-            setError(cdsResult.error.message);
-            setSyncStatus('error');
-        } else {
-            setCollection(cdsResult.data || []);
-        }
-
-        if (wantlistResult.error) {
-            setError(wantlistResult.error.message);
-            setSyncStatus('error');
-        } else {
-            setWantlist(wantlistResult.data || []);
-        }
-
-        if (!cdsResult.error && !wantlistResult.error) {
-            setSyncStatus('synced');
-        }
-    };
+        await loadDataFromSupabase();
+    }, [session, loadDataFromSupabase]);
 
     return {
         isConfigured: !!supabase,
