@@ -136,10 +136,22 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
         // Handle decade searches like "1980s" by just checking for "1980"
         const query = lowerCaseQuery.endsWith('s') && lowerCaseQuery.length === 5 ? lowerCaseQuery.slice(0, 4) : lowerCaseQuery;
         
+        const isNumericQuery = !isNaN(Number(query)) && query.length > 0;
+        // A decade search is a 4-digit number ending in 0, like "1960".
+        const isDecadeSearch = isNumericQuery && query.length === 4 && query.endsWith('0');
+
+        const yearMatches = cd.year && (
+          isDecadeSearch
+            // For a decade search, check if the year is within the 10-year range.
+            ? (cd.year >= Number(query) && cd.year <= Number(query) + 9)
+            // For other numeric searches, check if the year string includes the query.
+            : cd.year.toString().includes(query)
+        );
+
         return (
           cd.artist.toLowerCase().includes(query) ||
           cd.title.toLowerCase().includes(query) ||
-          (cd.year && cd.year.toString().includes(query)) ||
+          yearMatches ||
           (cd.genre && cd.genre.toLowerCase().includes(query)) ||
           (cd.recordLabel && cd.recordLabel.toLowerCase().includes(query)) ||
           (cd.tags && cd.tags.some(tag => tag.toLowerCase().includes(query)))
