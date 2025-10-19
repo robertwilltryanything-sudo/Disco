@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { HomeIcon } from './icons/HomeIcon';
 import { DashboardIcon } from './icons/DashboardIcon';
-import { UserGroupIcon } from './icons/UserGroupIcon';
+import { StarIcon } from './icons/StarIcon';
 import { TagIcon } from './icons/TagIcon';
 
 const NavItem: React.FC<{ to?: string; onClick?: () => void; children: React.ReactNode; label: string }> = ({ to, onClick, children, label }) => {
@@ -40,7 +40,7 @@ const BottomNavBar: React.FC = () => {
             <HomeIcon className="w-6 h-6" />
         </NavItem>
         <NavItem to="/artists" label="Artists">
-            <UserGroupIcon className="w-6 h-6" />
+            <StarIcon className="w-6 h-6" />
         </NavItem>
         <NavItem to="/wantlist" label="Wantlist">
             <TagIcon className="w-6 h-6" />
