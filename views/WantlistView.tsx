@@ -1,7 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { WantlistItem } from '../types';
-import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
-import { Link } from 'react-router-dom';
 import { capitalizeWords } from '../utils';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import { ArrowUpCircleIcon } from '../components/icons/ArrowUpCircleIcon';
