@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { WantlistItem } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { Link } from 'react-router-dom';
