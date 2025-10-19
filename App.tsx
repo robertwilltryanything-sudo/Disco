@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode, WantlistItem } from './types';
@@ -23,6 +22,7 @@ import SupabaseNotConfigured from './components/SupabaseNotConfigured';
 import SupabaseAuth from './components/SupabaseAuth';
 import DuplicatesView from './views/DuplicatesView';
 import WantlistView from './views/WantlistView';
+import { PlusIcon } from './components/icons/PlusIcon';
 
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'], created_at: '2024-07-29T10:00:04Z' },
@@ -467,7 +467,14 @@ const App: React.FC = () => {
           <Route path="/duplicates" element={<RouteWrapper><DuplicatesView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
           <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onAdd={handleAddWantlistItem} onUpdate={handleUpdateWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
         </Routes>
-        <BottomNavBar onAddClick={() => handleRequestAdd()} />
+        <BottomNavBar />
+        <button
+          onClick={() => handleRequestAdd()}
+          className="md:hidden fixed bottom-20 right-4 bg-zinc-900/30 backdrop-blur-sm text-white p-4 rounded-full shadow-lg hover:bg-zinc-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 z-30 transition-all duration-200"
+          aria-label="Add a new CD"
+        >
+          <PlusIcon className="h-6 w-6" />
+        </button>
       </div>
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start md:items-center justify-center z-40 p-4 overflow-y-auto" role="dialog" aria-modal="true">

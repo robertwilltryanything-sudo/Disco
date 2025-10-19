@@ -9,6 +9,7 @@ import { SettingsIcon } from './icons/SettingsIcon';
 import { User } from '@supabase/supabase-js';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
+import { PlusIcon } from './icons/PlusIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -111,10 +112,11 @@ const Header: React.FC<HeaderProps> = ({
                 <li>
                     <button
                         onClick={onAddClick}
-                        className="text-base font-medium text-zinc-600 hover:text-zinc-900 uppercase tracking-wide"
+                        className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold text-sm py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
                         aria-label="Add a new CD"
                     >
-                        Add CD
+                        <PlusIcon className="h-5 w-5" />
+                        <span>Add CD</span>
                     </button>
                 </li>
             </ul>

@@ -2,13 +2,8 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { HomeIcon } from './icons/HomeIcon';
 import { DashboardIcon } from './icons/DashboardIcon';
-import { PlusIcon } from './icons/PlusIcon';
 import { UserGroupIcon } from './icons/UserGroupIcon';
 import { TagIcon } from './icons/TagIcon';
-
-interface BottomNavBarProps {
-    onAddClick: () => void;
-}
 
 const NavItem: React.FC<{ to?: string; onClick?: () => void; children: React.ReactNode; label: string }> = ({ to, onClick, children, label }) => {
   if (to) {
@@ -38,24 +33,15 @@ const NavItem: React.FC<{ to?: string; onClick?: () => void; children: React.Rea
   );
 };
 
-const BottomNavBar: React.FC<BottomNavBarProps> = ({ onAddClick }) => {
+const BottomNavBar: React.FC = () => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-sm border-t border-zinc-200 z-20 grid grid-cols-5 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-sm border-t border-zinc-200 z-20 grid grid-cols-4 md:hidden">
         <NavItem to="/" label="Collection">
             <HomeIcon className="w-6 h-6" />
         </NavItem>
         <NavItem to="/artists" label="Artists">
             <UserGroupIcon className="w-6 h-6" />
         </NavItem>
-        <div className="flex items-center justify-center">
-            <button
-                onClick={onAddClick}
-                className="w-12 h-12 flex items-center justify-center bg-zinc-900 text-white rounded-2xl shadow-lg transform -translate-y-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
-                aria-label="Add a new CD"
-            >
-                <PlusIcon className="w-7 h-7" />
-            </button>
-        </div>
         <NavItem to="/wantlist" label="Wantlist">
             <TagIcon className="w-6 h-6" />
         </NavItem>

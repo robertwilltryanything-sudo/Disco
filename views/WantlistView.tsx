@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { WantlistItem } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { Link } from 'react-router-dom';
@@ -13,10 +13,11 @@ import { LinkIcon } from '../components/icons/LinkIcon';
 import { EditIcon } from '../components/icons/EditIcon';
 import { GlobeIcon } from '../components/icons/GlobeIcon';
 import CoverArtSelectorModal from '../components/CoverArtSelectorModal';
+import { XIcon } from '../components/icons/XIcon';
 
 interface WantlistViewProps {
     wantlist: WantlistItem[];
-    onAdd: (item: Omit<WantlistItem, 'id' | 'created_at'>) => void;
+    onAdd: (item: Omit<WantlistItem, 'id' | 'created_at'>) => Promise<void>;
     onUpdate: (item: WantlistItem) => void;
     onDelete: (id: string) => void;
     onMoveToCollection: (item: WantlistItem) => void;
@@ -148,14 +149,17 @@ const WantlistItemEditor: React.FC<{
     );
 };
 
-const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onAdd, onUpdate, onDelete, onMoveToCollection }) => {
+const AddWantlistItemModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onAdd: (item: Omit<WantlistItem, 'id' | 'created_at'>) => Promise<void>;
+}> = ({ isOpen, onClose, onAdd }) => {
     const [artist, setArtist] = useState('');
     const [title, setTitle] = useState('');
     const [notes, setNotes] = useState('');
     const [manualUrl, setManualUrl] = useState('');
     const [formError, setFormError] = useState<string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
-    const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -188,20 +192,103 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onAdd, onUpdate, 
             }
         }
 
-        onAdd({
+        await onAdd({
             artist: capitalizeWords(artist.trim()),
             title: capitalizeWords(title.trim()),
             notes: notes.trim(),
             coverArtUrl: finalCoverArtUrl,
         });
 
-        setArtist('');
-        setTitle('');
-        setNotes('');
-        setManualUrl('');
-        setIsAdding(false);
+        onClose();
     };
-    
+
+    if (!isOpen) {
+        return null;
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start md:items-center justify-center z-40 p-4 overflow-y-auto" role="dialog" aria-modal="true">
+            <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-lg relative">
+                <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10" aria-label="Close form">
+                    <XIcon className="w-6 h-6" />
+                </button>
+                <div className="p-4 bg-zinc-50 rounded-lg">
+                    <h2 className="text-xl font-bold text-zinc-900 mb-4">Add to Wantlist</h2>
+                    {formError && <p className="text-red-500 text-sm mb-4">{formError}</p>}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input
+                                type="text"
+                                placeholder="Artist*"
+                                value={artist}
+                                onChange={(e) => setArtist(e.target.value)}
+                                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Title*"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                            />
+                        </div>
+                        <textarea
+                            placeholder="Notes (e.g., specific version, vinyl, etc.)"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            rows={2}
+                            className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                        />
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <LinkIcon className="h-5 w-5 text-zinc-400" />
+                            </div>
+                            <input
+                                type="url"
+                                placeholder="Or paste a direct image URL for cover art"
+                                value={manualUrl}
+                                onChange={(e) => setManualUrl(e.target.value)}
+                                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 pl-10 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isAdding}
+                                className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 disabled:bg-zinc-500 disabled:cursor-wait"
+                            >
+                                {isAdding ? (
+                                    <>
+                                        <SpinnerIcon className="h-5 w-5" />
+                                        <span>Adding...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <PlusIcon className="h-5 w-5" />
+                                        Add Item
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onAdd, onUpdate, onDelete, onMoveToCollection }) => {
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
     const handleSaveItem = (updatedItem: WantlistItem) => {
         onUpdate(updatedItem);
         setEditingItemId(null);
@@ -211,73 +298,21 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onAdd, onUpdate, 
         <div className="max-w-4xl mx-auto">
             <div className="mb-6 flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-zinc-800">My Wantlist</h1>
-                <Link to="/" className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium">
-                    <ArrowLeftIcon className="h-5 w-5" />
-                    Back to Collection
-                </Link>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+                    >
+                        <PlusIcon className="h-5 w-5" />
+                        Add Item
+                    </button>
+                    <Link to="/" className="hidden sm:inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium">
+                        <ArrowLeftIcon className="h-5 w-5" />
+                        Back to Collection
+                    </Link>
+                </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-zinc-200 p-6 mb-6">
-                <h2 className="text-xl font-bold text-zinc-800 mb-4">Add to Wantlist</h2>
-                {formError && <p className="text-red-500 text-sm mb-4">{formError}</p>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input
-                            type="text"
-                            placeholder="Artist*"
-                            value={artist}
-                            onChange={(e) => setArtist(e.target.value)}
-                            className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Title*"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                        />
-                    </div>
-                    <textarea
-                        placeholder="Notes (e.g., specific version, vinyl, etc.)"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        rows={2}
-                        className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                    />
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <LinkIcon className="h-5 w-5 text-zinc-400" />
-                        </div>
-                        <input
-                            type="url"
-                            placeholder="Or paste a direct image URL for cover art"
-                            value={manualUrl}
-                            onChange={(e) => setManualUrl(e.target.value)}
-                            className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 pl-10 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                        />
-                    </div>
-                    <div className="flex justify-end">
-                        <button
-                            type="submit"
-                            disabled={isAdding}
-                            className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 disabled:bg-zinc-500 disabled:cursor-wait"
-                        >
-                            {isAdding ? (
-                                <>
-                                    <SpinnerIcon className="h-5 w-5" />
-                                    <span>Adding...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <PlusIcon className="h-5 w-5" />
-                                    Add Item
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </form>
-            </div>
-            
             <div className="space-y-4">
                 {wantlist.length === 0 ? (
                      <div className="text-center py-10 px-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300">
@@ -342,6 +377,11 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onAdd, onUpdate, 
                     ))
                 )}
             </div>
+             <AddWantlistItemModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onAdd={onAdd}
+            />
         </div>
     );
 };

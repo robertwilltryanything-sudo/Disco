@@ -191,23 +191,14 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
       )}
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div className="w-full md:w-1/3">
+        <div className="w-full md:flex-grow">
            <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         </div>
-        <div className="w-full md:w-auto flex items-center gap-4">
-          <div className="flex-grow">
-            <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
-          </div>
-          <button
-            onClick={() => onRequestAdd()}
-            className="flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 h-12"
-          >
-            <PlusIcon className="h-5 w-5" />
-            <span className="hidden sm:inline">Add CD</span>
-          </button>
+        <div className="w-full md:w-auto">
+          <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
         </div>
       </div>
-
+      
       <CDList cds={filteredAndSortedCds} />
       
       {/* Mobile-only Collection Snapshot Footer Section */}
