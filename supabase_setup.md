@@ -2,7 +2,7 @@
 
 For the application to function correctly with Supabase sync, your database needs to have the correct tables and security policies. Run the following SQL queries in your project's **SQL Editor** in the Supabase Dashboard.
 
-If you are starting a new project, you should run both scripts. If you are fixing an existing project, you may only need to run the script for the missing table.
+If you are starting a new project, you should run the `CREATE TABLE` scripts. If you have an existing project with a missing column, run the `ALTER TABLE` script in the "Fix" section.
 
 ## 1. CDs Table
 
@@ -50,9 +50,9 @@ CREATE POLICY "Enable delete for own items" ON public.cds
 FOR DELETE USING (auth.uid() = user_id);
 ```
 
-## 2. Wantlist Table (FIX)
+## 2. Wantlist Table
 
-The error `Could not find the table 'public.wantlist'` indicates this table is missing. Please run the following script to create it and set up its security policies.
+This table stores albums the user wants to acquire.
 
 ```sql
 -- Create the table for the user's wantlist
@@ -63,7 +63,7 @@ CREATE TABLE public.wantlist (
   artist text NOT NULL,
   title text NOT NULL,
   notes text NULL,
-  coverArtUrl text NULL,
+  coverArtUrl text NULL, -- This column stores the URL for the album cover
   CONSTRAINT wantlist_pkey PRIMARY KEY (id),
   CONSTRAINT wantlist_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
@@ -91,4 +91,15 @@ CREATE POLICY "Enable delete for own wantlist items" ON public.wantlist
 FOR DELETE USING (auth.uid() = user_id);
 ```
 
-After running these scripts, the sync errors related to missing tables should be resolved.
+## 3. Fix for `coverArtUrl` Column (FIX)
+
+The error `Could not find the 'coverArtUrl' column of 'wantlist'` indicates that you created the `wantlist` table using an older version of the setup script.
+
+**To fix this, run the following SQL command in your Supabase SQL Editor:** This command will add the missing column to your existing table. It is safe to run even if the column already exists.
+
+```sql
+-- Fix for wantlist table missing the coverArtUrl column
+-- Run this if you created the wantlist table before the coverArtUrl was added.
+ALTER TABLE public.wantlist
+ADD COLUMN IF NOT EXISTS "coverArtUrl" text NULL;
+```
