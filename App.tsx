@@ -1,8 +1,7 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode } from './types';
+import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode, WantlistItem } from './types';
 import Header from './components/Header';
 import ListView from './views/ListView';
 import DetailView from './views/DetailView';
@@ -23,6 +22,7 @@ import SyncSettingsModal from './components/SyncSettingsModal';
 import SupabaseNotConfigured from './components/SupabaseNotConfigured';
 import SupabaseAuth from './components/SupabaseAuth';
 import DuplicatesView from './views/DuplicatesView';
+import WantlistView from './views/WantlistView';
 
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'], created_at: '2024-07-29T10:00:04Z' },
@@ -33,6 +33,7 @@ const INITIAL_CDS: CD[] = [
 ];
 
 const COLLECTION_STORAGE_KEY = 'disco_collection_v3';
+const WANTLIST_STORAGE_KEY = 'disco_wantlist_v1';
 const SYNC_PROVIDER_KEY = 'disco_sync_provider';
 const SYNC_MODE_KEY = 'disco_sync_mode';
 
@@ -78,8 +79,10 @@ const findPotentialDuplicate = (newCd: Omit<CD, 'id'>, collection: CD[]): CD | n
 
 const App: React.FC = () => {
   const [cds, setCds] = useState<CD[]>([]);
+  const [wantlist, setWantlist] = useState<WantlistItem[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const debouncedCds = useDebounce(cds, 1000);
+  const debouncedWantlist = useDebounce(wantlist, 1000);
 
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
     const storedProvider = localStorage.getItem(SYNC_PROVIDER_KEY);
@@ -95,12 +98,12 @@ const App: React.FC = () => {
     return (storedMode === 'realtime' || storedMode === 'manual') ? storedMode : 'realtime';
   });
   
-  const supabaseSync = useSupabaseSync(setCds, syncMode);
+  const supabaseSync = useSupabaseSync(setCds, setWantlist, syncMode);
   const isInitialLoad = useRef(true);
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
-  const [prefillData, setPrefillData] = useState<{ artist: string } | null>(null);
+  const [prefillData, setPrefillData] = useState<{ artist?: string; title?: string } | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
   const [importData, setImportData] = useState<CD[] | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -123,10 +126,15 @@ const App: React.FC = () => {
     }
   };
 
+  const updateLocalWantlist = (updater: (prev: WantlistItem[]) => WantlistItem[]) => {
+    setWantlist(updater);
+  };
+
   // Initial Data Loading Effect
   useEffect(() => {
     const loadData = async () => {
       let loadedData: CollectionData = { collection: [], lastUpdated: null };
+      let loadedWantlist: WantlistItem[] = [];
 
       if (syncProvider === 'none') {
         try {
@@ -136,6 +144,10 @@ const App: React.FC = () => {
           } else {
             const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
             loadedData = { collection: cdsWithArt, lastUpdated: new Date().toISOString() };
+          }
+          const storedWantlistRaw = localStorage.getItem(WANTLIST_STORAGE_KEY);
+          if (storedWantlistRaw) {
+              loadedWantlist = JSON.parse(storedWantlistRaw);
           }
         } catch (error) {
           console.error("Error loading data from localStorage:", error);
@@ -147,6 +159,7 @@ const App: React.FC = () => {
       if (syncProvider !== 'supabase') {
         setCds(loadedData.collection);
         setLastUpdated(loadedData.lastUpdated);
+        setWantlist(loadedWantlist);
       }
     };
     loadData();
@@ -165,10 +178,11 @@ const App: React.FC = () => {
     const dataToSave: CollectionData = { collection: debouncedCds, lastUpdated };
     try {
       localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(dataToSave));
+      localStorage.setItem(WANTLIST_STORAGE_KEY, JSON.stringify(debouncedWantlist));
     } catch (error) {
       console.error("Error saving data to localStorage:", error);
     }
-  }, [debouncedCds, lastUpdated, syncProvider]);
+  }, [debouncedCds, debouncedWantlist, lastUpdated, syncProvider]);
   
   const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD>>(cd: T): Promise<T> => {
     const shouldFetch = !cd.genre || !cd.recordLabel || !cd.tags || cd.tags.length === 0;
@@ -199,7 +213,7 @@ const App: React.FC = () => {
         const newCd: CD = { ...enrichedCdData, id: `${new Date().getTime()}-${Math.random()}`, created_at: new Date().toISOString() };
         updateLocalCollection(prevCds => [newCd, ...prevCds]);
     }
-  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync.addCD]);
+  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync]);
 
   const handleUpdateCD = useCallback(async (updatedCdData: CD) => {
     const enrichedCdData = await fetchAndApplyAlbumDetails(updatedCdData);
@@ -208,7 +222,7 @@ const App: React.FC = () => {
     } else {
         updateLocalCollection(prevCds => prevCds.map(cd => (cd.id === enrichedCdData.id ? enrichedCdData : cd)));
     }
-  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync.updateCD]);
+  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync]);
 
   const handleDeleteCD = useCallback((id: string) => {
     if (syncProvider === 'supabase') {
@@ -216,11 +230,37 @@ const App: React.FC = () => {
     } else {
         updateLocalCollection(prevCds => prevCds.filter(cd => cd.id !== id));
     }
-  }, [syncProvider, supabaseSync.deleteCD]);
+  }, [syncProvider, supabaseSync]);
+  
+  const handleAddWantlistItem = useCallback(async (item: Omit<WantlistItem, 'id' | 'created_at'>) => {
+    if (syncProvider === 'supabase') {
+        await supabaseSync.addWantlistItem(item);
+    } else {
+        const newItem: WantlistItem = { ...item, id: `${new Date().getTime()}`, created_at: new Date().toISOString() };
+        updateLocalWantlist(prev => [newItem, ...prev]);
+    }
+  }, [syncProvider, supabaseSync]);
 
-  const handleRequestAdd = useCallback((artist?: string) => {
+  const handleUpdateWantlistItem = useCallback(async (updatedItem: WantlistItem) => {
+    if (syncProvider === 'supabase') {
+        await supabaseSync.updateWantlistItem(updatedItem);
+    } else {
+        updateLocalWantlist(prev => prev.map(item => (item.id === updatedItem.id ? updatedItem : item)));
+    }
+  }, [syncProvider, supabaseSync]);
+
+  const handleDeleteWantlistItem = useCallback((id: string) => {
+    if (syncProvider === 'supabase') {
+        supabaseSync.deleteWantlistItem(id);
+    } else {
+        updateLocalWantlist(prev => prev.filter(item => item.id !== id));
+    }
+  }, [syncProvider, supabaseSync]);
+  
+  // FIX: Moved modal and item request handlers before their usage to resolve a block-scoped variable error.
+  const handleRequestAdd = useCallback((artist?: string, title?: string) => {
     setCdToEdit(null);
-    setPrefillData(artist ? { artist } : null);
+    setPrefillData((artist || title) ? { artist: artist || '', title: title || '' } : null);
     setIsAddModalOpen(true);
   }, []);
 
@@ -234,6 +274,11 @@ const App: React.FC = () => {
     setCdToEdit(null);
     setPrefillData(null);
   }, []);
+
+  const handleMoveToCollection = useCallback((item: WantlistItem) => {
+    handleRequestAdd(item.artist, item.title);
+    handleDeleteWantlistItem(item.id);
+  }, [handleDeleteWantlistItem, handleRequestAdd]);
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     const processedData = {
@@ -420,6 +465,7 @@ const App: React.FC = () => {
           <Route path="/artists" element={<RouteWrapper><ArtistsView cds={cds} /></RouteWrapper>} />
           <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
           <Route path="/duplicates" element={<RouteWrapper><DuplicatesView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
+          <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onAdd={handleAddWantlistItem} onUpdate={handleUpdateWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
         </Routes>
         <BottomNavBar onAddClick={() => handleRequestAdd()} />
       </div>
@@ -429,7 +475,7 @@ const App: React.FC = () => {
             <button onClick={handleCloseModal} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10" aria-label="Close form"><XIcon className="w-6 h-6" /></button>
             <div className="p-1">
               <AddCDForm
-                key={cdToEdit ? cdToEdit.id : (prefillData ? `add-${prefillData.artist}` : 'add')}
+                key={cdToEdit ? cdToEdit.id : (prefillData ? `add-${prefillData.artist}-${prefillData.title}` : 'add')}
                 onSave={handleSaveCD}
                 cdToEdit={cdToEdit}
                 onCancel={handleCloseModal}

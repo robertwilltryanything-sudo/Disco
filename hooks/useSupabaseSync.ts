@@ -1,7 +1,7 @@
 // FIX: Import Dispatch and SetStateAction to use for typing state setters without the 'React' namespace.
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from 'react';
 import { createClient, SupabaseClient, Session, User, RealtimeChannel } from '@supabase/supabase-js';
-import { CD, SyncStatus, SyncMode } from '../types';
+import { CD, SyncStatus, SyncMode, WantlistItem } from '../types';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
@@ -12,12 +12,13 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
 }
 
 // FIX: Use the imported Dispatch and SetStateAction types.
-export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, syncMode: SyncMode) => {
+export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, setWantlist: Dispatch<SetStateAction<WantlistItem[]>>, syncMode: SyncMode) => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'disabled');
     const [error, setError] = useState<string | null>(supabase ? null : 'Supabase is not configured. The administrator needs to provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
-    const channelRef = useRef<RealtimeChannel | null>(null);
+    const cdsChannelRef = useRef<RealtimeChannel | null>(null);
+    const wantlistChannelRef = useRef<RealtimeChannel | null>(null);
 
     useEffect(() => {
         if (!supabase) return;
@@ -48,46 +49,77 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     
     useEffect(() => {
         if (session && supabase) {
-            // Initial load on session establishment
             setSyncStatus('loading');
+
+            // Initial load for collection
             supabase.from('cds').select('*').order('created_at', { ascending: false })
                 .then(({ data, error }) => {
                     if (error) {
-                        setError(error.message);
+                        setError(`Failed to load collection: ${error.message}`);
                         setSyncStatus('error');
                     } else {
                         setCollection(data || []);
                         setSyncStatus('synced');
                     }
                 });
+
+            // Initial load for wantlist
+            supabase.from('wantlist').select('*').order('created_at', { ascending: false })
+                .then(({ data, error }) => {
+                    if (error) {
+                        setError(`Failed to load wantlist: ${error.message}`);
+                        setSyncStatus('error');
+                    } else {
+                        setWantlist(data || []);
+                    }
+                });
             
-            // Conditionally subscribe to real-time updates
             if (syncMode === 'realtime') {
-                const channel = supabase.channel('cds-changes')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'cds' }, (payload) => {
-                        setCollection(prev => [payload.new as CD, ...prev.filter(cd => cd.id !== payload.new.id)]);
-                    })
-                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'cds' }, (payload) => {
-                        setCollection(prev => prev.map(cd => cd.id === payload.new.id ? payload.new as CD : cd));
-                    })
-                    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'cds' }, (payload) => {
-                        setCollection(prev => prev.filter(cd => cd.id !== payload.old.id));
+                // Subscribe to CD changes
+                const cdsChannel = supabase.channel('cds-changes')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'cds' }, (payload) => {
+                        if (payload.eventType === 'INSERT') {
+                            setCollection(prev => [payload.new as CD, ...prev.filter(cd => cd.id !== payload.new.id)]);
+                        } else if (payload.eventType === 'UPDATE') {
+                            setCollection(prev => prev.map(cd => cd.id === payload.new.id ? payload.new as CD : cd));
+                        } else if (payload.eventType === 'DELETE') {
+                            setCollection(prev => prev.filter(cd => cd.id !== payload.old.id));
+                        }
                     })
                     .subscribe();
-
-                channelRef.current = channel;
+                cdsChannelRef.current = cdsChannel;
+                
+                // Subscribe to Wantlist changes
+                const wantlistChannel = supabase.channel('wantlist-changes')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'wantlist' }, (payload) => {
+                         if (payload.eventType === 'INSERT') {
+                            setWantlist(prev => [payload.new as WantlistItem, ...prev.filter(item => item.id !== payload.new.id)]);
+                        } else if (payload.eventType === 'UPDATE') {
+                            setWantlist(prev => prev.map(item => item.id === payload.new.id ? payload.new as WantlistItem : item));
+                        } else if (payload.eventType === 'DELETE') {
+                            setWantlist(prev => prev.filter(item => item.id !== payload.old.id));
+                        }
+                    })
+                    .subscribe();
+                wantlistChannelRef.current = wantlistChannel;
             }
+
         } else if (!session && supabase) {
              setCollection([]);
+             setWantlist([]);
         }
 
         return () => {
-            if (channelRef.current) {
-                supabase?.removeChannel(channelRef.current);
-                channelRef.current = null;
+            if (cdsChannelRef.current) {
+                supabase?.removeChannel(cdsChannelRef.current);
+                cdsChannelRef.current = null;
+            }
+             if (wantlistChannelRef.current) {
+                supabase?.removeChannel(wantlistChannelRef.current);
+                wantlistChannelRef.current = null;
             }
         };
-    }, [session, setCollection, syncMode]);
+    }, [session, setCollection, setWantlist, syncMode]);
     
     const signIn = async (email: string): Promise<boolean> => {
         if (!supabase) return false;
@@ -128,7 +160,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         
         const newCd = data?.[0] as CD ?? null;
-        if (newCd) {
+        if (newCd && syncMode !== 'realtime') {
             setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
         }
         
@@ -139,7 +171,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const updateCD = async (cd: CD) => {
         if (!supabase) return;
         
-        setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
+        if (syncMode !== 'realtime') {
+            setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
+        }
         
         setSyncStatus('saving');
         const { error } = await supabase.from('cds').update(cd).eq('id', cd.id);
@@ -154,7 +188,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const deleteCD = async (id: string) => {
         if (!supabase) return;
         
-        setCollection(prev => prev.filter(c => c.id !== id));
+        if (syncMode !== 'realtime') {
+            setCollection(prev => prev.filter(c => c.id !== id));
+        }
 
         setSyncStatus('saving');
         const { error } = await supabase.from('cds').delete().eq('id', id);
@@ -166,16 +202,86 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
     };
     
-    const manualSync = async () => {
-        if (!supabase || !session) return;
-        setSyncStatus('loading');
-        setError(null);
-        const { data, error } = await supabase.from('cds').select('*').order('created_at', { ascending: false });
+    const addWantlistItem = async (itemData: Omit<WantlistItem, 'id' | 'created_at'>) => {
+        if (!supabase || !user) return null;
+        setSyncStatus('saving');
+        const { data, error } = await supabase.from('wantlist').insert({ ...itemData, user_id: user.id }).select();
+
+        if (error) {
+            setError(error.message);
+            setSyncStatus('error');
+            return null;
+        }
+        
+        const newItem = data?.[0] as WantlistItem ?? null;
+        if (newItem && syncMode !== 'realtime') {
+            setWantlist(prev => [newItem, ...prev.filter(item => item.id !== newItem.id)]);
+        }
+        
+        setSyncStatus('synced');
+        return newItem;
+    };
+
+    const updateWantlistItem = async (item: WantlistItem) => {
+        if (!supabase) return;
+
+        if (syncMode !== 'realtime') {
+            setWantlist(prev => prev.map(i => (i.id === item.id ? item : i)));
+        }
+
+        setSyncStatus('saving');
+        const { error } = await supabase.from('wantlist').update(item).eq('id', item.id);
         if (error) {
             setError(error.message);
             setSyncStatus('error');
         } else {
-            setCollection(data || []);
+            setSyncStatus('synced');
+        }
+    };
+
+    const deleteWantlistItem = async (id: string) => {
+        if (!supabase) return;
+
+        if (syncMode !== 'realtime') {
+            setWantlist(prev => prev.filter(item => item.id !== id));
+        }
+
+        setSyncStatus('saving');
+        const { error } = await supabase.from('wantlist').delete().eq('id', id);
+
+        if (error) {
+            setError(error.message);
+            setSyncStatus('error');
+        } else {
+            setSyncStatus('synced');
+        }
+    };
+
+    const manualSync = async () => {
+        if (!supabase || !session) return;
+        setSyncStatus('loading');
+        setError(null);
+        
+        const [cdsResult, wantlistResult] = await Promise.all([
+            supabase.from('cds').select('*').order('created_at', { ascending: false }),
+            supabase.from('wantlist').select('*').order('created_at', { ascending: false })
+        ]);
+
+        if (cdsResult.error) {
+            setError(cdsResult.error.message);
+            setSyncStatus('error');
+        } else {
+            setCollection(cdsResult.data || []);
+        }
+
+        if (wantlistResult.error) {
+            setError(wantlistResult.error.message);
+            setSyncStatus('error');
+        } else {
+            setWantlist(wantlistResult.data || []);
+        }
+
+        if (!cdsResult.error && !wantlistResult.error) {
             setSyncStatus('synced');
         }
     };
@@ -191,6 +297,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         addCD,
         updateCD,
         deleteCD,
+        addWantlistItem,
+        updateWantlistItem,
+        deleteWantlistItem,
         manualSync,
         setSyncStatus,
     };

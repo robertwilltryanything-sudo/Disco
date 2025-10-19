@@ -13,6 +13,16 @@ export interface CD {
   created_at?: string;
 }
 
+export interface WantlistItem {
+  id: string;
+  artist: string;
+  title: string;
+  notes?: string;
+  coverArtUrl?: string;
+  user_id?: string;
+  created_at?: string;
+}
+
 export interface CollectionData {
   collection: CD[];
   lastUpdated: string | null;

@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { CD } from '../types';
 import { PlusIcon } from './icons/PlusIcon';
@@ -20,7 +21,7 @@ interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
   cdToEdit: CD | null;
   onCancel: () => void;
-  prefillData: { artist: string } | null;
+  prefillData: { artist?: string, title?: string } | null;
 }
 
 const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefillData }) => {
@@ -73,8 +74,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setNotes(cdToEdit.notes || '');
     } else {
       resetForm();
-      if (prefillData?.artist) {
-        setArtist(prefillData.artist);
+      if (prefillData) {
+        setArtist(prefillData.artist || '');
+        setTitle(prefillData.title || '');
       }
     }
   }, [cdToEdit, prefillData, resetForm]);
