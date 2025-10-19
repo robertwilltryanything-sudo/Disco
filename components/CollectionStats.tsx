@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CD } from '../types';
 import { capitalizeWords } from '../utils';
 import { QueueListIcon } from './icons/QueueListIcon';
-import { UserGroupIcon } from './icons/UserGroupIcon';
+import { UserIcon } from './icons/UserIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { StarIcon } from './icons/StarIcon';
 
@@ -62,7 +62,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '' }) => {
       <p className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Collection Snapshot</p>
       <div className="divide-y divide-zinc-200">
         <StatItem label="Total CDs" value={totalCDs} icon={<QueueListIcon className="w-5 h-5 text-zinc-400" />} />
-        <StatItem label="Unique Artists" value={uniqueArtists} icon={<UserGroupIcon className="w-5 h-5 text-zinc-400" />} />
+        <StatItem label="Unique Artists" value={uniqueArtists} icon={<UserIcon className="w-5 h-5 text-zinc-400" />} />
         {latestCD && (
           <Link to={`/cd/${latestCD.id}`} className="block group hover:bg-zinc-50 -mx-4 px-4 rounded-lg transition-colors duration-150">
             <div className="flex justify-between items-center py-3 gap-4">

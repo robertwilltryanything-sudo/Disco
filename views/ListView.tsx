@@ -133,28 +133,26 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
     return [...cds]
       .filter(cd => {
         const lowerCaseQuery = debouncedSearchQuery.toLowerCase();
-        // Handle decade searches like "1980s" by just checking for "1980"
-        const query = lowerCaseQuery.endsWith('s') && lowerCaseQuery.length === 5 ? lowerCaseQuery.slice(0, 4) : lowerCaseQuery;
         
-        const isNumericQuery = !isNaN(Number(query)) && query.length > 0;
-        // A decade search is a 4-digit number ending in 0, like "1960".
-        const isDecadeSearch = isNumericQuery && query.length === 4 && query.endsWith('0');
+        // A decade search from the dashboard is a 4-digit number like "1980"
+        const isNumericQuery = !isNaN(Number(lowerCaseQuery)) && lowerCaseQuery.length > 0;
+        const isDecadeSearch = isNumericQuery && lowerCaseQuery.length === 4 && lowerCaseQuery.endsWith('0');
 
         const yearMatches = cd.year && (
           isDecadeSearch
             // For a decade search, check if the year is within the 10-year range.
-            ? (cd.year >= Number(query) && cd.year <= Number(query) + 9)
+            ? (cd.year >= Number(lowerCaseQuery) && cd.year <= Number(lowerCaseQuery) + 9)
             // For other numeric searches, check if the year string includes the query.
-            : cd.year.toString().includes(query)
+            : cd.year.toString().includes(lowerCaseQuery)
         );
 
         return (
-          cd.artist.toLowerCase().includes(query) ||
-          cd.title.toLowerCase().includes(query) ||
+          cd.artist.toLowerCase().includes(lowerCaseQuery) ||
+          cd.title.toLowerCase().includes(lowerCaseQuery) ||
           yearMatches ||
-          (cd.genre && cd.genre.toLowerCase().includes(query)) ||
-          (cd.recordLabel && cd.recordLabel.toLowerCase().includes(query)) ||
-          (cd.tags && cd.tags.some(tag => tag.toLowerCase().includes(query)))
+          (cd.genre && cd.genre.toLowerCase().includes(lowerCaseQuery)) ||
+          (cd.recordLabel && cd.recordLabel.toLowerCase().includes(lowerCaseQuery)) ||
+          (cd.tags && cd.tags.some(tag => tag.toLowerCase().includes(lowerCaseQuery)))
         );
       })
       .sort((a, b) => {
@@ -203,7 +201,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
       )}
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div className="w-full md:flex-grow">
+        <div className="w-full md:w-2/3 lg:w-1/2">
            <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         </div>
         <div className="w-full md:w-auto">
