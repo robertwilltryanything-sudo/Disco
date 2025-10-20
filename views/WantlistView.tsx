@@ -10,7 +10,6 @@ import { LinkIcon } from '../components/icons/LinkIcon';
 import { EditIcon } from '../components/icons/EditIcon';
 import { GlobeIcon } from '../components/icons/GlobeIcon';
 import CoverArtSelectorModal from '../components/CoverArtSelectorModal';
-import { PlusIcon } from '../components/icons/PlusIcon';
 
 interface WantlistViewProps {
     wantlist: WantlistItem[];
