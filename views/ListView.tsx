@@ -32,6 +32,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
 
     if (clearFilter) {
       setSearchQuery('');
+      window.scrollTo(0, 0);
       stateWasHandled = true;
     } else if (editCdId) {
       const cd = cds.find(c => c.id === editCdId);
