@@ -59,7 +59,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onAdd, onCanc
     };
 
     return (
-        <div className="p-4 bg-zinc-50 rounded-lg border border-zinc-200 mb-6">
+        <div className="p-4 bg-zinc-50 rounded-lg border border-zinc-200">
             <h2 className="text-xl font-bold text-zinc-900 mb-4">Add to Wantlist</h2>
             {formError && <p className="text-red-500 text-sm mb-4">{formError}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">

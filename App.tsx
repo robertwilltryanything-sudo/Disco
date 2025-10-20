@@ -23,6 +23,7 @@ import SupabaseAuth from './components/SupabaseAuth';
 import DuplicatesView from './views/DuplicatesView';
 import WantlistView from './views/WantlistView';
 import { PlusIcon } from './components/icons/PlusIcon';
+import AddWantlistItemForm from './components/AddWantlistItemForm';
 
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'], created_at: '2024-07-29T10:00:04Z' },
@@ -77,7 +78,9 @@ const findPotentialDuplicate = (newCd: Omit<CD, 'id'>, collection: CD[]): CD | n
     return null;
 };
 
-const App: React.FC = () => {
+// This new component contains all the application logic and state.
+// It is rendered inside the HashRouter, so hooks like useLocation will work correctly.
+const AppContent: React.FC = () => {
   const [cds, setCds] = useState<CD[]>([]);
   const [wantlist, setWantlist] = useState<WantlistItem[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -102,6 +105,7 @@ const App: React.FC = () => {
   const isInitialLoad = useRef(true);
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddWantlistModalOpen, setIsAddWantlistModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
   const [prefillData, setPrefillData] = useState<{ artist?: string; title?: string } | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
@@ -109,6 +113,10 @@ const App: React.FC = () => {
   const importInputRef = useRef<HTMLInputElement>(null);
   const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(true);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  
+  // FIX: Moved useLocation hook here, inside a component that is a child of HashRouter.
+  const location = useLocation();
+  const isOnWantlistPage = location.pathname === '/wantlist';
 
   const activeSyncStatus: SyncStatus = syncProvider === 'supabase'
     ? supabaseSync.syncStatus
@@ -213,7 +221,7 @@ const App: React.FC = () => {
         const newCd: CD = { ...enrichedCdData, id: `${new Date().getTime()}-${Math.random()}`, created_at: new Date().toISOString() };
         updateLocalCollection(prevCds => [newCd, ...prevCds]);
     }
-  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync]);
+  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync, updateLocalCollection]);
 
   const handleUpdateCD = useCallback(async (updatedCdData: CD) => {
     const enrichedCdData = await fetchAndApplyAlbumDetails(updatedCdData);
@@ -222,7 +230,7 @@ const App: React.FC = () => {
     } else {
         updateLocalCollection(prevCds => prevCds.map(cd => (cd.id === enrichedCdData.id ? enrichedCdData : cd)));
     }
-  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync]);
+  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync, updateLocalCollection]);
 
   const handleDeleteCD = useCallback((id: string) => {
     if (syncProvider === 'supabase') {
@@ -230,7 +238,7 @@ const App: React.FC = () => {
     } else {
         updateLocalCollection(prevCds => prevCds.filter(cd => cd.id !== id));
     }
-  }, [syncProvider, supabaseSync]);
+  }, [syncProvider, supabaseSync, updateLocalCollection]);
   
   const handleAddWantlistItem = useCallback(async (item: Omit<WantlistItem, 'id' | 'created_at'>) => {
     if (syncProvider === 'supabase') {
@@ -239,7 +247,7 @@ const App: React.FC = () => {
         const newItem: WantlistItem = { ...item, id: `${new Date().getTime()}`, created_at: new Date().toISOString() };
         updateLocalWantlist(prev => [newItem, ...prev]);
     }
-  }, [syncProvider, supabaseSync]);
+  }, [syncProvider, supabaseSync, updateLocalWantlist]);
 
   const handleUpdateWantlistItem = useCallback(async (updatedItem: WantlistItem) => {
     if (syncProvider === 'supabase') {
@@ -247,7 +255,7 @@ const App: React.FC = () => {
     } else {
         updateLocalWantlist(prev => prev.map(item => (item.id === updatedItem.id ? updatedItem : item)));
     }
-  }, [syncProvider, supabaseSync]);
+  }, [syncProvider, supabaseSync, updateLocalWantlist]);
 
   const handleDeleteWantlistItem = useCallback((id: string) => {
     if (syncProvider === 'supabase') {
@@ -255,7 +263,7 @@ const App: React.FC = () => {
     } else {
         updateLocalWantlist(prev => prev.filter(item => item.id !== id));
     }
-  }, [syncProvider, supabaseSync]);
+  }, [syncProvider, supabaseSync, updateLocalWantlist]);
   
   // FIX: Moved modal and item request handlers before their usage to resolve a block-scoped variable error.
   const handleRequestAdd = useCallback((artist?: string, title?: string) => {
@@ -402,6 +410,19 @@ const App: React.FC = () => {
     setSyncMode(mode);
   };
 
+  const handleGlobalAddClick = () => {
+    if (isOnWantlistPage) {
+      setIsAddWantlistModalOpen(true);
+    } else {
+      handleRequestAdd();
+    }
+  };
+
+  const handleAddWantlistItemAndCloseModal = async (item: Omit<WantlistItem, 'id' | 'created_at'>) => {
+    await handleAddWantlistItem(item);
+    setIsAddWantlistModalOpen(false);
+  };
+
   const RouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (syncProvider === 'supabase') {
         if (!supabaseSync.isConfigured) {
@@ -430,7 +451,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <HashRouter>
+    <>
       <ScrollToTop />
       <div className="flex flex-col min-h-screen">
         {activeSyncError && isErrorBannerVisible && (
@@ -446,7 +467,7 @@ const App: React.FC = () => {
           </div>
         )}
         <Header 
-          onAddClick={() => handleRequestAdd()}
+          onAddClick={handleGlobalAddClick}
           collectionCount={cds.length}
           onImport={handleImportClick}
           onExport={handleExportCollection}
@@ -458,6 +479,7 @@ const App: React.FC = () => {
           onManualSync={supabaseSync.manualSync}
           user={supabaseSync.user}
           onSignOut={supabaseSync.signOut}
+          isOnWantlistPage={isOnWantlistPage}
         />
         <Routes>
           <Route path="/" element={<RouteWrapper><ListView cds={cds} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />
@@ -465,13 +487,13 @@ const App: React.FC = () => {
           <Route path="/artists" element={<RouteWrapper><ArtistsView cds={cds} /></RouteWrapper>} />
           <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
           <Route path="/duplicates" element={<RouteWrapper><DuplicatesView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
-          <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onAdd={handleAddWantlistItem} onUpdate={handleUpdateWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
+          <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onUpdate={handleUpdateWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
         </Routes>
         <BottomNavBar />
         <button
-          onClick={() => handleRequestAdd()}
+          onClick={handleGlobalAddClick}
           className="md:hidden fixed bottom-20 right-4 bg-zinc-900/30 backdrop-blur-sm text-white p-4 rounded-full shadow-lg hover:bg-zinc-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 z-30 transition-all duration-200"
-          aria-label="Add a new CD"
+          aria-label={isOnWantlistPage ? "Add to wantlist" : "Add a new CD"}
         >
           <PlusIcon className="h-6 w-6" />
         </button>
@@ -492,6 +514,16 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+      {isAddWantlistModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start md:items-center justify-center z-40 p-4 overflow-y-auto" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-2xl relative">
+            <button onClick={() => setIsAddWantlistModalOpen(false)} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10" aria-label="Close form"><XIcon className="w-6 h-6" /></button>
+            <div className="p-1">
+                <AddWantlistItemForm onAdd={handleAddWantlistItemAndCloseModal} onCancel={() => setIsAddWantlistModalOpen(false)} />
+            </div>
+          </div>
+        </div>
+      )}
       {duplicateInfo && <ConfirmDuplicateModal isOpen={!!duplicateInfo} onClose={handleCancelDuplicate} onConfirm={handleConfirmDuplicate} newCdData={duplicateInfo.newCd} existingCd={duplicateInfo.existingCd} />}
       <ImportConfirmModal isOpen={!!importData} importCount={importData?.length || 0} onClose={() => setImportData(null)} onMerge={handleMergeImport} onReplace={handleReplaceImport} />
       <SyncSettingsModal 
@@ -503,6 +535,14 @@ const App: React.FC = () => {
         onSyncModeChange={handleSyncModeChange}
       />
       <input type="file" ref={importInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
+    </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <HashRouter>
+      <AppContent />
     </HashRouter>
   );
 };

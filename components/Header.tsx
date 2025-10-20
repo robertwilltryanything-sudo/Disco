@@ -24,6 +24,7 @@ interface HeaderProps {
     onManualSync: () => void;
     user: User | null;
     onSignOut: () => void;
+    isOnWantlistPage?: boolean;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -56,6 +57,7 @@ const Header: React.FC<HeaderProps> = ({
     onManualSync,
     user,
     onSignOut,
+    isOnWantlistPage,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -113,10 +115,10 @@ const Header: React.FC<HeaderProps> = ({
                     <button
                         onClick={onAddClick}
                         className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold text-sm py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
-                        aria-label="Add a new CD"
+                        aria-label={isOnWantlistPage ? "Add a new item to wantlist" : "Add a new CD"}
                     >
                         <PlusIcon className="h-5 w-5" />
-                        <span>Add CD</span>
+                        <span>{isOnWantlistPage ? 'Add to Wantlist' : 'Add CD'}</span>
                     </button>
                 </li>
             </ul>

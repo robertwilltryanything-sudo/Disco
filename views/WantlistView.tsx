@@ -10,12 +10,10 @@ import { LinkIcon } from '../components/icons/LinkIcon';
 import { EditIcon } from '../components/icons/EditIcon';
 import { GlobeIcon } from '../components/icons/GlobeIcon';
 import CoverArtSelectorModal from '../components/CoverArtSelectorModal';
-import AddWantlistItemForm from '../components/AddWantlistItemForm';
 import { PlusIcon } from '../components/icons/PlusIcon';
 
 interface WantlistViewProps {
     wantlist: WantlistItem[];
-    onAdd: (item: Omit<WantlistItem, 'id' | 'created_at'>) => Promise<void>;
     onUpdate: (item: WantlistItem) => void;
     onDelete: (id: string) => void;
     onMoveToCollection: (item: WantlistItem) => void;
@@ -147,44 +145,25 @@ const WantlistItemEditor: React.FC<{
     );
 };
 
-const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onAdd, onUpdate, onDelete, onMoveToCollection }) => {
+const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onUpdate, onDelete, onMoveToCollection }) => {
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
-    const [isAddingNewItem, setIsAddingNewItem] = useState(false);
 
     const handleSaveItem = (updatedItem: WantlistItem) => {
         onUpdate(updatedItem);
         setEditingItemId(null);
-    };
-    
-    const handleAddWantlistItem = async (item: Omit<WantlistItem, 'id' | 'created_at'>) => {
-        await onAdd(item);
-        setIsAddingNewItem(false); // Hide form after adding
     };
 
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-6 flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-zinc-800">My Wantlist</h1>
-                {!isAddingNewItem && (
-                     <button
-                        onClick={() => setIsAddingNewItem(true)}
-                        className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-3 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 text-sm"
-                    >
-                        <PlusIcon className="h-5 w-5" />
-                        <span>Add Item</span>
-                    </button>
-                )}
             </div>
 
-            {isAddingNewItem && (
-                <AddWantlistItemForm onAdd={handleAddWantlistItem} onCancel={() => setIsAddingNewItem(false)} />
-            )}
-
             <div className="space-y-4">
-                {wantlist.length === 0 && !isAddingNewItem ? (
+                {wantlist.length === 0 ? (
                      <div className="text-center py-10 px-4 bg-white rounded-lg border border-dashed border-zinc-300">
                         <p className="text-zinc-600">Your wantlist is empty.</p>
-                        <p className="text-sm text-zinc-500 mt-1">Click the button above to add an album you're looking for!</p>
+                        <p className="text-sm text-zinc-500 mt-1">Click the add button to add an album you're looking for!</p>
                     </div>
                 ) : (
                     wantlist.map(item => (
