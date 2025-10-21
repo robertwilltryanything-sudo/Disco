@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { MenuIcon } from './icons/MenuIcon';
 import StatusIndicator from './StatusIndicator';
