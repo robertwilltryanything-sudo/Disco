@@ -199,6 +199,14 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
         </div>
       </div>
       
+      {searchQuery && (
+        <div className="mb-4 -mt-2">
+            <p className="text-sm text-zinc-600 text-center md:text-left">
+                Found <span className="font-bold text-zinc-800">{filteredAndSortedCds.length}</span> {filteredAndSortedCds.length === 1 ? 'CD' : 'CDs'}.
+            </p>
+        </div>
+      )}
+
       <CDList cds={filteredAndSortedCds} />
       
       {/* Mobile-only Collection Snapshot Footer Section */}
