@@ -35,6 +35,27 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
     setSearchParams(newParams, { replace: true });
   };
 
+  // Effect to change default sort order for artist searches.
+  useEffect(() => {
+    if (searchQuery) {
+      const artistsInCollection = new Set(cds.map(cd => cd.artist.toLowerCase()));
+      const isArtistSearch = artistsInCollection.has(searchQuery.toLowerCase());
+
+      if (isArtistSearch) {
+        setSortBy('year');
+        setSortOrder('asc');
+      } else {
+        // Revert to default for non-artist searches.
+        setSortBy('created_at');
+        setSortOrder('desc');
+      }
+    } else {
+      // Revert to default when search is cleared.
+      setSortBy('created_at');
+      setSortOrder('desc');
+    }
+  }, [searchQuery, cds]);
+
   // Effect to handle modal actions from navigation state (e.g., editing)
   useEffect(() => {
     const { editCdId, addAlbumForArtist } = location.state || {};
