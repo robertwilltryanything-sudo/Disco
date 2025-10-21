@@ -289,19 +289,14 @@ const AppContent: React.FC = () => {
   }, [handleDeleteWantlistItem, handleRequestAdd]);
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
-    const processedData = {
-      ...cdData,
-      title: capitalizeWords(cdData.title),
-    };
-
-    if (processedData.id) {
-      await handleUpdateCD({ ...processedData, id: processedData.id });
+    if (cdData.id) {
+      await handleUpdateCD({ ...cdData, id: cdData.id });
     } else {
-      const duplicate = findPotentialDuplicate(processedData, cds);
+      const duplicate = findPotentialDuplicate(cdData, cds);
       if (duplicate) {
-        setDuplicateInfo({ newCd: processedData, existingCd: duplicate });
+        setDuplicateInfo({ newCd: cdData, existingCd: duplicate });
       } else {
-        await handleAddCD(processedData);
+        await handleAddCD(cdData);
       }
     }
     handleCloseModal();
@@ -354,14 +349,10 @@ const AppContent: React.FC = () => {
 
   const handleMergeImport = () => {
     if (importData) {
-        const processedImportData = importData.map(cd => ({
-            ...cd,
-            title: capitalizeWords(cd.title),
-        }));
         if (syncProvider === 'supabase') {
-            processedImportData.forEach(cd => supabaseSync.addCD(cd));
+            importData.forEach(cd => supabaseSync.addCD(cd));
         } else {
-            const newCds = processedImportData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}`, created_at: cd.created_at || new Date().toISOString() }));
+            const newCds = importData.map(cd => ({ ...cd, id: `${new Date().getTime()}-${Math.random()}`, created_at: cd.created_at || new Date().toISOString() }));
             updateLocalCollection(prevCds => [...prevCds, ...newCds]);
         }
         setImportData(null);
@@ -370,14 +361,10 @@ const AppContent: React.FC = () => {
 
   const handleReplaceImport = () => {
     if (importData) {
-        const processedImportData = importData.map(cd => ({
-            ...cd,
-            title: capitalizeWords(cd.title),
-        }));
         if (syncProvider === 'supabase') {
             alert("Replace is not supported for Supabase sync. Please clear your collection manually if needed.");
         } else {
-            const processedForLocal = processedImportData.map((cd, index) => ({
+            const processedForLocal = importData.map((cd, index) => ({
                 ...cd,
                 id: cd.id || `${new Date().getTime()}-${index}`,
                 created_at: cd.created_at || new Date().toISOString(),

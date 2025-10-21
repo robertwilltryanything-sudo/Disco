@@ -52,7 +52,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onAdd, onCanc
 
         await onAdd({
             artist: capitalizeWords(artist.trim()),
-            title: capitalizeWords(title.trim()),
+            title: title.trim(),
             notes: notes.trim(),
             coverArtUrl: finalCoverArtUrl,
         });

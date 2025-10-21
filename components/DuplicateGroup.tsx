@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CD } from '../types';
 import { capitalizeWords } from '../utils';
@@ -17,7 +16,7 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
     <div className="bg-zinc-50 rounded-lg border border-zinc-200">
       <div className="p-4 border-b border-zinc-200">
         <h3 className="font-bold text-zinc-800">
-            {capitalizeWords(group[0].artist)} - {capitalizeWords(group[0].title)}
+            {capitalizeWords(group[0].artist)} - {group[0].title}
         </h3>
         <p className="text-sm text-zinc-500">{group.length} similar items found</p>
       </div>

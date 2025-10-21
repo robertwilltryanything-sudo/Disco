@@ -42,7 +42,7 @@ const WantlistItemEditor: React.FC<{
         onSave({
             ...item,
             artist: capitalizeWords(artist.trim()),
-            title: capitalizeWords(title.trim()),
+            title: title.trim(),
             notes: notes.trim(),
             coverArtUrl,
         });
