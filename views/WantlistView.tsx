@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { WantlistItem } from '../types';
-import { capitalizeWords } from '../utils';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import { ArrowUpCircleIcon } from '../components/icons/ArrowUpCircleIcon';
 import { findCoverArt } from '../wikipedia';
@@ -41,7 +40,7 @@ const WantlistItemEditor: React.FC<{
         }
         onSave({
             ...item,
-            artist: capitalizeWords(artist.trim()),
+            artist: artist.trim(),
             title: title.trim(),
             notes: notes.trim(),
             coverArtUrl,

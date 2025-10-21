@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { WantlistItem } from '../types';
-import { capitalizeWords } from '../utils';
 import { findCoverArt } from '../wikipedia';
 import { PlusIcon } from './icons/PlusIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
@@ -51,7 +50,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onAdd, onCanc
         }
 
         await onAdd({
-            artist: capitalizeWords(artist.trim()),
+            artist: artist.trim(),
             title: title.trim(),
             notes: notes.trim(),
             coverArtUrl: finalCoverArtUrl,

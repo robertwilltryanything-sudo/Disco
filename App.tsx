@@ -12,7 +12,7 @@ import { findCoverArt } from './wikipedia';
 import AddCDForm from './components/AddCDForm';
 import { XIcon } from './components/icons/XIcon';
 import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
-import { areStringsSimilar, capitalizeWords } from './utils';
+import { areStringsSimilar } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import { XCircleIcon } from './components/icons/XCircleIcon';

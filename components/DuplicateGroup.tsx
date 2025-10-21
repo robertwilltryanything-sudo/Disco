@@ -1,6 +1,5 @@
 import React from 'react';
 import { CD } from '../types';
-import { capitalizeWords } from '../utils';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { TrashIcon } from './icons/TrashIcon';
 
@@ -16,7 +15,7 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
     <div className="bg-zinc-50 rounded-lg border border-zinc-200">
       <div className="p-4 border-b border-zinc-200">
         <h3 className="font-bold text-zinc-800">
-            {capitalizeWords(group[0].artist)} - {group[0].title}
+            {group[0].artist} - {group[0].title}
         </h3>
         <p className="text-sm text-zinc-500">{group.length} similar items found</p>
       </div>
@@ -34,7 +33,7 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
             </div>
             <div className="flex-grow">
               <p className="font-semibold text-zinc-900">{cd.title} {cd.version && <span className="text-sm font-normal text-zinc-600">({cd.version})</span>}</p>
-              <p className="text-sm text-zinc-600">{capitalizeWords(cd.artist)}</p>
+              <p className="text-sm text-zinc-600">{cd.artist}</p>
               <div className="text-xs text-zinc-500 mt-1 space-x-2">
                 {cd.year && <span>{cd.year}</span>}
                 {cd.genre && <span>• {cd.genre}</span>}
