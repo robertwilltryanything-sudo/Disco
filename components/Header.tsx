@@ -61,7 +61,6 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,11 +77,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    if (location.pathname === '/') {
-      navigate('/', { state: { clearFilter: true }, replace: true });
-    } else {
-      navigate('/');
-    }
+    navigate('/');
   };
   
   const handleSignOutClick = () => {

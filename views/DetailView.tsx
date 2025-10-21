@@ -99,30 +99,30 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
 
   const handleArtistClick = useCallback(() => {
     if (cd) {
-      navigate('/', { state: { filterByArtist: cd.artist } });
+      navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` });
     }
   }, [navigate, cd]);
 
   const handleYearClick = useCallback(() => {
     if (cd?.year) {
-      navigate('/', { state: { filterByYear: cd.year } });
+      navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.year)}` });
     }
   }, [navigate, cd]);
 
   const handleGenreClick = useCallback(() => {
     if (cd?.genre) {
-      navigate('/', { state: { filterByGenre: cd.genre } });
+      navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.genre)}` });
     }
   }, [navigate, cd]);
 
   const handleRecordLabelClick = useCallback(() => {
     if (cd?.recordLabel) {
-      navigate('/', { state: { filterByRecordLabel: cd.recordLabel } });
+      navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.recordLabel)}` });
     }
   }, [navigate, cd]);
 
   const handleTagClick = useCallback((tag: string) => {
-    navigate('/', { state: { filterByTag: tag } });
+    navigate({ pathname: '/', search: `?q=${encodeURIComponent(tag)}` });
   }, [navigate]);
 
   if (!cd) {

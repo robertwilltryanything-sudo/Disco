@@ -1,7 +1,7 @@
 // FIX: Import Dispatch and SetStateAction to use for typing state setters without the 'React' namespace.
 import { useState, useEffect, useRef, Dispatch, SetStateAction, useCallback } from 'react';
 import { createClient, SupabaseClient, Session, User, RealtimeChannel } from '@supabase/supabase-js';
-import { CD, SyncStatus, SyncMode, WantlistItem } from '../types';
+import { CD, SyncStatus, SyncMode, WantlistItem, SyncProvider } from '../types';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
@@ -12,7 +12,7 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
 }
 
 // FIX: Use the imported Dispatch and SetStateAction types.
-export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, setWantlist: Dispatch<SetStateAction<WantlistItem[]>>, syncMode: SyncMode) => {
+export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, setWantlist: Dispatch<SetStateAction<WantlistItem[]>>, syncMode: SyncMode, syncProvider: SyncProvider) => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'disabled');
     const [error, setError] = useState<string | null>(supabase ? null : 'Supabase is not configured. The administrator needs to provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
     const [session, setSession] = useState<Session | null>(null);
@@ -61,7 +61,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     }, [setCollection, setWantlist]);
 
     useEffect(() => {
-        if (!supabase) return;
+        if (!supabase || syncProvider !== 'supabase') return;
 
         const getSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -85,9 +85,30 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [syncProvider]);
     
     useEffect(() => {
+        const cleanup = () => {
+            if (cdsChannelRef.current) {
+                supabase?.removeChannel(cdsChannelRef.current);
+                cdsChannelRef.current = null;
+            }
+            if (wantlistChannelRef.current) {
+                supabase?.removeChannel(wantlistChannelRef.current);
+                wantlistChannelRef.current = null;
+            }
+        };
+        
+        if (syncProvider !== 'supabase') {
+            cleanup();
+            // When switching away from supabase, clear its state but don't clear the main app's collection
+            // which will be populated by the local provider.
+            setSession(null);
+            setUser(null);
+            setSyncStatus('idle');
+            return;
+        }
+
         if (session && supabase) {
             loadDataFromSupabase();
             
@@ -126,17 +147,8 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
              setWantlist([]);
         }
 
-        return () => {
-            if (cdsChannelRef.current) {
-                supabase?.removeChannel(cdsChannelRef.current);
-                cdsChannelRef.current = null;
-            }
-             if (wantlistChannelRef.current) {
-                supabase?.removeChannel(wantlistChannelRef.current);
-                wantlistChannelRef.current = null;
-            }
-        };
-    }, [session, setCollection, setWantlist, syncMode, loadDataFromSupabase]);
+        return cleanup;
+    }, [session, setCollection, setWantlist, syncMode, loadDataFromSupabase, syncProvider]);
     
     const signIn = async (email: string): Promise<boolean> => {
         if (!supabase) return false;

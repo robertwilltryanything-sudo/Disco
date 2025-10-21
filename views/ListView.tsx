@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
 import CDList from '../components/CDList';
 import SearchBar from '../components/SearchBar';
 import SortControls from '../components/SortControls';
 import { PlusIcon } from '../components/icons/PlusIcon';
-import { useDebounce } from '../hooks/useDebounce';
 import FeaturedAlbum from '../components/FeaturedAlbum';
 import QuickStats from '../components/CollectionStats';
 
@@ -16,25 +15,32 @@ interface ListViewProps {
 }
 
 const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms delay
   const [sortBy, setSortBy] = useState<SortKey>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q') || '';
+
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Effect to handle navigation state for editing or filtering
+  const setSearchQuery = (query: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (query) {
+      newParams.set('q', query);
+    } else {
+      newParams.delete('q');
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+
+  // Effect to handle modal actions from navigation state (e.g., editing)
   useEffect(() => {
-    const { editCdId, filterByArtist, filterByYear, filterByGenre, filterByRecordLabel, filterByTag, addAlbumForArtist, clearFilter } = location.state || {};
+    const { editCdId, addAlbumForArtist } = location.state || {};
     let stateWasHandled = false;
 
-    if (clearFilter) {
-      setSearchQuery('');
-      window.scrollTo(0, 0);
-      stateWasHandled = true;
-    } else if (editCdId) {
+    if (editCdId) {
       const cd = cds.find(c => c.id === editCdId);
       if (cd) {
         onRequestEdit(cd);
@@ -43,25 +49,10 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
     } else if (addAlbumForArtist) {
         onRequestAdd(addAlbumForArtist);
         stateWasHandled = true;
-    } else if (filterByArtist) {
-        setSearchQuery(filterByArtist);
-        stateWasHandled = true;
-    } else if (filterByYear) {
-        setSearchQuery(String(filterByYear));
-        stateWasHandled = true;
-    } else if (filterByGenre) {
-        setSearchQuery(filterByGenre);
-        stateWasHandled = true;
-    } else if (filterByRecordLabel) {
-        setSearchQuery(filterByRecordLabel);
-        stateWasHandled = true;
-    } else if (filterByTag) {
-        setSearchQuery(filterByTag);
-        stateWasHandled = true;
     }
 
     if (stateWasHandled) {
-      // Clear the state from history so the action doesn't re-trigger
+      // Clear the state to prevent the modal from re-opening on re-renders.
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, cds, navigate, onRequestEdit, onRequestAdd]);
@@ -123,17 +114,15 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
     }
   }, [cds]);
 
-  // Scroll to top whenever the filter criteria (debounced search query) changes.
-  // This handles both typing in the search bar and programmatic filtering via navigation state.
-  // The ScrollToTop component in App.tsx handles general page navigation.
+  // Scroll to top whenever the filter criteria (search query) changes.
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [debouncedSearchQuery]);
+  }, [searchQuery]);
 
   const filteredAndSortedCds = useMemo(() => {
     return [...cds]
       .filter(cd => {
-        const lowerCaseQuery = debouncedSearchQuery.toLowerCase();
+        const lowerCaseQuery = searchQuery.toLowerCase();
         
         // A decade search from the dashboard is a 4-digit number like "1980"
         const isNumericQuery = !isNaN(Number(lowerCaseQuery)) && lowerCaseQuery.length > 0;
@@ -172,7 +161,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
 
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [cds, debouncedSearchQuery, sortBy, sortOrder]);
+  }, [cds, searchQuery, sortBy, sortOrder]);
 
   return (
     <div>

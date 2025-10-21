@@ -37,7 +37,7 @@ const NavItem: React.FC<{ to?: string; onClick?: () => void; children: React.Rea
 const BottomNavBar: React.FC = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-sm border-t border-zinc-200 z-20 grid grid-cols-4 md:hidden">
-        <NavItem to="/" label="Collection" state={{ clearFilter: true }}>
+        <NavItem to="/" label="Collection">
             <HomeIcon className="w-6 h-6" />
         </NavItem>
         <NavItem to="/artists" label="Artists">

@@ -94,10 +94,8 @@ const TopItemsList = ({ data, title, onFilter }: { data: { label: string; value:
 const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
     const navigate = useNavigate();
 
-    const handleNavigate = (filterKey: string, filterValue: string) => {
-        const state: { [key: string]: string | number } = {};
-        state[filterKey] = filterValue;
-        navigate('/', { state });
+    const handleNavigate = (filterValue: string) => {
+        navigate({ pathname: '/', search: `?q=${encodeURIComponent(filterValue)}` });
     };
 
     const { uniqueArtists, albumsByDecade, topGenres, topLabels } = useMemo(() => {
@@ -168,19 +166,19 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
         <BarChart 
             data={albumsByDecade} 
             title="Albums by Decade" 
-            onFilter={(value) => handleNavigate('filterByYear', value)}
+            onFilter={handleNavigate}
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <TopItemsList 
                 data={topGenres} 
                 title="Top 5 Genres"
-                onFilter={(value) => handleNavigate('filterByGenre', value)}
+                onFilter={handleNavigate}
             />
             <TopItemsList 
                 data={topLabels} 
                 title="Top 5 Record Labels" 
-                onFilter={(value) => handleNavigate('filterByRecordLabel', value)}
+                onFilter={handleNavigate}
             />
         </div>
     </div>

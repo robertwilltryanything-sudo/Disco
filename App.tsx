@@ -101,7 +101,7 @@ const AppContent: React.FC = () => {
     return (storedMode === 'realtime' || storedMode === 'manual') ? storedMode : 'realtime';
   });
   
-  const supabaseSync = useSupabaseSync(setCds, setWantlist, syncMode);
+  const supabaseSync = useSupabaseSync(setCds, setWantlist, syncMode, syncProvider);
   const isInitialLoad = useRef(true);
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -221,7 +221,7 @@ const AppContent: React.FC = () => {
         const newCd: CD = { ...enrichedCdData, id: `${new Date().getTime()}-${Math.random()}`, created_at: new Date().toISOString() };
         updateLocalCollection(prevCds => [newCd, ...prevCds]);
     }
-  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync, updateLocalCollection]);
+  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync]);
 
   const handleUpdateCD = useCallback(async (updatedCdData: CD) => {
     const enrichedCdData = await fetchAndApplyAlbumDetails(updatedCdData);
@@ -230,7 +230,7 @@ const AppContent: React.FC = () => {
     } else {
         updateLocalCollection(prevCds => prevCds.map(cd => (cd.id === enrichedCdData.id ? enrichedCdData : cd)));
     }
-  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync, updateLocalCollection]);
+  }, [fetchAndApplyAlbumDetails, syncProvider, supabaseSync]);
 
   const handleDeleteCD = useCallback((id: string) => {
     if (syncProvider === 'supabase') {
@@ -238,7 +238,7 @@ const AppContent: React.FC = () => {
     } else {
         updateLocalCollection(prevCds => prevCds.filter(cd => cd.id !== id));
     }
-  }, [syncProvider, supabaseSync, updateLocalCollection]);
+  }, [syncProvider, supabaseSync]);
   
   const handleAddWantlistItem = useCallback(async (item: Omit<WantlistItem, 'id' | 'created_at'>) => {
     if (syncProvider === 'supabase') {
@@ -247,7 +247,7 @@ const AppContent: React.FC = () => {
         const newItem: WantlistItem = { ...item, id: `${new Date().getTime()}`, created_at: new Date().toISOString() };
         updateLocalWantlist(prev => [newItem, ...prev]);
     }
-  }, [syncProvider, supabaseSync, updateLocalWantlist]);
+  }, [syncProvider, supabaseSync]);
 
   const handleUpdateWantlistItem = useCallback(async (updatedItem: WantlistItem) => {
     if (syncProvider === 'supabase') {
@@ -255,7 +255,7 @@ const AppContent: React.FC = () => {
     } else {
         updateLocalWantlist(prev => prev.map(item => (item.id === updatedItem.id ? updatedItem : item)));
     }
-  }, [syncProvider, supabaseSync, updateLocalWantlist]);
+  }, [syncProvider, supabaseSync]);
 
   const handleDeleteWantlistItem = useCallback((id: string) => {
     if (syncProvider === 'supabase') {
@@ -263,7 +263,7 @@ const AppContent: React.FC = () => {
     } else {
         updateLocalWantlist(prev => prev.filter(item => item.id !== id));
     }
-  }, [syncProvider, supabaseSync, updateLocalWantlist]);
+  }, [syncProvider, supabaseSync]);
   
   // FIX: Moved modal and item request handlers before their usage to resolve a block-scoped variable error.
   const handleRequestAdd = useCallback((artist?: string, title?: string) => {
