@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CD } from '../types';
@@ -62,7 +60,10 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
     const handleArtistClick = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        navigate('/', { state: { filterByArtist: cd.artist } });
+        navigate({
+            pathname: '/',
+            search: `?q=${encodeURIComponent(cd.artist)}`
+        });
     }, [cd.artist, navigate]);
 
     return (

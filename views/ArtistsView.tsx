@@ -40,8 +40,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
             {artists.map(artist => (
                 <Link
                 key={artist}
-                to="/"
-                state={{ filterByArtist: artist }}
+                to={`/?q=${encodeURIComponent(artist)}`}
                 className="block text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 p-2 rounded-lg truncate"
                 title={artist}
                 >

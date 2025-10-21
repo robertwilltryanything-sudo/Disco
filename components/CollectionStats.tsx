@@ -79,7 +79,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '' }) => {
           </Link>
         )}
         {mostProlificArtist && (
-            <Link to={`/`} state={{ filterByArtist: mostProlificArtist.artist }} className="block group hover:bg-zinc-50 -mx-4 px-4 rounded-lg transition-colors duration-150">
+            <Link to={`/?q=${encodeURIComponent(mostProlificArtist.artist)}`} className="block group hover:bg-zinc-50 -mx-4 px-4 rounded-lg transition-colors duration-150">
                 <div className="flex justify-between items-center py-3 gap-4">
                     <div className="flex items-center gap-3">
                         <StarIcon className="w-5 h-5 text-zinc-400" />
