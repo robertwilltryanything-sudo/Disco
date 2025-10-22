@@ -36,7 +36,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-zinc-200 p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-4">
             {artists.map(artist => (
                 <Link
                 key={artist}
