@@ -189,7 +189,8 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         
         const newCd = data?.[0] as CD ?? null;
-        if (newCd && syncMode !== 'realtime') {
+        // Immediately update local state for a smoother UI, rather than waiting for the realtime event.
+        if (newCd) {
             setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
         }
         
@@ -200,15 +201,16 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const updateCD = async (cd: CD) => {
         if (!supabase) return;
         
-        if (syncMode !== 'realtime') {
-            setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
-        }
+        // Optimistically update the UI for a smoother experience.
+        // The real-time subscription will ensure consistency with the database.
+        setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
         
         setSyncStatus('saving');
         const { error } = await supabase.from('cds').update(cd).eq('id', cd.id);
         if (error) {
             setError(error.message);
             setSyncStatus('error');
+            // TODO: Consider reverting the optimistic update on error
         } else {
             setSyncStatus('synced');
         }
@@ -217,15 +219,15 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const deleteCD = async (id: string) => {
         if (!supabase) return;
         
-        if (syncMode !== 'realtime') {
-            setCollection(prev => prev.filter(c => c.id !== id));
-        }
+        // Optimistically update the UI.
+        setCollection(prev => prev.filter(c => c.id !== id));
 
         setSyncStatus('saving');
         const { error } = await supabase.from('cds').delete().eq('id', id);
         if (error) {
             setError(error.message);
             setSyncStatus('error');
+             // TODO: Consider reverting the optimistic update on error
         } else {
             setSyncStatus('synced');
         }
@@ -243,7 +245,8 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         
         const newItem = data?.[0] as WantlistItem ?? null;
-        if (newItem && syncMode !== 'realtime') {
+        // Immediately update local state for a smoother UI.
+        if (newItem) {
             setWantlist(prev => [newItem, ...prev.filter(item => item.id !== newItem.id)]);
         }
         
@@ -254,9 +257,8 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const updateWantlistItem = async (item: WantlistItem) => {
         if (!supabase) return;
 
-        if (syncMode !== 'realtime') {
-            setWantlist(prev => prev.map(i => (i.id === item.id ? item : i)));
-        }
+        // Optimistically update the UI.
+        setWantlist(prev => prev.map(i => (i.id === item.id ? item : i)));
 
         setSyncStatus('saving');
         const { error } = await supabase.from('wantlist').update(item).eq('id', item.id);
@@ -271,9 +273,8 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const deleteWantlistItem = async (id: string) => {
         if (!supabase) return;
 
-        if (syncMode !== 'realtime') {
-            setWantlist(prev => prev.filter(item => item.id !== id));
-        }
+        // Optimistically update the UI.
+        setWantlist(prev => prev.filter(item => item.id !== id));
 
         setSyncStatus('saving');
         const { error } = await supabase.from('wantlist').delete().eq('id', id);
