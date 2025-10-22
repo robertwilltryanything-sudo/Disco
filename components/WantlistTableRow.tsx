@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { WantlistItem } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { EditIcon } from './icons/EditIcon';
@@ -13,10 +14,23 @@ interface WantlistTableRowProps {
 }
 
 const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit, onDelete, onMoveToCollection }) => {
+  const navigate = useNavigate();
   const details = [item.genre, item.year].filter(Boolean).join(' • ');
 
+  const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
+    // Prevent navigation when clicking on a button inside the row
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    navigate(`/wantlist/${item.id}`);
+  };
+
   return (
-    <tr className="border-b border-zinc-200 last:border-b-0">
+    <tr
+      className="border-b border-zinc-200 last:border-b-0 hover:bg-zinc-50 cursor-pointer"
+      onClick={handleRowClick}
+      aria-label={`View details for ${item.title}`}
+    >
       <td className="p-2">
         {item.coverArtUrl ? (
           <img src={item.coverArtUrl} alt={`${item.title} cover`} className="w-12 h-12 object-cover rounded-md" />
@@ -30,19 +44,15 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
         <p className="font-bold text-zinc-900" title={item.title}>{item.title}</p>
         <p className="text-sm text-zinc-600" title={item.artist}>{item.artist}</p>
       </td>
-      <td className="p-3 text-zinc-600 hidden sm:table-cell">{details}</td>
-      <td className="p-3 text-zinc-600 hidden md:table-cell italic truncate" title={item.notes || ''}>
-        {item.notes ? `"${item.notes}"` : ''}
-      </td>
       <td className="p-3 text-right">
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-end gap-2">
             <button
                 onClick={() => onMoveToCollection(item)}
-                className="flex items-center justify-center gap-1.5 bg-green-100 text-green-800 font-bold py-2 px-3 rounded-lg hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm"
+                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                title="Found It!"
                 aria-label={`Found ${item.title} and adding to collection`}
             >
-                <CheckIcon className="w-4 h-4" />
-                <span className="hidden lg:inline">Found It!</span>
+                <CheckIcon className="w-5 h-5" />
             </button>
             <button 
                 onClick={() => onRequestEdit(item)}
@@ -61,6 +71,10 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
                 <TrashIcon className="w-5 h-5" />
             </button>
         </div>
+      </td>
+      <td className="p-3 text-zinc-600 hidden sm:table-cell">{details}</td>
+      <td className="p-3 text-zinc-600 hidden md:table-cell italic truncate" title={item.notes || ''}>
+        {item.notes ? `"${item.notes}"` : ''}
       </td>
     </tr>
   );

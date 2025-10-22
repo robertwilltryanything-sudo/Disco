@@ -24,6 +24,7 @@ import DuplicatesView from './views/DuplicatesView';
 import WantlistView from './views/WantlistView';
 import { PlusIcon } from './components/icons/PlusIcon';
 import AddWantlistItemForm from './components/AddWantlistItemForm';
+import WantlistDetailView from './views/WantlistDetailView';
 
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'], created_at: '2024-07-29T10:00:04Z' },
@@ -31,6 +32,12 @@ const INITIAL_CDS: CD[] = [
   { id: '3', artist: 'The Beatles', title: 'Abbey Road', genre: 'Rock', year: 1969, version: '2009 Remaster', recordLabel: 'Apple', tags: ['60s rock', 'classic rock'], created_at: '2024-07-29T10:00:02Z' },
   { id: '6', artist: 'Fleetwood Mac', title: 'Rumours', genre: 'Rock', year: 1977, recordLabel: 'Warner Bros.', tags: ['70s rock', 'soft rock'], created_at: '2024-07-29T10:00:01Z' },
   { id: '7', artist: 'Jean Michel Jarre', title: 'Equinoxe', genre: 'Electronic', year: 1978, recordLabel: 'Disques Dreyfus', tags: ['electronic', 'ambient', '70s'], created_at: '2024-07-29T10:00:00Z' },
+];
+
+const INITIAL_WANTLIST: WantlistItem[] = [
+  { id: 'w1', artist: 'Pink Floyd', title: 'The Dark Side of the Moon', year: 1973, genre: 'Progressive Rock', tags: ['classic rock', 'concept album'], created_at: '2024-07-30T11:00:00Z' },
+  { id: 'w2', artist: 'Led Zeppelin', title: 'Led Zeppelin IV', year: 1971, genre: 'Hard Rock', tags: ['70s rock', 'classic'], created_at: '2024-07-30T11:00:01Z' },
+  { id: 'w3', artist: 'Nirvana', title: 'Nevermind', year: 1991, genre: 'Grunge', tags: ['90s', 'alternative'], created_at: '2024-07-30T11:00:02Z' },
 ];
 
 const COLLECTION_STORAGE_KEY = 'disco_collection_v3';
@@ -55,6 +62,23 @@ const populateInitialArtwork = async (initialCds: CD[]): Promise<CD[]> => {
     return cd;
   });
   return Promise.all(cdsWithArtPromises);
+};
+
+const populateInitialWantlistArtwork = async (initialItems: WantlistItem[]): Promise<WantlistItem[]> => {
+  const itemsWithArtPromises = initialItems.map(async (item) => {
+    if (!item.coverArtUrl) {
+      try {
+        const imageUrls = await findCoverArt(item.artist, item.title);
+        if (imageUrls && imageUrls.length > 0) {
+          return { ...item, coverArtUrl: imageUrls[0] };
+        }
+      } catch (error) {
+        console.error(`Failed to find cover art for ${item.title}:`, error);
+      }
+    }
+    return item;
+  });
+  return Promise.all(itemsWithArtPromises);
 };
 
 const ScrollToTop = () => {
@@ -118,7 +142,7 @@ const AppContent: React.FC = () => {
   
   // FIX: Moved useLocation hook here, inside a component that is a child of HashRouter.
   const location = useLocation();
-  const isOnWantlistPage = location.pathname === '/wantlist';
+  const isOnWantlistPage = location.pathname.startsWith('/wantlist');
 
   const activeSyncStatus: SyncStatus = syncProvider === 'supabase'
     ? supabaseSync.syncStatus
@@ -158,11 +182,14 @@ const AppContent: React.FC = () => {
           const storedWantlistRaw = localStorage.getItem(WANTLIST_STORAGE_KEY);
           if (storedWantlistRaw) {
               loadedWantlist = JSON.parse(storedWantlistRaw);
+          } else {
+              loadedWantlist = await populateInitialWantlistArtwork(INITIAL_WANTLIST);
           }
         } catch (error) {
           console.error("Error loading data from localStorage:", error);
           const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
           loadedData = { collection: cdsWithArt, lastUpdated: new Date().toISOString() };
+          loadedWantlist = await populateInitialWantlistArtwork(INITIAL_WANTLIST);
         }
       }
       // Supabase loading is handled by its own hook via real-time subscription
@@ -509,6 +536,7 @@ const AppContent: React.FC = () => {
           <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
           <Route path="/duplicates" element={<RouteWrapper><DuplicatesView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
           <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onRequestEdit={handleRequestEditWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
+          <Route path="/wantlist/:id" element={<RouteWrapper><WantlistDetailView wantlist={wantlist} cds={cds} onDelete={handleDeleteWantlistItem} onRequestEdit={handleRequestEditWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
         </Routes>
         <BottomNavBar />
         <button

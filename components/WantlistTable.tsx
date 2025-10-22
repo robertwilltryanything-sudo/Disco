@@ -26,9 +26,9 @@ const WantlistTable: React.FC<WantlistTableProps> = ({ wantlist, ...props }) => 
           <tr>
             <th className="p-3 w-16" aria-label="Cover Art"></th>
             <th className="p-3">Album</th>
+            <th className="p-3 w-40 text-right" aria-label="Actions">Actions</th>
             <th className="p-3 hidden sm:table-cell">Details</th>
             <th className="p-3 hidden md:table-cell">Notes</th>
-            <th className="p-3 w-40 text-right" aria-label="Actions">Actions</th>
           </tr>
         </thead>
         <tbody>

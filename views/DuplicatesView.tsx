@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { CD } from '../types';
@@ -161,7 +160,7 @@ const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD }) => {
         isOpen={!!cdToDelete}
         onClose={() => setCdToDelete(null)}
         onConfirm={handleConfirmDelete}
-        cd={cdToDelete}
+        item={cdToDelete}
       />
     </div>
   );

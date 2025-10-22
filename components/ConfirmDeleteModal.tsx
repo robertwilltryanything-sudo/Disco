@@ -1,18 +1,16 @@
-
-
 import React from 'react';
-import { CD } from '../types';
+import { CD, WantlistItem } from '../types';
 import { capitalizeWords } from '../utils';
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  cd: CD | null;
+  item: (CD | WantlistItem) | null;
 }
 
-const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose, onConfirm, cd }) => {
-  if (!isOpen || !cd) {
+const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose, onConfirm, item }) => {
+  if (!isOpen || !item) {
     return null;
   }
 
@@ -26,7 +24,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
       <div className="bg-white rounded-lg border border-zinc-200 p-6 m-4 max-w-sm w-full">
         <h2 id="delete-dialog-title" className="text-xl font-bold text-red-600">Confirm Deletion</h2>
         <p className="mt-2 text-zinc-600">
-          Are you sure you want to permanently delete <strong className="font-semibold text-zinc-800">"{cd.title}"</strong> by <strong className="font-semibold text-zinc-800">{capitalizeWords(cd.artist)}</strong>?
+          Are you sure you want to permanently delete <strong className="font-semibold text-zinc-800">"{item.title}"</strong> by <strong className="font-semibold text-zinc-800">{capitalizeWords(item.artist)}</strong>?
         </p>
         <div className="mt-6 flex justify-end space-x-3">
           <button

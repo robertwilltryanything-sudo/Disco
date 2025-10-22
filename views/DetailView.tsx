@@ -342,7 +342,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        cd={cd}
+        item={cd}
       />
     </div>
   );

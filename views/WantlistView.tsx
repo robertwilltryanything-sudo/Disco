@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { WantlistItem } from '../types';
 import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
@@ -19,10 +20,30 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
         const storedView = localStorage.getItem(WANTLIST_VIEW_MODE_KEY);
         return storedView === 'grid' ? 'grid' : 'list';
     });
+    
+    const location = useLocation();
+    const navigate = useNavigate();
 
     useEffect(() => {
         localStorage.setItem(WANTLIST_VIEW_MODE_KEY, view);
     }, [view]);
+
+    useEffect(() => {
+        const { editWantlistItemId } = location.state || {};
+        let stateWasHandled = false;
+
+        if (editWantlistItemId) {
+            const item = wantlist.find(i => i.id === editWantlistItemId);
+            if (item) {
+                onRequestEdit(item);
+                stateWasHandled = true;
+            }
+        }
+
+        if (stateWasHandled) {
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+  }, [location.state, wantlist, navigate, onRequestEdit]);
 
     return (
         <div className="max-w-4xl mx-auto">
