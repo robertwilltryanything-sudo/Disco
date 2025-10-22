@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
@@ -221,10 +222,10 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
       </div>
       
       {searchQuery && (
-        <div className="mb-4 -mt-2">
-            <p className="text-sm text-zinc-600 text-center md:text-left">
-                Found <span className="font-bold text-zinc-800">{filteredAndSortedCds.length}</span> {filteredAndSortedCds.length === 1 ? 'CD' : 'CDs'}.
-            </p>
+        <div className="mb-4 -mt-2 text-right">
+          <span className="text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full">
+            {filteredAndSortedCds.length}
+          </span>
         </div>
       )}
 
