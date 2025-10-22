@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { WantlistItem } from '../types';
 import { PlusIcon } from './icons/PlusIcon';
@@ -429,15 +430,25 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                 </>
               )}
             </button>
-            <button
-              type="button"
-              onClick={() => setIsScannerOpen(true)}
-              disabled={isProcessing}
-              className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              <CameraIcon className="h-5 w-5" />
-              Scan Album
-            </button>
+            {itemToEdit ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  disabled={isProcessing}
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                  <CameraIcon className="h-5 w-5" />
+                  Scan Album
+              </button>
+            )}
         </div>
       </form>
       <AlbumScanner 
