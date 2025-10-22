@@ -36,6 +36,8 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             let errorMessage = `Failed to load collection: ${cdsResult.error.message}`;
             if (cdsResult.error.message.toLowerCase().includes('does not exist') || cdsResult.error.message.toLowerCase().includes('could not find the table')) {
                 errorMessage = "The 'cds' table seems to be missing in your database. Please see supabase_setup.md for instructions.";
+            } else if (cdsResult.error.message.toLowerCase().includes('could not find the column')) {
+                errorMessage = "Your 'cds' table is out of date. Please see the 'Fixes' section in supabase_setup.md and run the appropriate script in your Supabase SQL Editor.";
             }
             errors.push(errorMessage);
         } else {
@@ -46,6 +48,8 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             let errorMessage = `Failed to load wantlist: ${wantlistResult.error.message}`;
             if (wantlistResult.error.message.toLowerCase().includes('does not exist') || wantlistResult.error.message.toLowerCase().includes('could not find the table')) {
                 errorMessage = "The 'wantlist' table seems to be missing in your database. Please see supabase_setup.md for instructions.";
+            } else if (wantlistResult.error.message.toLowerCase().includes('could not find the column')) {
+                errorMessage = "Your 'wantlist' table is out of date. Please see the 'Fixes' section in supabase_setup.md and run the appropriate script in your Supabase SQL Editor.";
             }
             errors.push(errorMessage);
         } else {
