@@ -16,11 +16,10 @@ interface WantlistDetailViewProps {
   wantlist: WantlistItem[];
   cds: CD[];
   onDelete: (id: string) => void;
-  onRequestEdit: (item: WantlistItem) => void;
   onMoveToCollection: (item: WantlistItem) => void;
 }
 
-const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onRequestEdit, onMoveToCollection }) => {
+const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onMoveToCollection }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);

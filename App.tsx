@@ -536,7 +536,7 @@ const AppContent: React.FC = () => {
           <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
           <Route path="/duplicates" element={<RouteWrapper><DuplicatesView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
           <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onRequestEdit={handleRequestEditWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
-          <Route path="/wantlist/:id" element={<RouteWrapper><WantlistDetailView wantlist={wantlist} cds={cds} onDelete={handleDeleteWantlistItem} onRequestEdit={handleRequestEditWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
+          <Route path="/wantlist/:id" element={<RouteWrapper><WantlistDetailView wantlist={wantlist} cds={cds} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
         </Routes>
         <BottomNavBar />
         <button
