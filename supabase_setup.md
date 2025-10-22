@@ -62,8 +62,13 @@ CREATE TABLE public.wantlist (
   user_id uuid NOT NULL,
   artist text NOT NULL,
   title text NOT NULL,
+  genre text NULL,
+  year integer NULL,
+  coverArtUrl text NULL,
   notes text NULL,
-  coverArtUrl text NULL, -- This column stores the URL for the album cover
+  version text NULL,
+  recordLabel text NULL,
+  tags text[] NULL,
   CONSTRAINT wantlist_pkey PRIMARY KEY (id),
   CONSTRAINT wantlist_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
@@ -91,15 +96,28 @@ CREATE POLICY "Enable delete for own wantlist items" ON public.wantlist
 FOR DELETE USING (auth.uid() = user_id);
 ```
 
-## 3. Fix for `coverArtUrl` Column (FIX)
+## 3. Fixes for Existing Tables (FIX)
 
-The error `Could not find the 'coverArtUrl' column of 'wantlist'` indicates that you created the `wantlist` table using an older version of the setup script.
+If you created your tables with older versions of the setup scripts, they might be missing some columns. The following scripts will add the missing columns without deleting any of your data.
 
-**To fix this, run the following SQL command in your Supabase SQL Editor:** This command will add the missing column to your existing table. It is safe to run even if the column already exists.
+### Fix for `wantlist` table (Older version)
+The error `Could not find the 'coverArtUrl' column of 'wantlist'` indicates that you created the `wantlist` table using an older script. Run this command to add the missing column:
 
 ```sql
--- Fix for wantlist table missing the coverArtUrl column
--- Run this if you created the wantlist table before the coverArtUrl was added.
+-- Adds the coverArtUrl column to the wantlist table if it doesn't exist.
 ALTER TABLE public.wantlist
 ADD COLUMN IF NOT EXISTS "coverArtUrl" text NULL;
+```
+
+### Fix for `wantlist` table (Missing detailed fields)
+If your `wantlist` table is missing fields like genre, year, tags, etc., run this command to add them all:
+
+```sql
+-- Adds new columns to the wantlist table for feature parity with the cds table.
+ALTER TABLE public.wantlist
+ADD COLUMN IF NOT EXISTS "genre" text NULL,
+ADD COLUMN IF NOT EXISTS "year" integer NULL,
+ADD COLUMN IF NOT EXISTS "version" text NULL,
+ADD COLUMN IF NOT EXISTS "recordLabel" text NULL,
+ADD COLUMN IF NOT EXISTS "tags" text[] NULL;
 ```

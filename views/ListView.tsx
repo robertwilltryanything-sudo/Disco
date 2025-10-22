@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
@@ -8,6 +7,9 @@ import SortControls from '../components/SortControls';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import FeaturedAlbum from '../components/FeaturedAlbum';
 import QuickStats from '../components/CollectionStats';
+import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
+import { QueueListIcon } from '../components/icons/QueueListIcon';
+import CDTable from '../components/CDTable';
 
 interface ListViewProps {
   cds: CD[];
@@ -15,10 +17,16 @@ interface ListViewProps {
   onRequestEdit: (cd: CD) => void;
 }
 
+const VIEW_MODE_KEY = 'disco_view_mode';
+
 const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit }) => {
   const [sortBy, setSortBy] = useState<SortKey>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
+  const [view, setView] = useState<'grid' | 'list'>(() => {
+    const storedView = localStorage.getItem(VIEW_MODE_KEY);
+    return storedView === 'list' ? 'list' : 'grid';
+  });
 
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
@@ -35,6 +43,11 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
     }
     setSearchParams(newParams, { replace: true });
   };
+  
+  // Effect to save view mode preference
+  useEffect(() => {
+    localStorage.setItem(VIEW_MODE_KEY, view);
+  }, [view]);
 
   // Effect to change default sort order for artist searches.
   useEffect(() => {
@@ -216,8 +229,26 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
         <div className="w-full md:w-2/3 lg:w-1/2">
            <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         </div>
-        <div className="w-full md:w-auto">
+        <div className="w-full md:w-auto flex items-center gap-2">
           <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
+          <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
+            <button
+              onClick={() => setView('grid')}
+              className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+              aria-label="Grid View"
+              title="Grid View"
+            >
+              <Squares2x2Icon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setView('list')}
+              className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+              aria-label="List View"
+              title="List View"
+            >
+              <QueueListIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
       
@@ -228,8 +259,12 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
           </span>
         </div>
       )}
-
-      <CDList cds={filteredAndSortedCds} />
+      
+      {view === 'grid' ? (
+        <CDList cds={filteredAndSortedCds} />
+      ) : (
+        <CDTable cds={filteredAndSortedCds} onRequestEdit={onRequestEdit} />
+      )}
       
       {/* Mobile-only Collection Snapshot Footer Section */}
       <div className="lg:hidden mt-8">

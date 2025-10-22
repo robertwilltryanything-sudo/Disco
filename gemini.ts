@@ -137,7 +137,6 @@ export async function getAlbumDetails(artist: string, title: string): Promise<{ 
     }
 }
 
-
 export async function getAlbumInfo(imageBase64: string): Promise<Partial<Omit<CD, 'id'>> | null> {
     try {
         const imagePart = {

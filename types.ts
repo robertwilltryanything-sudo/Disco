@@ -17,8 +17,13 @@ export interface WantlistItem {
   id: string;
   artist: string;
   title: string;
-  notes?: string;
+  genre?: string;
+  year?: number;
   coverArtUrl?: string;
+  notes?: string;
+  version?: string;
+  recordLabel?: string;
+  tags?: string[];
   user_id?: string;
   created_at?: string;
 }

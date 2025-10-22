@@ -107,7 +107,9 @@ const AppContent: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAddWantlistModalOpen, setIsAddWantlistModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
-  const [prefillData, setPrefillData] = useState<{ artist?: string; title?: string } | null>(null);
+  const [wantlistItemToEdit, setWantlistItemToEdit] = useState<WantlistItem | null>(null);
+  const [prefill, setPrefill] = useState<Partial<CD> | null>(null);
+  const [wantlistItemToMove, setWantlistItemToMove] = useState<WantlistItem | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
   const [importData, setImportData] = useState<CD[] | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -192,25 +194,25 @@ const AppContent: React.FC = () => {
     }
   }, [debouncedCds, debouncedWantlist, lastUpdated, syncProvider]);
   
-  const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD>>(cd: T): Promise<T> => {
-    const shouldFetch = !cd.genre || !cd.recordLabel || !cd.tags || cd.tags.length === 0;
-    if (shouldFetch && cd.artist && cd.title) {
+  const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD> | Partial<WantlistItem>>(item: T): Promise<T> => {
+    const shouldFetch = !item.genre || !item.recordLabel || !item.tags || item.tags.length === 0;
+    if (shouldFetch && item.artist && item.title) {
         try {
-            const details = await getAlbumDetails(cd.artist, cd.title);
+            const details = await getAlbumDetails(item.artist, item.title);
             if (details) {
                 return { 
-                    ...cd, 
-                    genre: cd.genre || details.genre,
-                    recordLabel: cd.recordLabel || details.recordLabel,
-                    year: cd.year || details.year,
-                    tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])]
+                    ...item, 
+                    genre: item.genre || details.genre,
+                    recordLabel: item.recordLabel || details.recordLabel,
+                    year: item.year || details.year,
+                    tags: [...new Set([...(item.tags || []), ...(details.tags || [])])]
                 };
             }
         } catch (error) {
             console.error("Could not fetch additional album details from Gemini:", error);
         }
     }
-    return cd;
+    return item;
   }, []);
 
   const handleAddCD = useCallback(async (cdData: Omit<CD, 'id'>) => {
@@ -241,21 +243,23 @@ const AppContent: React.FC = () => {
   }, [syncProvider, supabaseSync]);
   
   const handleAddWantlistItem = useCallback(async (item: Omit<WantlistItem, 'id' | 'created_at'>) => {
+    const enrichedItem = await fetchAndApplyAlbumDetails(item);
     if (syncProvider === 'supabase') {
-        await supabaseSync.addWantlistItem(item);
+        await supabaseSync.addWantlistItem(enrichedItem);
     } else {
-        const newItem: WantlistItem = { ...item, id: `${new Date().getTime()}`, created_at: new Date().toISOString() };
+        const newItem: WantlistItem = { ...enrichedItem, id: `${new Date().getTime()}`, created_at: new Date().toISOString() };
         updateLocalWantlist(prev => [newItem, ...prev]);
     }
-  }, [syncProvider, supabaseSync]);
+  }, [syncProvider, supabaseSync, fetchAndApplyAlbumDetails]);
 
   const handleUpdateWantlistItem = useCallback(async (updatedItem: WantlistItem) => {
+     const enrichedItem = await fetchAndApplyAlbumDetails(updatedItem);
     if (syncProvider === 'supabase') {
-        await supabaseSync.updateWantlistItem(updatedItem);
+        await supabaseSync.updateWantlistItem(enrichedItem);
     } else {
-        updateLocalWantlist(prev => prev.map(item => (item.id === updatedItem.id ? updatedItem : item)));
+        updateLocalWantlist(prev => prev.map(item => (item.id === enrichedItem.id ? enrichedItem : item)));
     }
-  }, [syncProvider, supabaseSync]);
+  }, [syncProvider, supabaseSync, fetchAndApplyAlbumDetails]);
 
   const handleDeleteWantlistItem = useCallback((id: string) => {
     if (syncProvider === 'supabase') {
@@ -265,10 +269,9 @@ const AppContent: React.FC = () => {
     }
   }, [syncProvider, supabaseSync]);
   
-  // FIX: Moved modal and item request handlers before their usage to resolve a block-scoped variable error.
   const handleRequestAdd = useCallback((artist?: string, title?: string) => {
     setCdToEdit(null);
-    setPrefillData((artist || title) ? { artist: artist || '', title: title || '' } : null);
+    setPrefill((artist || title) ? { artist: artist || '', title: title || '' } : null);
     setIsAddModalOpen(true);
   }, []);
 
@@ -280,13 +283,31 @@ const AppContent: React.FC = () => {
   const handleCloseModal = useCallback(() => {
     setIsAddModalOpen(false);
     setCdToEdit(null);
-    setPrefillData(null);
+    setPrefill(null);
+    setWantlistItemToMove(null);
+  }, []);
+  
+  const handleRequestAddWantlistItem = useCallback(() => {
+    setWantlistItemToEdit(null);
+    setIsAddWantlistModalOpen(true);
+  }, []);
+
+  const handleRequestEditWantlistItem = useCallback((item: WantlistItem) => {
+    setWantlistItemToEdit(item);
+    setIsAddWantlistModalOpen(true);
+  }, []);
+
+  const handleCloseWantlistModal = useCallback(() => {
+    setIsAddWantlistModalOpen(false);
+    setWantlistItemToEdit(null);
   }, []);
 
   const handleMoveToCollection = useCallback((item: WantlistItem) => {
-    handleRequestAdd(item.artist, item.title);
-    handleDeleteWantlistItem(item.id);
-  }, [handleDeleteWantlistItem, handleRequestAdd]);
+    setPrefill(item);
+    setCdToEdit(null);
+    setWantlistItemToMove(item);
+    setIsAddModalOpen(true);
+  }, []);
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     if (cdData.id) {
@@ -295,20 +316,38 @@ const AppContent: React.FC = () => {
       const duplicate = findPotentialDuplicate(cdData, cds);
       if (duplicate) {
         setDuplicateInfo({ newCd: cdData, existingCd: duplicate });
+        return; // Wait for user confirmation
       } else {
         await handleAddCD(cdData);
       }
     }
+    if (wantlistItemToMove) {
+        handleDeleteWantlistItem(wantlistItemToMove.id);
+        setWantlistItemToMove(null);
+    }
     handleCloseModal();
-  }, [handleUpdateCD, handleAddCD, handleCloseModal, cds]);
+  }, [handleUpdateCD, handleAddCD, handleCloseModal, cds, wantlistItemToMove, handleDeleteWantlistItem]);
+  
+  const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
+    if (itemData.id) {
+        await handleUpdateWantlistItem({ ...itemData, id: itemData.id });
+    } else {
+        await handleAddWantlistItem(itemData);
+    }
+    handleCloseWantlistModal();
+  }, [handleUpdateWantlistItem, handleAddWantlistItem, handleCloseWantlistModal]);
   
   const handleConfirmDuplicate = useCallback(async (version: string) => {
     if (duplicateInfo) {
       await handleAddCD({ ...duplicateInfo.newCd, version });
+      if (wantlistItemToMove) {
+        handleDeleteWantlistItem(wantlistItemToMove.id);
+        setWantlistItemToMove(null);
+      }
       setDuplicateInfo(null);
       handleCloseModal();
     }
-  }, [duplicateInfo, handleAddCD, handleCloseModal]);
+  }, [duplicateInfo, handleAddCD, handleCloseModal, wantlistItemToMove, handleDeleteWantlistItem]);
 
   const handleCancelDuplicate = useCallback(() => setDuplicateInfo(null), []);
   
@@ -399,15 +438,10 @@ const AppContent: React.FC = () => {
 
   const handleGlobalAddClick = () => {
     if (isOnWantlistPage) {
-      setIsAddWantlistModalOpen(true);
+      handleRequestAddWantlistItem();
     } else {
       handleRequestAdd();
     }
-  };
-
-  const handleAddWantlistItemAndCloseModal = async (item: Omit<WantlistItem, 'id' | 'created_at'>) => {
-    await handleAddWantlistItem(item);
-    setIsAddWantlistModalOpen(false);
   };
 
   const RouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -474,7 +508,7 @@ const AppContent: React.FC = () => {
           <Route path="/artists" element={<RouteWrapper><ArtistsView cds={cds} /></RouteWrapper>} />
           <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
           <Route path="/duplicates" element={<RouteWrapper><DuplicatesView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
-          <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onUpdate={handleUpdateWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
+          <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onRequestEdit={handleRequestEditWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />
         </Routes>
         <BottomNavBar />
         <button
@@ -491,11 +525,15 @@ const AppContent: React.FC = () => {
             <button onClick={handleCloseModal} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10" aria-label="Close form"><XIcon className="w-6 h-6" /></button>
             <div className="p-1">
               <AddCDForm
-                key={cdToEdit ? cdToEdit.id : (prefillData ? `add-${prefillData.artist}-${prefillData.title}` : 'add')}
+                key={
+                  cdToEdit ? cdToEdit.id : 
+                  (wantlistItemToMove ? `move-${wantlistItemToMove.id}` : 
+                  (prefill ? `add-${prefill.artist}-${prefill.title}` : 'add'))
+                }
                 onSave={handleSaveCD}
                 cdToEdit={cdToEdit}
                 onCancel={handleCloseModal}
-                prefillData={prefillData}
+                prefill={prefill}
               />
             </div>
           </div>
@@ -504,9 +542,14 @@ const AppContent: React.FC = () => {
       {isAddWantlistModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start md:items-center justify-center z-40 p-4 overflow-y-auto" role="dialog" aria-modal="true">
           <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-2xl relative">
-            <button onClick={() => setIsAddWantlistModalOpen(false)} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10" aria-label="Close form"><XIcon className="w-6 h-6" /></button>
+            <button onClick={handleCloseWantlistModal} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10" aria-label="Close form"><XIcon className="w-6 h-6" /></button>
             <div className="p-1">
-                <AddWantlistItemForm onAdd={handleAddWantlistItemAndCloseModal} onCancel={() => setIsAddWantlistModalOpen(false)} />
+                <AddWantlistItemForm
+                  key={wantlistItemToEdit ? `want-${wantlistItemToEdit.id}` : 'add-want'}
+                  onSave={handleSaveWantlistItem}
+                  itemToEdit={wantlistItemToEdit}
+                  onCancel={handleCloseWantlistModal}
+                />
             </div>
           </div>
         </div>

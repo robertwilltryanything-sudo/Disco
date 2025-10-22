@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { CD } from '../types';
 import { PlusIcon } from './icons/PlusIcon';
@@ -21,10 +18,10 @@ interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
   cdToEdit: CD | null;
   onCancel: () => void;
-  prefillData: { artist?: string, title?: string } | null;
+  prefill: Partial<CD> | null;
 }
 
-const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefillData }) => {
+const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill }) => {
   const [artist, setArtist] = useState('');
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
@@ -74,12 +71,19 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setNotes(cdToEdit.notes || '');
     } else {
       resetForm();
-      if (prefillData) {
-        setArtist(prefillData.artist || '');
-        setTitle(prefillData.title || '');
+      if (prefill) {
+        setArtist(prefill.artist || '');
+        setTitle(prefill.title || '');
+        setGenre(prefill.genre || '');
+        setYear(prefill.year || '');
+        setVersion(prefill.version || '');
+        setRecordLabel(prefill.recordLabel || '');
+        setTags(prefill.tags || []);
+        setCoverArtUrl(prefill.coverArtUrl);
+        setNotes(prefill.notes || '');
       }
     }
-  }, [cdToEdit, prefillData, resetForm]);
+  }, [cdToEdit, prefill, resetForm]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,7 +264,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   };
 
   const handleAddTag = useCallback(() => {
-    const newTag = currentTag.trim();
+    const newTag = currentTag.trim().toLowerCase();
     if (newTag && !tags.includes(newTag)) {
       setTags([...tags, newTag]);
     }
