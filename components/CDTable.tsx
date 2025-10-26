@@ -18,19 +18,19 @@ const CDTable: React.FC<CDTableProps> = ({ cds, onRequestEdit }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
-      <table className="w-full min-w-[600px] text-left">
-        <thead className="bg-zinc-50/75 border-b border-zinc-200 text-sm font-semibold text-zinc-600 uppercase tracking-wider">
+    <div className="md:bg-white md:rounded-lg md:border md:border-zinc-200 md:overflow-hidden">
+      <table className="w-full text-left">
+        <thead className="hidden md:table-header-group bg-zinc-50/75 border-b border-zinc-200 text-sm font-semibold text-zinc-600 uppercase tracking-wider">
           <tr>
             <th className="p-3 w-16" aria-label="Cover Art"></th>
             <th className="p-3">Title</th>
             <th className="p-3">Artist</th>
-            <th className="p-3 hidden sm:table-cell">Genre</th>
-            <th className="p-3 hidden md:table-cell">Year</th>
+            <th className="p-3">Genre</th>
+            <th className="p-3">Year</th>
             <th className="p-3 w-20" aria-label="Actions"></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="block md:table-row-group">
           {cds.map(cd => (
             <CDTableRow key={cd.id} cd={cd} onRequestEdit={onRequestEdit} />
           ))}
