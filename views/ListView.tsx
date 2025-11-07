@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo, useEffect, useCallback, useTransition } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
@@ -34,7 +32,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
   const [searchParams, setSearchParams] = useSearchParams();
   const urlSearchQuery = searchParams.get('q') || '';
 
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const handleSearch = useCallback((query: string) => {
     startTransition(() => {
