@@ -5,8 +5,10 @@ import { CD } from "./types";
  * @param str The input string.
  * @returns The capitalized string.
  */
-export const capitalizeWords = (str: string): string => {
-  if (!str) return '';
+export const capitalizeWords = (str: unknown): string => {
+  if (typeof str !== 'string' || !str) {
+    return '';
+  }
   return str.split(' ').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
   ).join(' ');

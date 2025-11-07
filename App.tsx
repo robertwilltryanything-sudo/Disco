@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode, WantlistItem } from './types';
@@ -174,14 +175,24 @@ const AppContent: React.FC = () => {
         try {
           const storedDataRaw = localStorage.getItem(COLLECTION_STORAGE_KEY);
           if (storedDataRaw) {
-            loadedData = JSON.parse(storedDataRaw);
+            const parsedData = JSON.parse(storedDataRaw);
+            // Backwards compatibility: handle old format (just an array of CDs)
+            // and new format ({ collection: CD[], ... })
+            if (Array.isArray(parsedData)) {
+              loadedData = { collection: parsedData.filter(Boolean), lastUpdated: null };
+            } else if (parsedData && Array.isArray(parsedData.collection)) {
+              loadedData = { ...parsedData, collection: (parsedData.collection || []).filter(Boolean) };
+            }
           } else {
             const cdsWithArt = await populateInitialArtwork(INITIAL_CDS);
             loadedData = { collection: cdsWithArt, lastUpdated: new Date().toISOString() };
           }
           const storedWantlistRaw = localStorage.getItem(WANTLIST_STORAGE_KEY);
           if (storedWantlistRaw) {
-              loadedWantlist = JSON.parse(storedWantlistRaw);
+              const parsedWantlist = JSON.parse(storedWantlistRaw);
+              if (Array.isArray(parsedWantlist)) {
+                loadedWantlist = parsedWantlist.filter(Boolean);
+              }
           } else {
               loadedWantlist = await populateInitialWantlistArtwork(INITIAL_WANTLIST);
           }
@@ -194,7 +205,7 @@ const AppContent: React.FC = () => {
       }
       // Supabase loading is handled by its own hook via real-time subscription
       if (syncProvider !== 'supabase') {
-        setCds(loadedData.collection);
+        setCds(loadedData.collection || []);
         setLastUpdated(loadedData.lastUpdated);
         setWantlist(loadedWantlist);
       }
@@ -219,7 +230,7 @@ const AppContent: React.FC = () => {
     } catch (error) {
       console.error("Error saving data to localStorage:", error);
     }
-  }, [debouncedCds, debouncedWantlist, lastUpdated, syncProvider]);
+  }, [debouncedCds, debouncedWantlist, syncProvider]);
   
   const fetchAndApplyAlbumDetails = useCallback(async <T extends Partial<CD> | Partial<WantlistItem>>(item: T): Promise<T> => {
     const shouldFetch = !item.genre || !item.recordLabel || !item.tags || item.tags.length === 0;

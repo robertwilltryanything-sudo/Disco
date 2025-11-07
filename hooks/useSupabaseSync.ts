@@ -1,4 +1,4 @@
-// FIX: Import Dispatch and SetStateAction to use for typing state setters without the 'React' namespace.
+
 import { useState, useEffect, useRef, Dispatch, SetStateAction, useCallback } from 'react';
 import { createClient, SupabaseClient, Session, User, RealtimeChannel } from '@supabase/supabase-js';
 import { CD, SyncStatus, SyncMode, WantlistItem, SyncProvider } from '../types';
@@ -8,10 +8,14 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
 let supabase: SupabaseClient | null = null;
 if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    try {
+        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (error) {
+        console.error("Failed to initialize Supabase client, sync features will be disabled.", error);
+        supabase = null;
+    }
 }
 
-// FIX: Use the imported Dispatch and SetStateAction types.
 export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, setWantlist: Dispatch<SetStateAction<WantlistItem[]>>, syncMode: SyncMode, syncProvider: SyncProvider) => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'disabled');
     const [error, setError] = useState<string | null>(supabase ? null : 'Supabase is not configured. The administrator needs to provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
@@ -105,8 +109,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         
         if (syncProvider !== 'supabase') {
             cleanup();
-            // When switching away from supabase, clear its state but don't clear the main app's collection
-            // which will be populated by the local provider.
             setSession(null);
             setUser(null);
             setSyncStatus('idle');
@@ -117,7 +119,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             loadDataFromSupabase();
             
             if (syncMode === 'realtime') {
-                // Subscribe to CD changes
                 const cdsChannel = supabase.channel('cds-changes')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'cds' }, (payload) => {
                         if (payload.eventType === 'INSERT') {
@@ -131,7 +132,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
                     .subscribe();
                 cdsChannelRef.current = cdsChannel;
                 
-                // Subscribe to Wantlist changes
                 const wantlistChannel = supabase.channel('wantlist-changes')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'wantlist' }, (payload) => {
                          if (payload.eventType === 'INSERT') {
@@ -193,7 +193,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         
         const newCd = data?.[0] as CD ?? null;
-        // Immediately update local state for a smoother UI, rather than waiting for the realtime event.
         if (newCd) {
             setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
         }
@@ -205,8 +204,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const updateCD = async (cd: CD) => {
         if (!supabase) return;
         
-        // Optimistically update the UI for a smoother experience.
-        // The real-time subscription will ensure consistency with the database.
         setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
         
         setSyncStatus('saving');
@@ -214,7 +211,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (error) {
             setError(error.message);
             setSyncStatus('error');
-            // TODO: Consider reverting the optimistic update on error
         } else {
             setSyncStatus('synced');
         }
@@ -223,7 +219,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const deleteCD = async (id: string) => {
         if (!supabase) return;
         
-        // Optimistically update the UI.
         setCollection(prev => prev.filter(c => c.id !== id));
 
         setSyncStatus('saving');
@@ -231,7 +226,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (error) {
             setError(error.message);
             setSyncStatus('error');
-             // TODO: Consider reverting the optimistic update on error
         } else {
             setSyncStatus('synced');
         }
@@ -249,7 +243,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         
         const newItem = data?.[0] as WantlistItem ?? null;
-        // Immediately update local state for a smoother UI.
         if (newItem) {
             setWantlist(prev => [newItem, ...prev.filter(item => item.id !== newItem.id)]);
         }
@@ -261,7 +254,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const updateWantlistItem = async (item: WantlistItem) => {
         if (!supabase) return;
 
-        // Optimistically update the UI.
         setWantlist(prev => prev.map(i => (i.id === item.id ? item : i)));
 
         setSyncStatus('saving');
@@ -277,7 +269,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const deleteWantlistItem = async (id: string) => {
         if (!supabase) return;
 
-        // Optimistically update the UI.
         setWantlist(prev => prev.filter(item => item.id !== id));
 
         setSyncStatus('saving');

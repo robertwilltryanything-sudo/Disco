@@ -1,3 +1,4 @@
+
 import React, { useMemo, useCallback, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { CD } from '../types';
@@ -98,7 +99,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
   }, [cd, onDeleteCD, navigate]);
 
   const handleArtistClick = useCallback(() => {
-    if (cd) {
+    if (cd?.artist) {
       navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` });
     }
   }, [navigate, cd]);
@@ -172,6 +173,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
                     onClick={handleArtistClick}
                     className="text-left w-full hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-800 rounded-sm p-1 -m-1"
                     aria-label={`View all albums by ${cd.artist}`}
+                    disabled={!cd.artist}
                 >
                     {capitalizeWords(cd.artist)}
                 </button>

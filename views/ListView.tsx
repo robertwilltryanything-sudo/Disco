@@ -1,4 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+
+
+
+import React, { useState, useMemo, useEffect, useCallback, useTransition } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CD, SortKey, SortOrder } from '../types';
 import CDList from '../components/CDList';
@@ -29,48 +32,29 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
   });
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const searchQuery = searchParams.get('q') || '';
+  const urlSearchQuery = searchParams.get('q') || '';
+
+  const [isPending, startTransition] = useTransition();
+
+  const handleSearch = useCallback((query: string) => {
+    startTransition(() => {
+      const newParams = new URLSearchParams(searchParams);
+      if (query) {
+        newParams.set('q', query);
+      } else {
+        newParams.delete('q');
+      }
+      setSearchParams(newParams, { replace: true });
+    });
+  }, [searchParams, setSearchParams]);
 
   const location = useLocation();
   const navigate = useNavigate();
 
-  const setSearchQuery = (query: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (query) {
-      newParams.set('q', query);
-    } else {
-      newParams.delete('q');
-    }
-    setSearchParams(newParams, { replace: true });
-  };
-  
-  // Effect to save view mode preference
   useEffect(() => {
     localStorage.setItem(VIEW_MODE_KEY, view);
   }, [view]);
 
-  // Effect to change default sort order for artist searches.
-  useEffect(() => {
-    if (searchQuery) {
-      const artistsInCollection = new Set(cds.map(cd => cd.artist.toLowerCase()));
-      const isArtistSearch = artistsInCollection.has(searchQuery.toLowerCase());
-
-      if (isArtistSearch) {
-        setSortBy('year');
-        setSortOrder('asc');
-      } else {
-        // Revert to default for non-artist searches.
-        setSortBy('created_at');
-        setSortOrder('desc');
-      }
-    } else {
-      // Revert to default when search is cleared.
-      setSortBy('created_at');
-      setSortOrder('desc');
-    }
-  }, [searchQuery, cds]);
-
-  // Effect to handle modal actions from navigation state (e.g., editing)
   useEffect(() => {
     const { editCdId, addAlbumForArtist } = location.state || {};
     let stateWasHandled = false;
@@ -87,7 +71,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
     }
 
     if (stateWasHandled) {
-      // Clear the state to prevent the modal from re-opening on re-renders.
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, cds, navigate, onRequestEdit, onRequestAdd]);
@@ -114,23 +97,20 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
     
     let currentFeaturedCdInCollection: CD | null = null;
     if (storedData && storedData.cdId) {
-        // .find() returns undefined if not found, so we coerce it to null to match the state's type.
         currentFeaturedCdInCollection = cds.find(cd => cd.id === storedData.cdId) || null;
     }
     
     const now = Date.now();
     const needsNewFeaturedAlbum = 
         !storedData || 
-        !currentFeaturedCdInCollection || // The old featured CD might have been deleted
+        !currentFeaturedCdInCollection ||
         (now - (storedData.timestamp || 0) > ONE_WEEK_IN_MS);
 
     if (needsNewFeaturedAlbum) {
-        // Select a new random CD. To avoid picking the same one if it exists, filter it out first.
         const potentialCds = currentFeaturedCdInCollection 
             ? cds.filter(cd => cd.id !== currentFeaturedCdInCollection!.id) 
             : cds;
         
-        // If filtering out the only CD leaves an empty array, fall back to the full list.
         const selectionPool = potentialCds.length > 0 ? potentialCds : cds;
 
         const randomIndex = Math.floor(Math.random() * selectionPool.length);
@@ -144,40 +124,37 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
             setFeaturedCd(newFeaturedCd);
         }
     } else {
-        // Set the existing one
         setFeaturedCd(currentFeaturedCdInCollection);
     }
   }, [cds]);
 
-  // Scroll to top whenever the filter criteria (search query) changes.
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [searchQuery]);
+  }, [urlSearchQuery]);
 
   const filteredAndSortedCds = useMemo(() => {
     return [...cds]
       .filter(cd => {
-        const lowerCaseQuery = searchQuery.toLowerCase();
+        if (!cd) return false;
+
+        const lowerCaseQuery = urlSearchQuery.toLowerCase();
         
-        // A decade search from the dashboard is a 4-digit number like "1980"
         const isNumericQuery = !isNaN(Number(lowerCaseQuery)) && lowerCaseQuery.length > 0;
         const isDecadeSearch = isNumericQuery && lowerCaseQuery.length === 4 && lowerCaseQuery.endsWith('0');
 
-        const yearMatches = cd.year && (
+        const yearMatches = cd.year != null && (
           isDecadeSearch
-            // For a decade search, check if the year is within the 10-year range.
             ? (cd.year >= Number(lowerCaseQuery) && cd.year <= Number(lowerCaseQuery) + 9)
-            // For other numeric searches, check if the year string includes the query.
             : cd.year.toString().includes(lowerCaseQuery)
         );
 
         return (
-          cd.artist.toLowerCase().includes(lowerCaseQuery) ||
-          cd.title.toLowerCase().includes(lowerCaseQuery) ||
+          (cd.artist && cd.artist.toLowerCase().includes(lowerCaseQuery)) ||
+          (cd.title && cd.title.toLowerCase().includes(lowerCaseQuery)) ||
           yearMatches ||
           (cd.genre && cd.genre.toLowerCase().includes(lowerCaseQuery)) ||
           (cd.recordLabel && cd.recordLabel.toLowerCase().includes(lowerCaseQuery)) ||
-          (cd.tags && cd.tags.some(tag => tag.toLowerCase().includes(lowerCaseQuery)))
+          (cd.tags && cd.tags.some(tag => tag && tag.toLowerCase().includes(lowerCaseQuery)))
         );
       })
       .sort((a, b) => {
@@ -196,81 +173,66 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
 
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [cds, searchQuery, sortBy, sortOrder]);
+  }, [cds, urlSearchQuery, sortBy, sortOrder]);
 
   return (
     <div>
-      {!searchQuery && (
+      {!urlSearchQuery && (
         <div className="lg:flex lg:gap-6 mb-8">
           <div className="lg:w-2/3">
             {featuredCd ? (
               <FeaturedAlbum cd={featuredCd} />
             ) : (
-              <div className="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center h-full text-center min-h-[250px]">
-                  <h3 className="text-xl font-bold text-zinc-800">Your Collection is Empty</h3>
-                  <p className="text-zinc-600 mt-2">Click the "Add CD" button to start building your collection.</p>
-                  <button
-                      onClick={() => onRequestAdd()}
-                      className="mt-4 flex-shrink-0 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
-                  >
-                      <PlusIcon className="h-5 w-5" />
-                      Add Your First CD
-                  </button>
+              <div className="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center h-full text-center min-h-[256px]">
+                <h3 className="text-xl font-bold text-zinc-800">Welcome to DiscO!</h3>
+                <p className="text-zinc-600 mt-2">Your collection is empty. Add your first CD to get started.</p>
+                <button
+                  onClick={() => onRequestAdd()}
+                  className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  Add a CD
+                </button>
               </div>
             )}
           </div>
-          <div className="hidden lg:block lg:w-1/3">
+          <div className="lg:w-1/3 mt-6 lg:mt-0">
             <QuickStats cds={cds} />
           </div>
         </div>
       )}
-
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div className="w-full md:w-2/3 lg:w-1/2">
-           <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        </div>
-        <div className="w-full md:w-auto flex items-center gap-2">
-          <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
-          <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
-            <button
-              onClick={() => setView('grid')}
-              className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-              aria-label="Grid View"
-              title="Grid View"
-            >
-              <Squares2x2Icon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setView('list')}
-              className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-              aria-label="List View"
-              title="List View"
-            >
-              <QueueListIcon className="w-5 h-5" />
-            </button>
+      <div className="sticky top-[89px] md:top-[93px] bg-zinc-100/80 backdrop-blur-sm z-10 py-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          <SearchBar initialQuery={urlSearchQuery} onSearch={handleSearch} />
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
+            <div className="hidden sm:flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
+                <button 
+                  onClick={() => setView('grid')} 
+                  className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  aria-label="Grid View"
+                  title="Grid View"
+                >
+                    <Squares2x2Icon className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => setView('list')}
+                  className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  aria-label="List View"
+                  title="List View"
+                >
+                    <QueueListIcon className="w-5 h-5" />
+                </button>
+            </div>
           </div>
         </div>
       </div>
-      
-      {searchQuery && (
-        <div className="mb-4 -mt-2 text-right">
-          <span className="text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full">
-            {filteredAndSortedCds.length}
-          </span>
-        </div>
-      )}
       
       {view === 'grid' ? (
         <CDList cds={filteredAndSortedCds} />
       ) : (
         <CDTable cds={filteredAndSortedCds} onRequestEdit={onRequestEdit} />
       )}
-      
-      {/* Mobile-only Collection Snapshot Footer Section */}
-      <div className="lg:hidden mt-8">
-        <QuickStats cds={cds} className="!h-auto" />
-      </div>
-
     </div>
   );
 };

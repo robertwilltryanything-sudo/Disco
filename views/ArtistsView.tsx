@@ -10,10 +10,15 @@ interface ArtistsViewProps {
 
 const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
   const artists = useMemo(() => {
-    const artistSet = new Set(cds.map(cd => cd.artist));
-    // FIX: Explicitly type `a` and `b` as strings to inform TypeScript of their type,
-    // resolving the error where `localeCompare` was being called on an `unknown` type.
-    return [...artistSet].sort((a: string, b: string) => a.localeCompare(b));
+    // Filter for CDs that have a valid, non-empty artist string to prevent errors.
+    // FIX: Explicitly type the Set to ensure TypeScript infers a Set of strings,
+    // which allows for correct type inference during the sort operation.
+    const artistSet = new Set<string>(
+        cds.filter(cd => cd && typeof cd.artist === 'string' && cd.artist)
+           .map(cd => cd.artist)
+    );
+    // Now that we're guaranteed to have strings, we can sort safely.
+    return [...artistSet].sort((a, b) => a.localeCompare(b));
   }, [cds]);
 
   return (

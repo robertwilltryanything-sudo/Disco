@@ -99,10 +99,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
     };
 
     const { uniqueArtists, albumsByDecade, topGenres, topLabels } = useMemo(() => {
-        const artistSet = new Set(cds.map(cd => cd.artist));
+        const validCds = cds.filter(cd => cd); // Ensure cd object exists
+
+        const artistSet = new Set(validCds.filter(cd => cd.artist).map(cd => cd.artist));
 
         const decadeCounts: { [key: string]: number } = {};
-        cds.forEach(cd => {
+        validCds.forEach(cd => {
             if (cd.year) {
                 const decade = Math.floor(cd.year / 10) * 10;
                 const decadeLabel = `${decade}s`;
@@ -116,10 +118,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
         
         const countItems = (key: 'genre' | 'recordLabel') => {
             const counts: { [key: string]: number } = {};
-            cds.forEach(cd => {
+            validCds.forEach(cd => {
                 const item = cd[key];
                 if (item) {
-                    // Use original casing for display, but lowercase for counting
                     const lowerItem = item.toLowerCase();
                     counts[lowerItem] = (counts[lowerItem] || 0) + 1;
                 }
@@ -137,50 +138,43 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
             topLabels: countItems('recordLabel'),
         };
     }, [cds]);
-
-
-  return (
-    <div className="space-y-6">
-        <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-zinc-800">Collection Dashboard</h1>
-            <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium"
-            >
-            <ArrowLeftIcon className="h-5 w-5" />
-            Back to Collection
+    
+    return (
+    <div>
+        <div className="mb-6 flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-zinc-800">Dashboard</h1>
+            <Link to="/" className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium">
+                <ArrowLeftIcon className="h-5 w-5" />
+                Back to Collection
             </Link>
         </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
-                <p className="text-sm font-medium text-zinc-500 uppercase">Total CDs</p>
-                <p className="text-4xl text-zinc-900 mt-1">{cds.length}</p>
+
+        {cds.length === 0 ? (
+             <div className="text-center py-10 px-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300">
+                <p className="text-zinc-600">Your collection is empty.</p>
+                <p className="text-sm text-zinc-500 mt-1">Add some CDs to see your stats here!</p>
             </div>
-            <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
-                <p className="text-sm font-medium text-zinc-500 uppercase">Unique Artists</p>
-                <p className="text-4xl text-zinc-900 mt-1">{uniqueArtists}</p>
-            </div>
-        </div>
-        
-        <BarChart 
-            data={albumsByDecade} 
-            title="Albums by Decade" 
-            onFilter={handleNavigate}
-        />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <TopItemsList 
-                data={topGenres} 
-                title="Top 5 Genres"
-                onFilter={handleNavigate}
-            />
-            <TopItemsList 
-                data={topLabels} 
-                title="Top 5 Record Labels" 
-                onFilter={handleNavigate}
-            />
-        </div>
+        ) : (
+            <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                    <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
+                        <h3 className="text-lg font-bold text-zinc-800">Total Albums</h3>
+                        <p className="text-4xl font-extrabold text-zinc-900 mt-2">{cds.length}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
+                        <h3 className="text-lg font-bold text-zinc-800">Unique Artists</h3>
+                        <p className="text-4xl font-extrabold text-zinc-900 mt-2">{uniqueArtists}</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <BarChart data={albumsByDecade} title="Albums by Decade" onFilter={handleNavigate} />
+                    <div className="space-y-6">
+                        <TopItemsList data={topGenres} title="Top 5 Genres" onFilter={handleNavigate} />
+                        <TopItemsList data={topLabels} title="Top 5 Record Labels" onFilter={handleNavigate} />
+                    </div>
+                </div>
+            </>
+        )}
     </div>
   );
 };

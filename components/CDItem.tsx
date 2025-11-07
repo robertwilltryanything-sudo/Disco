@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CD } from '../types';
@@ -39,10 +40,12 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
   const handleArtistClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate({
-        pathname: '/',
-        search: `?q=${encodeURIComponent(cd.artist)}`
-    });
+    if (cd.artist) {
+        navigate({
+            pathname: '/',
+            search: `?q=${encodeURIComponent(cd.artist)}`
+        });
+    }
   }, [cd.artist, navigate]);
   
   const details = useMemo(() => {
@@ -71,6 +74,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
           onClick={handleArtistClick}
           className="text-left w-full text-sm text-zinc-600 truncate hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 rounded-sm"
           title={cd.artist}
+          disabled={!cd.artist}
         >
           {capitalizeWords(cd.artist)}
         </button>

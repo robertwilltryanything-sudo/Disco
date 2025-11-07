@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CD } from '../types';
@@ -24,78 +25,90 @@ const StatItem: React.FC<{ label: string; value: string | number; icon: React.Re
 
 const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '' }) => {
   const { totalCDs, uniqueArtists, latestCD, mostProlificArtist } = useMemo(() => {
-    if (cds.length === 0) {
-      return {
-        totalCDs: 0,
-        uniqueArtists: 0,
-        latestCD: null,
-        mostProlificArtist: null,
-      };
+    if (!cds || cds.length === 0) {
+      return { totalCDs: 0, uniqueArtists: 0, latestCD: null, mostProlificArtist: null };
     }
 
-    const uniqueArtistsSet = new Set(cds.map(cd => cd.artist));
-    const latestCD = cds[0]; // Most recently added CD is at the start of the array
-    
-    const artistCounts: { [artist: string]: number } = {};
+    // Safely sort to find the latest CD. The `|| 0` fallback prevents crashes
+    // if `created_at` is missing on legacy data items. Items without a valid date
+    // are treated as the oldest.
+    const latest = [...cds].sort((a, b) => {
+        const dateA = new Date(a?.created_at || 0).getTime();
+        const dateB = new Date(b?.created_at || 0).getTime();
+        return dateB - dateA;
+    })[0] || null;
+
+    const artistCounts: { [key: string]: number } = {};
     cds.forEach(cd => {
-      artistCounts[cd.artist] = (artistCounts[cd.artist] || 0) + 1;
+      if (cd && cd.artist) {
+        artistCounts[cd.artist] = (artistCounts[cd.artist] || 0) + 1;
+      }
     });
 
-    let prolificArtist: { artist: string; count: number } | null = null;
-    if (Object.keys(artistCounts).length > 0) {
-      const [artist, count] = Object.entries(artistCounts).reduce((a, b) => a[1] > b[1] ? a : b);
-      if (count > 1) { // Only show if an artist has more than one album
-        prolificArtist = { artist, count };
+    const uniqueArtistCount = Object.keys(artistCounts).length;
+
+    let prolificArtist: { name: string; count: number } | null = null;
+    if (uniqueArtistCount > 0) {
+      const sortedArtists = Object.entries(artistCounts).sort(([, a], [, b]) => b - a);
+      if (sortedArtists.length > 0) {
+        const [name, count] = sortedArtists[0];
+        prolificArtist = { name, count };
       }
     }
 
     return {
       totalCDs: cds.length,
-      uniqueArtists: uniqueArtistsSet.size,
-      latestCD,
+      uniqueArtists: uniqueArtistCount,
+      latestCD: latest,
       mostProlificArtist: prolificArtist,
     };
   }, [cds]);
 
   return (
-    <div className={`bg-white rounded-lg border border-zinc-200 p-4 h-full flex flex-col ${className}`}>
-      <p className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Collection Snapshot</p>
-      <div className="divide-y divide-zinc-200">
-        <StatItem label="Total CDs" value={totalCDs} icon={<QueueListIcon className="w-5 h-5 text-zinc-400" />} />
-        <StatItem label="Unique Artists" value={uniqueArtists} icon={<UserIcon className="w-5 h-5 text-zinc-400" />} />
-        {latestCD && (
-          <Link to={`/cd/${latestCD.id}`} className="block group hover:bg-zinc-50 -mx-4 px-4 rounded-lg transition-colors duration-150">
-            <div className="flex justify-between items-center py-3 gap-4">
-                <div className="flex items-center gap-3">
-                    <ClockIcon className="w-5 h-5 text-zinc-400" />
-                    <span className="text-sm font-medium text-zinc-600 flex-shrink-0">Latest Addition</span>
-                </div>
-              <span 
-                className="font-medium text-zinc-900 truncate group-hover:underline text-right" 
-                title={latestCD.title}>
-                  {latestCD.title}
-              </span>
-            </div>
-          </Link>
-        )}
-        {mostProlificArtist && (
-            <Link to={`/?q=${encodeURIComponent(mostProlificArtist.artist)}`} className="block group hover:bg-zinc-50 -mx-4 px-4 rounded-lg transition-colors duration-150">
-                <div className="flex justify-between items-center py-3 gap-4">
+    <div className={`bg-white rounded-lg border border-zinc-200 p-6 h-full flex flex-col ${className}`}>
+        <h3 className="text-lg font-bold text-zinc-800">Collection Snapshot</h3>
+        <div className="divide-y divide-zinc-200 flex-grow">
+            <StatItem label="Total CDs" value={totalCDs} icon={<QueueListIcon className="w-5 h-5 text-zinc-500" />} />
+            <StatItem label="Unique Artists" value={uniqueArtists} icon={<UserIcon className="w-5 h-5 text-zinc-500" />} />
+            {latestCD && (
+                <div className="flex justify-between items-center py-3">
                     <div className="flex items-center gap-3">
-                        <StarIcon className="w-5 h-5 text-zinc-400" />
-                        <span className="text-sm font-medium text-zinc-600 flex-shrink-0">Top Artist</span>
+                        <ClockIcon className="w-5 h-5 text-zinc-500" />
+                        <span className="text-sm font-medium text-zinc-600">Latest Addition</span>
                     </div>
-                    <span
-                        className="font-medium text-zinc-900 truncate group-hover:underline text-right"
-                        title={`${capitalizeWords(mostProlificArtist.artist)}`}>
-                        {`${capitalizeWords(mostProlificArtist.artist)}`}
-                    </span>
+                    <Link
+                        to={`/cd/${latestCD.id}`}
+                        className="font-medium text-zinc-900 text-right text-sm hover:underline truncate"
+                        title={`${latestCD.title} by ${latestCD.artist}`}
+                    >
+                        {latestCD.title}
+                    </Link>
                 </div>
-            </Link>
-        )}
-      </div>
+            )}
+            {mostProlificArtist && (
+                <div className="flex justify-between items-center py-3">
+                    <div className="flex items-center gap-3">
+                        <StarIcon className="w-5 h-5 text-zinc-500" />
+                        <span className="text-sm font-medium text-zinc-600">Top Artist</span>
+                    </div>
+                    <Link
+                        to={`/?q=${encodeURIComponent(mostProlificArtist.name)}`}
+                        className="font-medium text-zinc-900 text-right text-sm hover:underline truncate"
+                        title={`${mostProlificArtist.name} (${mostProlificArtist.count} albums)`}
+                    >
+                        {capitalizeWords(mostProlificArtist.name)}
+                    </Link>
+                </div>
+            )}
+        </div>
+        <Link 
+            to="/dashboard"
+            className="mt-4 block w-full text-center bg-zinc-100 text-zinc-800 font-bold py-2 px-4 rounded-lg hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+        >
+            View Full Dashboard
+        </Link>
     </div>
   );
 };
 
-export default React.memo(QuickStats);
+export default QuickStats;
