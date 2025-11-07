@@ -156,7 +156,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
             </div>
         ) : (
             <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                <div className="grid grid-cols-2 gap-6 mb-6">
                     <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
                         <h3 className="text-lg font-bold text-zinc-800">Total Albums</h3>
                         <p className="text-4xl font-extrabold text-zinc-900 mt-2">{cds.length}</p>
