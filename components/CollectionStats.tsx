@@ -1,10 +1,11 @@
 
+
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CD } from '../types';
 import { capitalizeWords } from '../utils';
-import { QueueListIcon } from './icons/QueueListIcon';
-import { UserIcon } from './icons/UserIcon';
+import { AlbumIcon } from './icons/AlbumIcon';
+import { MusicianIcon } from './icons/MusicianIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { StarIcon } from './icons/StarIcon';
 
@@ -68,8 +69,8 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '' }) => {
     <div className={`bg-white rounded-lg border border-zinc-200 p-6 h-full flex flex-col ${className}`}>
         <h3 className="text-lg font-bold text-zinc-800">Collection Snapshot</h3>
         <div className="divide-y divide-zinc-200 flex-grow">
-            <StatItem label="Total CDs" value={totalCDs} icon={<QueueListIcon className="w-5 h-5 text-zinc-500" />} />
-            <StatItem label="Unique Artists" value={uniqueArtists} icon={<UserIcon className="w-5 h-5 text-zinc-500" />} />
+            <StatItem label="Total CDs" value={totalCDs} icon={<AlbumIcon className="w-5 h-5 text-zinc-500" />} />
+            <StatItem label="Unique Artists" value={uniqueArtists} icon={<MusicianIcon className="w-5 h-5 text-zinc-500" />} />
             {latestCD && (
                 <div className="flex justify-between items-center py-3">
                     <div className="flex items-center gap-3">

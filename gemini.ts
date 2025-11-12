@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { CD } from './types';
+import { CD, DiscographyAlbum } from './types';
 
 // The API key is sourced from the environment variables via Vite's `define` config.
 const apiKey = process.env.API_KEY;
@@ -81,6 +81,57 @@ const albumDetailsSchema = {
         },
     },
 };
+
+const discographySchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            title: {
+                type: Type.STRING,
+                description: "The title of the studio album.",
+            },
+            year: {
+                type: Type.INTEGER,
+                description: "The four-digit year the album was originally released.",
+            },
+        },
+        required: ["title", "year"],
+    },
+};
+
+export async function getArtistDiscography(artistName: string): Promise<DiscographyAlbum[] | null> {
+    // Gracefully disable the feature if the AI client isn't available.
+    if (!ai) return Promise.resolve(null);
+
+    try {
+        const prompt = `Provide a list of official studio albums for the artist "${artistName}". For each album, include its title and original release year. Do not include live albums, compilations, or EPs. Respond in JSON format.`;
+        
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: discographySchema,
+            },
+        });
+        
+        const text = response.text;
+        if (!text) {
+            console.warn(`Gemini response for discography of "${artistName}" was empty.`);
+            return null;
+        }
+
+        const jsonString = text.trim();
+        const discographyData = JSON.parse(jsonString);
+        return discographyData as DiscographyAlbum[];
+
+    } catch (error) {
+        console.error(`Error fetching discography for "${artistName}" with Gemini:`, error);
+        return null;
+    }
+}
+
 
 export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
     // Gracefully disable the feature if the AI client isn't available.

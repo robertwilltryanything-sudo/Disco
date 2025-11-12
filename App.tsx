@@ -26,6 +26,7 @@ import WantlistView from './views/WantlistView';
 import { PlusIcon } from './components/icons/PlusIcon';
 import AddWantlistItemForm from './components/AddWantlistItemForm';
 import WantlistDetailView from './views/WantlistDetailView';
+import ArtistDetailView from './views/ArtistDetailView';
 
 const INITIAL_CDS: CD[] = [
   { id: '2', artist: 'U2', title: 'The Joshua Tree', genre: 'Rock', year: 1987, recordLabel: 'Island', tags: ['80s rock', 'classic rock'], created_at: '2024-07-29T10:00:04Z' },
@@ -544,6 +545,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<RouteWrapper><ListView cds={cds} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />
           <Route path="/cd/:id" element={<RouteWrapper><DetailView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
           <Route path="/artists" element={<RouteWrapper><ArtistsView cds={cds} /></RouteWrapper>} />
+          <Route path="/artist/:artistName" element={<RouteWrapper><ArtistDetailView cds={cds} wantlist={wantlist} onAddToWantlist={handleAddWantlistItem} /></RouteWrapper>} />
           <Route path="/dashboard" element={<RouteWrapper><DashboardView cds={cds} /></RouteWrapper>} />
           <Route path="/duplicates" element={<RouteWrapper><DuplicatesView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
           <Route path="/wantlist" element={<RouteWrapper><WantlistView wantlist={wantlist} onRequestEdit={handleRequestEditWantlistItem} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} /></RouteWrapper>} />

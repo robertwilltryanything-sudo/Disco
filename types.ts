@@ -41,3 +41,8 @@ export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'd
 export type SyncProvider = 'supabase' | 'none';
 
 export type SyncMode = 'realtime' | 'manual';
+
+export interface DiscographyAlbum {
+  title: string;
+  year: number;
+}

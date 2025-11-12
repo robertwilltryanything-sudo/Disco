@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CD } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { capitalizeWords } from '../utils';
+import { AlbumIcon } from '../components/icons/AlbumIcon';
+import { MusicianIcon } from '../components/icons/MusicianIcon';
 
 interface DashboardViewProps {
   cds: CD[];
@@ -156,14 +158,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
             </div>
         ) : (
             <>
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                    <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
-                        <h3 className="text-lg font-bold text-zinc-800">Total Albums</h3>
-                        <p className="text-4xl font-extrabold text-zinc-900 mt-2">{cds.length}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                    <div className="relative bg-white rounded-lg border border-zinc-200 p-6 overflow-hidden">
+                       <div className="relative z-10">
+                         <h3 className="text-base font-bold text-zinc-500 uppercase tracking-wider">
+                           Total Albums
+                         </h3>
+                         <p className="text-4xl font-extrabold text-zinc-900 mt-1">{cds.length}</p>
+                       </div>
+                       <AlbumIcon className="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-100" />
                     </div>
-                    <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
-                        <h3 className="text-lg font-bold text-zinc-800">Unique Artists</h3>
-                        <p className="text-4xl font-extrabold text-zinc-900 mt-2">{uniqueArtists}</p>
+                    <div className="relative bg-white rounded-lg border border-zinc-200 p-6 overflow-hidden">
+                        <div className="relative z-10">
+                           <h3 className="text-base font-bold text-zinc-500 uppercase tracking-wider">
+                              Unique Artists
+                           </h3>
+                           <p className="text-4xl font-extrabold text-zinc-900 mt-1">{uniqueArtists}</p>
+                       </div>
+                       <MusicianIcon className="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-100" />
                     </div>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
