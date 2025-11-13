@@ -1,7 +1,8 @@
 
+
 import React, { useState, useMemo, useEffect, useCallback, useTransition } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { CD, SortKey, SortOrder } from '../types';
+import { CD, SortKey, SortOrder, WantlistItem } from '../types';
 import CDList from '../components/CDList';
 import SearchBar from '../components/SearchBar';
 import SortControls from '../components/SortControls';
@@ -11,16 +12,20 @@ import QuickStats from '../components/CollectionStats';
 import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import CDTable from '../components/CDTable';
+import { areStringsSimilar } from '../utils';
+import MissingAlbumScanner from '../components/MissingAlbumScanner';
 
 interface ListViewProps {
   cds: CD[];
+  wantlist: WantlistItem[];
+  onAddToWantlist: (item: Omit<WantlistItem, 'id' | 'created_at'>) => Promise<void>;
   onRequestAdd: (artist?: string) => void;
   onRequestEdit: (cd: CD) => void;
 }
 
 const VIEW_MODE_KEY = 'disco_view_mode';
 
-const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit }) => {
+const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onRequestAdd, onRequestEdit }) => {
   const [sortBy, setSortBy] = useState<SortKey>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
@@ -130,8 +135,8 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
     window.scrollTo(0, 0);
   }, [urlSearchQuery]);
 
-  const filteredAndSortedCds = useMemo(() => {
-    return [...cds]
+  const { filteredAndSortedCds, potentialArtistForScan } = useMemo(() => {
+    const filtered = [...cds]
       .filter(cd => {
         if (!cd) return false;
 
@@ -154,7 +159,9 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
           (cd.recordLabel && cd.recordLabel.toLowerCase().includes(lowerCaseQuery)) ||
           (cd.tags && cd.tags.some(tag => tag && tag.toLowerCase().includes(lowerCaseQuery)))
         );
-      })
+      });
+    
+    const sorted = [...filtered]
       .sort((a, b) => {
         const valA = a[sortBy];
         const valB = b[sortBy];
@@ -171,6 +178,21 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
 
         return sortOrder === 'asc' ? comparison : -comparison;
       });
+
+    let artistForScan: string | null = null;
+    if (urlSearchQuery && sorted.length > 0) {
+      const firstArtist = sorted[0].artist;
+      // Condition 1: All results must be from the same artist.
+      const allSameArtist = sorted.every(cd => areStringsSimilar(cd.artist, firstArtist, 0.95));
+      // Condition 2: The search query itself must be similar to that artist's name.
+      const queryMatchesArtist = areStringsSimilar(urlSearchQuery, firstArtist, 0.85);
+
+      if (allSameArtist && queryMatchesArtist) {
+        // Use the artist name from the data for accuracy, not the user's potentially misspelled query.
+        artistForScan = firstArtist;
+      }
+    }
+    return { filteredAndSortedCds: sorted, potentialArtistForScan: artistForScan };
   }, [cds, urlSearchQuery, sortBy, sortOrder]);
 
   return (
@@ -230,6 +252,17 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit })
         <CDList cds={filteredAndSortedCds} />
       ) : (
         <CDTable cds={filteredAndSortedCds} onRequestEdit={onRequestEdit} />
+      )}
+
+      {potentialArtistForScan && filteredAndSortedCds.length > 0 && (
+        <div className="mt-8">
+          <MissingAlbumScanner 
+            artistName={potentialArtistForScan}
+            userAlbumsByArtist={filteredAndSortedCds}
+            wantlist={wantlist}
+            onAddToWantlist={onAddToWantlist}
+          />
+        </div>
       )}
     </div>
   );

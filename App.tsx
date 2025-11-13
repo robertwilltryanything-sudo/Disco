@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode, WantlistItem } from './types';
@@ -542,7 +543,18 @@ const AppContent: React.FC = () => {
           isOnWantlistPage={isOnWantlistPage}
         />
         <Routes>
-          <Route path="/" element={<RouteWrapper><ListView cds={cds} onRequestAdd={handleRequestAdd} onRequestEdit={handleRequestEdit} /></RouteWrapper>} />
+          <Route 
+            path="/" 
+            element={
+              <RouteWrapper>
+                <ListView 
+                  cds={cds} 
+                  onRequestAdd={handleRequestAdd} 
+                  onRequestEdit={handleRequestEdit} 
+                  wantlist={wantlist} 
+                  onAddToWantlist={handleAddWantlistItem} />
+              </RouteWrapper>} 
+          />
           <Route path="/cd/:id" element={<RouteWrapper><DetailView cds={cds} onDeleteCD={handleDeleteCD} /></RouteWrapper>} />
           <Route path="/artists" element={<RouteWrapper><ArtistsView cds={cds} /></RouteWrapper>} />
           <Route path="/artist/:artistName" element={<RouteWrapper><ArtistDetailView cds={cds} wantlist={wantlist} onAddToWantlist={handleAddWantlistItem} /></RouteWrapper>} />
