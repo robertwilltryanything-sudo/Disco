@@ -224,32 +224,39 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
       <div className="sticky top-[89px] md:top-[93px] bg-zinc-100/80 backdrop-blur-sm z-10 py-3 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
           <SearchBar initialQuery={urlSearchQuery} onSearch={handleSearch} />
-          <div className="grid grid-cols-[1fr_auto] gap-2">
+          <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
             <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
-            <div className="hidden sm:flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
-                <button 
-                  onClick={() => setView('grid')} 
-                  className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  aria-label="Grid View"
-                  title="Grid View"
-                >
-                    <Squares2x2Icon className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={() => setView('list')}
-                  className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  aria-label="List View"
-                  title="List View"
-                >
-                    <QueueListIcon className="w-5 h-5" />
-                </button>
+            <div className="hidden sm:flex items-center gap-2">
+                <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
+                    <button 
+                      onClick={() => setView('grid')} 
+                      className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      aria-label="Grid View"
+                      title="Grid View"
+                    >
+                        <Squares2x2Icon className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => setView('list')}
+                      className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      aria-label="List View"
+                      title="List View"
+                    >
+                        <QueueListIcon className="w-5 h-5" />
+                    </button>
+                </div>
+                {urlSearchQuery && (
+                    <span className="flex items-center justify-center text-sm font-semibold text-zinc-500 bg-zinc-200 w-7 h-7 rounded-full">
+                        {filteredAndSortedCds.length}
+                    </span>
+                )}
             </div>
           </div>
         </div>
         {urlSearchQuery && (
           <div className="mt-3 text-center sm:text-left">
             <p className="text-sm font-medium text-zinc-700">
-              Found <span className="font-bold text-zinc-900">{filteredAndSortedCds.length}</span> {filteredAndSortedCds.length === 1 ? 'result' : 'results'} for <span className="font-bold text-zinc-900">"{urlSearchQuery}"</span>
+                Found {filteredAndSortedCds.length} result{filteredAndSortedCds.length !== 1 ? 's' : ''}.
             </p>
           </div>
         )}
