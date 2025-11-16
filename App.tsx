@@ -34,7 +34,7 @@ const INITIAL_CDS: CD[] = [
   { id: '1', artist: 'U2', title: 'War', genre: 'Post-Punk', year: 1983, recordLabel: 'Island', tags: ['80s rock', 'political', 'post-punk'], created_at: '2024-07-29T10:00:03Z' },
   { id: '3', artist: 'The Beatles', title: 'Abbey Road', genre: 'Rock', year: 1969, version: '2009 Remaster', recordLabel: 'Apple', tags: ['60s rock', 'classic rock'], created_at: '2024-07-29T10:00:02Z' },
   { id: '6', artist: 'Fleetwood Mac', title: 'Rumours', genre: 'Rock', year: 1977, recordLabel: 'Warner Bros.', tags: ['70s rock', 'soft rock'], created_at: '2024-07-29T10:00:01Z' },
-  { id: '7', artist: 'Jean Michel Jarre', title: 'Equinoxe', genre: 'Electronic', year: 1978, recordLabel: 'Disques Dreyfus', tags: ['electronic', 'ambient', '70s'], created_at: '2024-07-29T10:00:00Z' },
+  { id: '7', artist: 'Jean Michel Jarre', title: 'Équinoxe', genre: 'Electronic', year: 1978, recordLabel: 'Disques Dreyfus', tags: ['electronic', 'ambient', '70s'], created_at: '2024-07-29T10:00:00Z' },
 ];
 
 const INITIAL_WANTLIST: WantlistItem[] = [

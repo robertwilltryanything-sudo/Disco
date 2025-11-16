@@ -246,6 +246,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
             </div>
           </div>
         </div>
+        {urlSearchQuery && (
+          <div className="mt-3 text-center sm:text-left">
+            <p className="text-sm font-medium text-zinc-700">
+              Found <span className="font-bold text-zinc-900">{filteredAndSortedCds.length}</span> {filteredAndSortedCds.length === 1 ? 'result' : 'results'} for <span className="font-bold text-zinc-900">"{urlSearchQuery}"</span>
+            </p>
+          </div>
+        )}
       </div>
       
       {view === 'grid' ? (

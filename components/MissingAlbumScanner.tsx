@@ -69,6 +69,7 @@ const MissingAlbumScanner: React.FC<MissingAlbumScannerProps> = ({ artistName, u
                 <h2 className="text-xl font-bold text-zinc-800">Missing Something?</h2>
                 <p className="mt-2 text-zinc-600 max-w-md mx-auto">Compare your collection against this artist's official studio discography to find out what you're missing.</p>
                 <button
+                    type="button"
                     onClick={handleCompare}
                     className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-6 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 mx-auto"
                 >
@@ -94,6 +95,7 @@ const MissingAlbumScanner: React.FC<MissingAlbumScannerProps> = ({ artistName, u
                  <h2 className="text-xl font-bold text-red-600">Scan Failed</h2>
                  <p className="mt-2 text-zinc-600 max-w-md mx-auto">{apiError}</p>
                  <button
+                    type="button"
                     onClick={handleCompare}
                     className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black mx-auto"
                  >
@@ -144,6 +146,7 @@ const MissingAlbumScanner: React.FC<MissingAlbumScannerProps> = ({ artistName, u
                 </div>
                 <div className="mt-6 text-center">
                     <button
+                        type="button"
                         onClick={handleCompare}
                         className="text-sm font-semibold text-zinc-600 hover:text-zinc-900"
                     >

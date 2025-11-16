@@ -20,17 +20,22 @@ const MissingAlbumItem: React.FC<MissingAlbumItemProps> = ({ album, artistName, 
   }, [wantlist, artistName, album.title]);
 
   return (
-    <div className="flex items-center gap-3 bg-zinc-50 p-3 rounded-md border border-zinc-200">
+    <div className={`flex items-center gap-3 p-3 rounded-md border transition-colors duration-300 ${
+        isOnWantlist 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-zinc-50 border-zinc-200'
+    }`}>
       <div className="flex-shrink-0">
-        <QuestionMarkCircleIcon className="w-8 h-8 text-zinc-400" />
+        <QuestionMarkCircleIcon className={`w-8 h-8 transition-colors duration-300 ${isOnWantlist ? 'text-green-400' : 'text-zinc-400'}`} />
       </div>
       <div className="flex-grow">
-        <p className="font-semibold text-zinc-800">{album.title}</p>
-        <p className="text-sm text-zinc-600">{album.year}</p>
+        <p className={`font-semibold transition-colors duration-300 ${isOnWantlist ? 'text-green-900' : 'text-zinc-800'}`}>{album.title}</p>
+        <p className={`text-sm transition-colors duration-300 ${isOnWantlist ? 'text-green-700' : 'text-zinc-600'}`}>{album.year}</p>
       </div>
       <div className="flex-shrink-0">
         {isOnWantlist ? (
           <button
+            type="button"
             disabled
             className="flex items-center gap-1.5 text-sm font-semibold py-1.5 px-3 rounded-md bg-green-100 text-green-700"
           >
@@ -39,6 +44,7 @@ const MissingAlbumItem: React.FC<MissingAlbumItemProps> = ({ album, artistName, 
           </button>
         ) : (
           <button
+            type="button"
             onClick={onAddToWantlist}
             className="flex items-center gap-1.5 text-sm font-semibold py-1.5 px-3 rounded-md bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
