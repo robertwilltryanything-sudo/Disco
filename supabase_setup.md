@@ -1,3 +1,5 @@
+
+
 # Supabase Database Setup
 
 For the application to function correctly with Supabase sync, your database needs to have the correct tables and security policies. Run the following SQL queries in your project's **SQL Editor** in the Supabase Dashboard.

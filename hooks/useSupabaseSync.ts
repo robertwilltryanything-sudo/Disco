@@ -29,9 +29,11 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('loading');
         setError(null);
         
+        // Supabase defaults to 1000 rows per request. We explicitly set a range to allow larger collections.
+        // We fetch up to 5000 items. For collections larger than this, pagination logic would be required.
         const [cdsResult, wantlistResult] = await Promise.all([
-            supabase.from('cds').select('*').order('created_at', { ascending: false }),
-            supabase.from('wantlist').select('*').order('created_at', { ascending: false })
+            supabase.from('cds').select('*').range(0, 4999).order('created_at', { ascending: false }),
+            supabase.from('wantlist').select('*').range(0, 4999).order('created_at', { ascending: false })
         ]);
 
         const errors: string[] = [];

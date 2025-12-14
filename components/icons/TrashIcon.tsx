@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 export const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (

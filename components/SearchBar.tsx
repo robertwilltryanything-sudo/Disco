@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { SearchIcon } from './icons/SearchIcon';
 import { XIcon } from './icons/XIcon';

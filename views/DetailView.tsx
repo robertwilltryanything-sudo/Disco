@@ -1,4 +1,3 @@
-
 import React, { useMemo, useCallback, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { CD } from '../types';
@@ -12,16 +11,21 @@ import { capitalizeWords } from '../utils';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { getAlbumDetails } from '../gemini';
+import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 
 interface DetailViewProps {
   cds: CD[];
   onDeleteCD: (id: string) => void;
+  onUpdateCD: (cd: CD) => Promise<void>;
 }
 
-const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
+const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { cd, previousCd, nextCd } = useMemo(() => {
     const currentIndex = cds.findIndex(c => c.id === id);
@@ -80,12 +84,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
     }
   }, [navigate, cd]);
 
-  const handleAddAnotherByArtist = useCallback(() => {
-    if (cd) {
-      navigate('/', { state: { addAlbumForArtist: cd.artist } });
-    }
-  }, [navigate, cd]);
-  
   const handleRequestDelete = useCallback(() => {
     setIsDeleteModalOpen(true);
   }, []);
@@ -98,6 +96,29 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
     }
   }, [cd, onDeleteCD, navigate]);
 
+  const handleRefreshData = useCallback(async () => {
+      if (!cd) return;
+      setIsRefreshing(true);
+      try {
+          const details = await getAlbumDetails(cd.artist, cd.title);
+          if (details) {
+              const updatedCd: CD = {
+                  ...cd,
+                  genre: cd.genre || details.genre,
+                  recordLabel: cd.recordLabel || details.recordLabel,
+                  year: cd.year || details.year,
+                  tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])],
+              };
+              await onUpdateCD(updatedCd);
+          }
+      } catch (error) {
+          console.error("Failed to refresh album details:", error);
+          alert("Could not fetch new details. Please try again later.");
+      } finally {
+          setIsRefreshing(false);
+      }
+  }, [cd, onUpdateCD]);
+
   const handleArtistClick = useCallback(() => {
     if (cd?.artist) {
       navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` });
@@ -106,7 +127,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
 
   const handleYearClick = useCallback(() => {
     if (cd?.year) {
-      navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.year)}` });
+      navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.year.toString())}` });
     }
   }, [navigate, cd]);
 
@@ -121,10 +142,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
       navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.recordLabel)}` });
     }
   }, [navigate, cd]);
-
-  const handleTagClick = useCallback((tag: string) => {
-    navigate({ pathname: '/', search: `?q=${encodeURIComponent(tag)}` });
-  }, [navigate]);
 
   if (!cd) {
     return (
@@ -197,34 +214,29 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
                         )}
                         {cd.genre && (
                            <p>
-                            <span className="font-bold text-zinc-800">Genre:</span>{' '}
-                            <button
+                             <span className="font-bold text-zinc-800">Genre:</span>{' '}
+                             <button
                                 onClick={handleGenreClick}
                                 className="hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-800 rounded-sm p-1 -m-1"
-                                aria-label={`View all albums in the ${cd.genre} genre`}
-                            >
-                                {cd.genre}
-                            </button>
-                          </p>
+                                aria-label={`View all ${cd.genre} albums`}
+                             >
+                                 {cd.genre}
+                             </button>
+                           </p>
                         )}
                         {cd.recordLabel && (
-                          <p>
-                            <span className="font-bold text-zinc-800">Label:</span>{' '}
-                            <button
+                           <p>
+                             <span className="font-bold text-zinc-800">Label:</span>{' '}
+                             <button
                                 onClick={handleRecordLabelClick}
                                 className="hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-800 rounded-sm p-1 -m-1"
                                 aria-label={`View all albums from ${cd.recordLabel}`}
-                            >
-                                {cd.recordLabel}
-                            </button>
-                          </p>
-                        )}
-                        {cd.version && (
-                           <p>
-                              <span className="font-bold text-zinc-800">Version:</span>{' '}
-                              <span>{cd.version}</span>
+                             >
+                                 {cd.recordLabel}
+                             </button>
                            </p>
                         )}
+                        {cd.version && <p><span className="font-bold text-zinc-800">Version:</span> {cd.version}</p>}
                       </div>
                   </div>
               )}
@@ -240,23 +252,20 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
                 <div className="mt-6 pt-6 border-t border-zinc-200">
                     <h3 className="text-lg font-bold text-zinc-800">Tags</h3>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {cd.tags.map(tag => {
-                        const capitalizedTag = capitalizeWords(tag);
-                        return (
+                      {cd.tags.map(tag => (
                           <button
                             key={tag}
-                            onClick={() => handleTagClick(tag)}
-                            className="bg-zinc-200 text-zinc-700 text-sm font-medium px-3 py-1 rounded-full hover:bg-zinc-300 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-800"
-                            aria-label={`View all albums tagged with ${capitalizedTag}`}
+                            onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(tag)}` })}
+                            className="bg-zinc-200 text-zinc-700 text-sm font-medium px-3 py-1 rounded-full hover:bg-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                            aria-label={`View all albums tagged ${tag}`}
                           >
-                            {capitalizedTag}
+                            {capitalizeWords(tag)}
                           </button>
-                        );
-                      })}
+                      ))}
                     </div>
                 </div>
               )}
-
+              
               <div className="mt-6 pt-6 border-t border-zinc-200">
                 <a
                   href={wikipediaUrl}
@@ -270,26 +279,28 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
                 </a>
               </div>
 
-              <div className="absolute top-4 right-4 flex gap-2">
-                <button
-                  onClick={handleAddAnotherByArtist}
-                  className="p-2 rounded-full bg-white/70 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                  aria-label={`Add another album by ${cd.artist}`}
-                >
-                  <PlusIcon className="w-6 h-6" />
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                 <button
+                    onClick={handleRefreshData}
+                    disabled={isRefreshing}
+                    className="p-2 rounded-full bg-white/70 text-zinc-700 hover:bg-zinc-100 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    title="Refresh Metadata"
+                    aria-label="Refresh Metadata"
+                 >
+                    <SparklesIcon className={`w-6 h-6 ${isRefreshing ? 'animate-pulse text-blue-500' : ''}`} />
                 </button>
                 <button
                   onClick={handleEdit}
                   className="p-2 rounded-full bg-white/70 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
                   aria-label={`Edit ${cd.title}`}
-                >
+                  >
                   <EditIcon className="w-6 h-6" />
                 </button>
                 <button
                   onClick={handleRequestDelete}
                   className="p-2 rounded-full bg-white/70 text-red-500 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                   aria-label={`Delete ${cd.title}`}
-                >
+                  >
                   <TrashIcon className="w-6 h-6" />
                 </button>
               </div>
@@ -299,8 +310,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
           {previousCd ? (
             <Link
               to={`/cd/${previousCd.id}`}
-              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-              aria-label={`Previous album: ${previousCd.title}`}
+              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200"
             >
               <ArrowLeftIcon className="h-5 w-5" />
               <span>Previous</span>
@@ -315,8 +325,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD }) => {
           {nextCd ? (
             <Link
               to={`/cd/${nextCd.id}`}
-              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-              aria-label={`Next album: ${nextCd.title}`}
+              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200"
             >
               <span>Next</span>
               <ArrowRightIcon className="h-5 w-5" />

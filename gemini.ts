@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { CD, DiscographyAlbum } from './types';
+import { CD, DiscographyAlbum, Track } from './types';
 
 // The API key is sourced from the environment variables via Vite's `define` config.
 const apiKey = process.env.API_KEY;
@@ -18,6 +18,21 @@ if (apiKey) {
   // This warning is helpful for developers.
   console.warn("VITE_API_KEY is not configured in the environment. AI-powered features like album scanning and detail fetching will be disabled.");
 }
+
+const tracklistSchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            number: { type: Type.INTEGER, description: "The track number." },
+            title: { type: Type.STRING, description: "The track title." },
+            duration: { type: Type.STRING, description: "The track duration in MM:SS format, if available." }
+        },
+        required: ["number", "title"]
+    },
+    description: "An array of tracks on the album."
+};
+
 
 const albumInfoSchema = {
     type: Type.OBJECT,
@@ -54,7 +69,8 @@ const albumInfoSchema = {
         coverArtUrl: {
             type: Type.STRING,
             description: "A publicly accessible URL for the high-quality album cover art."
-        }
+        },
+        tracklist: tracklistSchema
     },
     required: ["artist", "title"],
 };
@@ -79,6 +95,7 @@ const albumDetailsSchema = {
             items: { type: Type.STRING },
             description: "An array of 2-3 relevant tags for the album, such as sub-genres, musical styles, or notable facts.",
         },
+        tracklist: tracklistSchema,
     },
 };
 
@@ -159,13 +176,13 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
     }
 }
 
-export async function getAlbumDetails(artist: string, title: string): Promise<{ genre?: string; year?: number; recordLabel?: string; tags?: string[] } | null> {
+export async function getAlbumDetails(artist: string, title: string): Promise<{ genre?: string; year?: number; recordLabel?: string; tags?: string[], tracklist?: Track[] } | null> {
     // Gracefully disable the feature if the AI client isn't available.
     if (!ai) return Promise.resolve(null);
 
     try {
         const textPart = {
-            text: `For the album "${title}" by "${artist}", provide the original release year, the primary genre, the original record label, and an array of 2-3 relevant tags (e.g., musical style, notable facts). Respond in JSON format. If you cannot find the information, respond with an empty object.`,
+            text: `For the album "${title}" by "${artist}", provide the original release year, the primary genre, the original record label, an array of 2-3 relevant tags, and the full tracklist including track number, title, and duration. Respond in JSON format. If you cannot find the information, respond with an empty object.`,
         };
         
         const response: GenerateContentResponse = await ai.models.generateContent({
@@ -184,24 +201,23 @@ export async function getAlbumDetails(artist: string, title: string): Promise<{ 
         }
 
         const jsonString = text.trim();
-        if (jsonString) {
-            try {
-                const albumData = JSON.parse(jsonString);
-                return albumData as { genre?: string; year?: number; recordLabel?: string; tags?: string[] };
-            } catch (e) {
-                console.error("Failed to parse JSON response from Gemini for album details:", e);
-                return null;
-            }
+        // It's possible for Gemini to return an empty string for the JSON, which is invalid.
+        // We'll handle this case gracefully.
+        if (jsonString === '') {
+            return {};
         }
-        return null;
+
+        const detailsData = JSON.parse(jsonString);
+        return detailsData;
 
     } catch (error) {
-        console.error(`Error fetching album details for "${artist} - ${title}" with Gemini:`, error);
+        console.error(`Error fetching details for "${artist} - ${title}" with Gemini:`, error);
         return null;
     }
 }
 
-export async function getAlbumInfo(imageBase64: string): Promise<Partial<Omit<CD, 'id'>> | null> {
+
+export async function getAlbumInfo(base64Image: string): Promise<Partial<Omit<CD, 'id'>> | null> {
     // Gracefully disable the feature if the AI client isn't available.
     if (!ai) return Promise.resolve(null);
 
@@ -209,12 +225,11 @@ export async function getAlbumInfo(imageBase64: string): Promise<Partial<Omit<CD
         const imagePart = {
             inlineData: {
                 mimeType: 'image/jpeg',
-                data: imageBase64,
+                data: base64Image,
             },
         };
-
         const textPart = {
-            text: `Analyze the provided image of a music album cover. Identify the artist, album title, genre, release year, record label, and the specific version of the album (e.g., 'Remaster', 'Deluxe Edition') if it is written on the cover. Also provide an array of 2-3 relevant tags (e.g., musical style, notable facts). Finally, find a public URL for a high-quality version of the cover art. Respond in JSON format. If you cannot identify the album, respond with an empty object.`,
+            text: "Identify the album from this cover art. Provide the artist, title, genre, release year, record label, some descriptive tags, and tracklist. Respond in JSON format. If you cannot identify the album, respond with an empty object.",
         };
         
         const response: GenerateContentResponse = await ai.models.generateContent({
@@ -228,27 +243,22 @@ export async function getAlbumInfo(imageBase64: string): Promise<Partial<Omit<CD
         
         const text = response.text;
         if (!text) {
-            console.warn("Gemini response for scanned album info was empty.");
+            console.warn('Gemini response for album scan was empty.');
             return null;
         }
 
         const jsonString = text.trim();
-        if (jsonString) {
-            try {
-                const albumData = JSON.parse(jsonString);
-                
-                if (albumData.artist && albumData.title) {
-                    return albumData as Partial<Omit<CD, 'id'>>;
-                }
-            } catch (e) {
-                console.error("Failed to parse JSON response from Gemini:", e);
-                return null;
-            }
+        const albumData = JSON.parse(jsonString);
+        
+        // Return null if the album is not identified (empty object)
+        if (Object.keys(albumData).length === 0) {
+            return null;
         }
-        return null;
+
+        return albumData;
 
     } catch (error) {
-        console.error("Error analyzing album cover with Gemini:", error);
+        console.error("Error identifying album with Gemini:", error);
         return null;
     }
 }

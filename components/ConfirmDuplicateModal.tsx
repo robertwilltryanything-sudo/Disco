@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { CD } from '../types';
 import { capitalizeWords } from '../utils';
@@ -15,13 +17,13 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
   const [version, setVersion] = useState('');
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && newCdData) {
       // Pre-populate with version from form, allowing user to override.
       setVersion(newCdData.version || '');
     }
-  }, [isOpen, newCdData.version]);
+  }, [isOpen, newCdData]);
 
-  if (!isOpen) {
+  if (!isOpen || !newCdData || !existingCd) {
     return null;
   }
 
