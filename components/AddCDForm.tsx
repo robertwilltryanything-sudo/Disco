@@ -19,9 +19,10 @@ interface AddCDFormProps {
   cdToEdit: CD | null;
   onCancel: () => void;
   prefill: Partial<CD> | null;
+  isVinyl?: boolean;
 }
 
-const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill }) => {
+const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill, isVinyl }) => {
   const [artist, setArtist] = useState('');
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
@@ -103,7 +104,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             created_at: cdToEdit?.created_at,
         };
 
-        // If it's a new CD without cover art, try to find it.
         if (!cdData.coverArtUrl && !cdToEdit) {
             setProcessingStatus('Searching for cover art...');
             const imageUrls = await findCoverArt(artist, title);
@@ -111,28 +111,26 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             if (imageUrls && imageUrls.length > 0) {
                 if (imageUrls.length === 1) {
                     cdData.coverArtUrl = imageUrls[0];
-                    setProcessingStatus('Saving CD...');
+                    setProcessingStatus('Saving album...');
                     await onSave(cdData);
                 } else {
                     setCoverArtOptions(imageUrls);
                     setIsSubmittingWithArtSelection(true);
                     setIsSelectorOpen(true);
-                    // The processing state is held until art is selected.
                     return; 
                 }
             } else {
-                setProcessingStatus('Saving CD...');
-                await onSave(cdData); // No art found, save without it.
+                setProcessingStatus('Saving album...');
+                await onSave(cdData);
             }
         } else {
-            // Art exists or we're editing, just save.
-            setProcessingStatus(cdToEdit ? 'Saving changes...' : 'Saving CD...');
+            setProcessingStatus(cdToEdit ? 'Saving changes...' : 'Saving album...');
             await onSave(cdData);
         }
     } catch (error) {
         console.error("Error during save process:", error);
         setFormError("An error occurred while saving. Please try again.");
-        setIsProcessing(false); // Reset on error so user can try again
+        setIsProcessing(false);
     }
   }, [artist, title, genre, year, version, coverArtUrl, notes, cdToEdit, onSave, recordLabel, tags]);
   
@@ -170,7 +168,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const handleSetArtFromUrl = useCallback(() => {
     if (manualUrl.trim()) {
       const url = manualUrl.trim();
-      // A basic check for http/https and common image extensions, allowing for query params
       if (url.startsWith('http') && /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url)) {
         setCoverArtUrl(url);
         setFormError(null);
@@ -216,7 +213,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     
     if (isSubmittingWithArtSelection) {
       try {
-        setProcessingStatus('Saving CD...');
+        setProcessingStatus('Saving album...');
         await onSave({
           id: cdToEdit?.id, artist, title, genre,
           year: year ? Number(year) : undefined, version, recordLabel, tags,
@@ -238,9 +235,8 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     setCoverArtOptions([]);
 
     if (isSubmittingWithArtSelection) {
-      // User canceled selection during submit, so save without art.
       try {
-          setProcessingStatus('Saving CD...');
+          setProcessingStatus('Saving album...');
           await onSave({
             id: cdToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined, version, recordLabel, tags,
@@ -282,10 +278,12 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     }
   };
 
+  const albumType = isVinyl ? 'Vinyl' : 'CD';
+
   return (
     <>
       <form onSubmit={handleSubmit} className="p-4 bg-zinc-50 rounded-lg space-y-4">
-        <h2 className="text-xl font-bold text-zinc-900">{cdToEdit ? 'Edit CD' : 'Add New CD'}</h2>
+        <h2 className="text-xl font-bold text-zinc-900">{cdToEdit ? `Edit ${albumType}` : `Add New ${albumType}`}</h2>
         
         {isProcessing && !isSelectorOpen && (
             <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -459,7 +457,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
               ) : (
                 <>
                   <PlusIcon className="h-5 w-5" />
-                  <span>{cdToEdit ? 'Save Changes' : 'Add CD'}</span>
+                  <span>{cdToEdit ? 'Save Changes' : `Add ${albumType}`}</span>
                 </>
               )}
             </button>

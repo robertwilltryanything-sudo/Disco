@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem } from './types';
+import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
 import Header from './components/Header';
 import ListView from './views/ListView';
 import DetailView from './views/DetailView';
@@ -23,7 +23,7 @@ import ArtistDetailView from './views/ArtistDetailView';
 import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 
-const INITIAL_COLLECTION: CD[] = [
+const INITIAL_CD_COLLECTION: CD[] = [
   {
     id: '1',
     artist: 'Pink Floyd',
@@ -54,16 +54,66 @@ const INITIAL_COLLECTION: CD[] = [
   }
 ];
 
+const INITIAL_VINYL_COLLECTION: CD[] = [
+  {
+    id: 'v1',
+    artist: 'Dire Straits',
+    title: 'Alchemy Live',
+    genre: 'Rock',
+    year: 1984,
+    coverArtUrl: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Dire_Straits_-_Alchemy.jpg',
+    notes: 'Incredible live performance.',
+    created_at: new Date(Date.now() - 30000).toISOString(),
+  },
+  {
+    id: 'v2',
+    artist: 'Jean Michel Jarre',
+    title: 'Equinoxe',
+    genre: 'Electronic',
+    year: 1978,
+    coverArtUrl: 'https://upload.wikimedia.org/wikipedia/en/b/b2/Equinoxe_album_cover.jpg',
+    created_at: new Date(Date.now() - 40000).toISOString(),
+  }
+];
+
 const AppContent: React.FC = () => {
+  const [collectionMode, setCollectionMode] = useState<CollectionMode>(() => {
+    return (localStorage.getItem('disco_mode') as CollectionMode) || 'cd';
+  });
+
   const [cds, setCds] = useState<CD[]>(() => {
-    const saved = localStorage.getItem('disco_collection');
-    return saved ? JSON.parse(saved) : INITIAL_COLLECTION;
+    const saved = localStorage.getItem('disco_collection_cd');
+    return saved ? JSON.parse(saved) : INITIAL_CD_COLLECTION;
+  });
+
+  const [vinyls, setVinyls] = useState<CD[]>(() => {
+    const saved = localStorage.getItem('disco_collection_vinyl');
+    return saved ? JSON.parse(saved) : INITIAL_VINYL_COLLECTION;
   });
   
-  const [wantlist, setWantlist] = useState<WantlistItem[]>(() => {
-      const saved = localStorage.getItem('disco_wantlist');
+  const [cdWantlist, setCdWantlist] = useState<WantlistItem[]>(() => {
+      const saved = localStorage.getItem('disco_wantlist_cd');
       return saved ? JSON.parse(saved) : [];
   });
+
+  const [vinylWantlist, setVinylWantlist] = useState<WantlistItem[]>(() => {
+      const saved = localStorage.getItem('disco_wantlist_vinyl');
+      return saved ? JSON.parse(saved) : [];
+  });
+
+  // Current active data based on mode
+  const currentCollection = useMemo(() => collectionMode === 'cd' ? cds : vinyls, [collectionMode, cds, vinyls]);
+  const currentWantlist = useMemo(() => collectionMode === 'cd' ? cdWantlist : vinylWantlist, [collectionMode, cdWantlist, vinylWantlist]);
+  
+  const setActiveCollection = useCallback((update: React.SetStateAction<CD[]>) => {
+    if (collectionMode === 'cd') setCds(update);
+    else setVinyls(update);
+  }, [collectionMode]);
+
+  const setActiveWantlist = useCallback((update: React.SetStateAction<WantlistItem[]>) => {
+    if (collectionMode === 'cd') setCdWantlist(update);
+    else setVinylWantlist(update);
+  }, [collectionMode]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
@@ -83,15 +133,25 @@ const AppContent: React.FC = () => {
        return (localStorage.getItem('disco_sync_mode') as SyncMode) || 'manual';
   });
 
-  const supabaseSync = useSupabaseSync(setCds, setWantlist, syncMode, syncProvider);
+  const supabaseSync = useSupabaseSync(setActiveCollection, setActiveWantlist, syncMode, syncProvider);
   const googleDriveSync = useGoogleDrive();
+
+  const handleToggleMode = useCallback(() => {
+    setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('disco_mode', collectionMode);
+  }, [collectionMode]);
 
   useEffect(() => {
     if (syncProvider === 'none' || (syncProvider === 'supabase' && syncMode === 'manual')) {
-        localStorage.setItem('disco_collection', JSON.stringify(cds));
-        localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
+        localStorage.setItem('disco_collection_cd', JSON.stringify(cds));
+        localStorage.setItem('disco_collection_vinyl', JSON.stringify(vinyls));
+        localStorage.setItem('disco_wantlist_cd', JSON.stringify(cdWantlist));
+        localStorage.setItem('disco_wantlist_vinyl', JSON.stringify(vinylWantlist));
     }
-  }, [cds, wantlist, syncProvider, syncMode]);
+  }, [cds, vinyls, cdWantlist, vinylWantlist, syncProvider, syncMode]);
   
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
   useEffect(() => { localStorage.setItem('disco_sync_mode', syncMode); }, [syncMode]);
@@ -135,28 +195,27 @@ const AppContent: React.FC = () => {
   const confirmImport = useCallback((strategy: 'merge' | 'replace') => {
       if (!pendingImport) return;
       if (strategy === 'replace') {
-          setCds(pendingImport);
+          setActiveCollection(pendingImport);
       } else {
-          const existingIds = new Set(cds.map(c => c.id));
+          const existingIds = new Set(currentCollection.map(c => c.id));
           const newItems = pendingImport.filter(c => !existingIds.has(c.id));
-          setCds([...cds, ...newItems]);
+          setActiveCollection([...currentCollection, ...newItems]);
       }
       setPendingImport(null);
-  }, [pendingImport, cds]);
+  }, [pendingImport, currentCollection, setActiveCollection]);
 
   const handleExport = useCallback(() => {
-    const dataStr = JSON.stringify({ collection: cds, lastUpdated: new Date().toISOString() }, null, 2);
+    const dataStr = JSON.stringify({ collection: currentCollection, lastUpdated: new Date().toISOString() }, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `disco_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `disco_${collectionMode}_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [cds]);
+  }, [currentCollection, collectionMode]);
 
   const fetchAndApplyAlbumDetails = async (cd: CD) => {
-    // Check if basic metadata is missing
     if (!cd.genre || !cd.year) {
         try {
             const details = await getAlbumDetails(cd.artist, cd.title);
@@ -171,7 +230,7 @@ const AppContent: React.FC = () => {
                 if (syncProvider === 'supabase') {
                     await supabaseSync.updateCD(updatedCd);
                 } else {
-                    setCds(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
+                    setActiveCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
                 }
             }
         } catch (e) { console.error("Detail fetch error:", e); }
@@ -180,7 +239,7 @@ const AppContent: React.FC = () => {
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     if (!cdData.id && !duplicateCheckResult) {
-        const potentialDuplicate = cds.find(c => 
+        const potentialDuplicate = currentCollection.find(c => 
             areStringsSimilar(c.artist, cdData.artist) && 
             areStringsSimilar(c.title, cdData.title)
         );
@@ -199,14 +258,14 @@ const AppContent: React.FC = () => {
           user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
       };
       if (syncProvider === 'supabase') { await supabaseSync.updateCD(updatedCd); } 
-      else { setCds(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); }
+      else { setActiveCollection(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); }
       savedCd = updatedCd;
     } else {
       const newCdBase = { ...cdData, created_at: new Date().toISOString() };
       if (syncProvider === 'supabase') { savedCd = await supabaseSync.addCD(newCdBase); } 
       else {
          const newCd: CD = { ...newCdBase, id: crypto.randomUUID() };
-         setCds(prev => [newCd, ...prev]);
+         setActiveCollection(prev => [newCd, ...prev]);
          savedCd = newCd;
       }
     }
@@ -215,12 +274,12 @@ const AppContent: React.FC = () => {
     setCdToEdit(null);
     setPrefillData(null);
     setDuplicateCheckResult(null);
-  }, [cds, syncProvider, supabaseSync, duplicateCheckResult]);
+  }, [currentCollection, syncProvider, supabaseSync, duplicateCheckResult, setActiveCollection]);
 
   const handleDeleteCD = useCallback((id: string) => {
     if (syncProvider === 'supabase') supabaseSync.deleteCD(id);
-    else setCds(prev => prev.filter(cd => cd.id !== id));
-  }, [syncProvider, supabaseSync]);
+    else setActiveCollection(prev => prev.filter(cd => cd.id !== id));
+  }, [syncProvider, supabaseSync, setActiveCollection]);
   
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
       if (itemData.id) {
@@ -231,23 +290,23 @@ const AppContent: React.FC = () => {
               user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
           };
           if (syncProvider === 'supabase') await supabaseSync.updateWantlistItem(updatedItem);
-          else setWantlist(prev => prev.map(item => item.id === itemData.id ? updatedItem : item));
+          else setActiveWantlist(prev => prev.map(item => item.id === itemData.id ? updatedItem : item));
       } else {
           const newItemBase = { ...itemData, created_at: new Date().toISOString() };
           if (syncProvider === 'supabase') await supabaseSync.addWantlistItem(newItemBase);
           else {
               const newItem: WantlistItem = { ...newItemBase, id: crypto.randomUUID() };
-              setWantlist(prev => [newItem, ...prev]);
+              setActiveWantlist(prev => [newItem, ...prev]);
           }
       }
       setIsAddWantlistModalOpen(false);
       setWantlistItemToEdit(null);
-  }, [syncProvider, supabaseSync]);
+  }, [syncProvider, supabaseSync, setActiveWantlist]);
 
   const handleDeleteWantlistItem = useCallback((id: string) => {
     if (syncProvider === 'supabase') supabaseSync.deleteWantlistItem(id);
-    else setWantlist(prev => prev.filter(item => item.id !== id));
-  }, [syncProvider, supabaseSync]);
+    else setActiveWantlist(prev => prev.filter(item => item.id !== id));
+  }, [syncProvider, supabaseSync, setActiveWantlist]);
 
   const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
       const cdData: Omit<CD, 'id'> = { ...item, created_at: new Date().toISOString() };
@@ -265,7 +324,7 @@ const AppContent: React.FC = () => {
             if (isOnWantlistPage) { setIsAddWantlistModalOpen(true); setWantlistItemToEdit(null); } 
             else { setIsAddModalOpen(true); setCdToEdit(null); setPrefillData(null); }
         }} 
-        collectionCount={cds.length} 
+        collectionCount={currentCollection.length} 
         onImport={handleImport}
         onExport={handleExport}
         onOpenSyncSettings={() => setIsSyncSettingsOpen(true)}
@@ -277,38 +336,40 @@ const AppContent: React.FC = () => {
         user={supabaseSync.user}
         onSignOut={supabaseSync.signOut}
         isOnWantlistPage={isOnWantlistPage}
+        collectionMode={collectionMode}
+        onToggleMode={handleToggleMode}
       />
       <main className="container mx-auto p-4 md:p-6 animate-in fade-in duration-500">
         <Routes>
-          <Route path="/" element={<ListView cds={cds} wantlist={wantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} />} />
-          <Route path="/cd/:id" element={<DetailView cds={cds} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} />} />
-          <Route path="/artists" element={<ArtistsView cds={cds} />} />
-          <Route path="/artist/:artistName" element={<ArtistDetailView cds={cds} wantlist={wantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} />} />
-          <Route path="/dashboard" element={<DashboardView cds={cds} />} />
-          <Route path="/duplicates" element={<DuplicatesView cds={cds} onDeleteCD={handleDeleteCD} />} />
-          <Route path="/wantlist" element={<WantlistView wantlist={wantlist} onRequestEdit={(item) => { setWantlistItemToEdit(item); setIsAddWantlistModalOpen(true); }} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} />} />
-          <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={wantlist} cds={cds} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} />} />
+          <Route path="/" element={<ListView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} />} />
+          <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} />} />
+          <Route path="/artists" element={<ArtistsView cds={currentCollection} />} />
+          <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} />} />
+          <Route path="/dashboard" element={<DashboardView cds={currentCollection} />} />
+          <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} />} />
+          <Route path="/wantlist" element={<WantlistView wantlist={currentWantlist} onRequestEdit={(item) => { setWantlistItemToEdit(item); setIsAddWantlistModalOpen(true); }} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} />} />
+          <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} />} />
         </Routes>
       </main>
 
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="w-full max-w-3xl my-8 shadow-2xl">
-            <AddCDForm onSave={handleSaveCD} onCancel={() => { setIsAddModalOpen(false); setCdToEdit(null); setPrefillData(null); }} cdToEdit={cdToEdit} prefill={prefillData} />
+            <AddCDForm onSave={handleSaveCD} onCancel={() => { setIsAddModalOpen(false); setCdToEdit(null); setPrefillData(null); }} cdToEdit={cdToEdit} prefill={prefillData} isVinyl={collectionMode === 'vinyl'} />
           </div>
         </div>
       )}
       {isAddWantlistModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="w-full max-w-3xl my-8 shadow-2xl">
-                <AddWantlistItemForm onSave={handleSaveWantlistItem} onCancel={() => { setIsAddWantlistModalOpen(false); setWantlistItemToEdit(null); }} itemToEdit={wantlistItemToEdit} />
+                <AddWantlistItemForm onSave={handleSaveWantlistItem} onCancel={() => { setIsAddWantlistModalOpen(false); setWantlistItemToEdit(null); }} itemToEdit={wantlistItemToEdit} isVinyl={collectionMode === 'vinyl'} />
             </div>
         </div>
       )}
       {duplicateCheckResult && <ConfirmDuplicateModal isOpen={true} onClose={() => setDuplicateCheckResult(null)} onConfirm={(version) => handleSaveCD({ ...duplicateCheckResult.newCd, version })} newCdData={duplicateCheckResult.newCd} existingCd={duplicateCheckResult.existingCd} />}
       <ImportConfirmModal isOpen={!!pendingImport} onClose={() => setPendingImport(null)} onMerge={() => confirmImport('merge')} onReplace={() => confirmImport('replace')} importCount={pendingImport?.length || 0} />
       <SyncSettingsModal isOpen={isSyncSettingsOpen} onClose={() => setIsSyncSettingsOpen(false)} currentProvider={syncProvider} onProviderChange={setSyncProvider} syncMode={syncMode} onSyncModeChange={setSyncMode} />
-      <BottomNavBar />
+      <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} />
       <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-all" aria-label="Add New"><PlusIcon className="h-6 w-6" /></button>
     </div>
   );

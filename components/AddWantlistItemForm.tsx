@@ -18,9 +18,10 @@ interface AddWantlistItemFormProps {
   onSave: (item: Omit<WantlistItem, 'id'> & { id?: string }) => Promise<void>;
   itemToEdit: WantlistItem | null;
   onCancel: () => void;
+  isVinyl?: boolean;
 }
 
-const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel }) => {
+const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl }) => {
   const [artist, setArtist] = useState('');
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
@@ -248,10 +249,12 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     }
   };
 
+  const albumType = isVinyl ? 'Vinyl' : 'CD';
+
   return (
     <>
       <form onSubmit={handleSubmit} className="p-4 bg-zinc-50 rounded-lg space-y-4">
-        <h2 className="text-xl font-bold text-zinc-900">{itemToEdit ? 'Edit Wantlist Item' : 'Add to Wantlist'}</h2>
+        <h2 className="text-xl font-bold text-zinc-900">{itemToEdit ? `Edit ${albumType} Wantlist Item` : `Add ${albumType} to Wantlist`}</h2>
         
         {isProcessing && !isSelectorOpen && (
             <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -425,7 +428,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               ) : (
                 <>
                   <PlusIcon className="h-5 w-5" />
-                  <span>{itemToEdit ? 'Save Changes' : 'Add to Wantlist'}</span>
+                  <span>{itemToEdit ? 'Save Changes' : `Add ${albumType} to Wantlist`}</span>
                 </>
               )}
             </button>

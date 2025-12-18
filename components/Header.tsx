@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { SyncStatus, SyncProvider, SyncMode } from '../types';
+import { SyncStatus, SyncProvider, SyncMode, CollectionMode } from '../types';
 import { MenuIcon } from './icons/MenuIcon';
 import StatusIndicator from './StatusIndicator';
 import { UploadIcon } from './icons/UploadIcon';
@@ -10,6 +10,8 @@ import { User } from '@supabase/supabase-js';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { PlusIcon } from './icons/PlusIcon';
+import { CompactDiscIcon } from './icons/CompactDiscIcon';
+import { VinylIcon } from './icons/VinylIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -25,6 +27,8 @@ interface HeaderProps {
     user: User | null;
     onSignOut: () => void;
     isOnWantlistPage?: boolean;
+    collectionMode: CollectionMode;
+    onToggleMode: () => void;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -58,6 +62,8 @@ const Header: React.FC<HeaderProps> = ({
     user,
     onSignOut,
     isOnWantlistPage,
+    collectionMode,
+    onToggleMode,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -98,7 +104,16 @@ const Header: React.FC<HeaderProps> = ({
           >
               disco
           </a>
-          <span className="ml-3 text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full">{collectionCount}</span>
+          <div className="flex items-center ml-4">
+              <span className="text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full mr-2">{collectionCount}</span>
+              <button 
+                onClick={onToggleMode}
+                className="p-1 rounded-full hover:bg-zinc-100 transition-colors text-zinc-600 hover:text-zinc-900"
+                title={`Switch to ${collectionMode === 'cd' ? 'Vinyl' : 'CD'} mode`}
+              >
+                {collectionMode === 'cd' ? <CompactDiscIcon className="w-6 h-6" /> : <VinylIcon className="w-6 h-6" />}
+              </button>
+          </div>
         </div>
         
         <nav className="hidden md:flex flex-shrink-0">
@@ -110,10 +125,10 @@ const Header: React.FC<HeaderProps> = ({
                     <button
                         onClick={onAddClick}
                         className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold text-sm py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
-                        aria-label={isOnWantlistPage ? "Add a new item to wantlist" : "Add a new CD"}
+                        aria-label={isOnWantlistPage ? `Add a new item to ${collectionMode} wantlist` : `Add a new ${collectionMode}`}
                     >
                         <PlusIcon className="h-5 w-5" />
-                        <span>{isOnWantlistPage ? 'Add to Wantlist' : 'Add CD'}</span>
+                        <span>{isOnWantlistPage ? 'Add to Wantlist' : `Add ${collectionMode.toUpperCase()}`}</span>
                     </button>
                 </li>
             </ul>

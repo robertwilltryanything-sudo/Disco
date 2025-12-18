@@ -42,6 +42,8 @@ export type SyncProvider = 'supabase' | 'google_drive' | 'none';
 
 export type SyncMode = 'realtime' | 'manual';
 
+export type CollectionMode = 'cd' | 'vinyl';
+
 export interface DiscographyAlbum {
   title: string;
   year: number;
