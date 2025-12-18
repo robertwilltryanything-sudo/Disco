@@ -1,11 +1,3 @@
-
-
-export interface Track {
-  number: number;
-  title: string;
-  duration?: string;
-}
-
 export interface CD {
   id: string;
   artist: string;
@@ -17,7 +9,6 @@ export interface CD {
   version?: string;
   recordLabel?: string;
   tags?: string[];
-  tracklist?: Track[];
   user_id?: string;
   created_at?: string;
 }
@@ -33,7 +24,6 @@ export interface WantlistItem {
   version?: string;
   recordLabel?: string;
   tags?: string[];
-  tracklist?: Track[];
   user_id?: string;
   created_at?: string;
 }
