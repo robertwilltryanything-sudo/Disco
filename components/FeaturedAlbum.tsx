@@ -69,38 +69,38 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
     return (
         <Link
           to={`/cd/${cd.id}`}
-          className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-300 flex flex-col md:flex-row md:h-64"
+          className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-300 flex flex-col md:flex-row"
           aria-label={`View details for featured album: ${cd.title} by ${cd.artist}`}
         >
-            <div className="md:w-64 md:flex-shrink-0">
+            <div className="md:w-64 flex-shrink-0">
                 {cd.coverArtUrl ? (
                     <img src={cd.coverArtUrl} alt={`${cd.title} cover`} className="w-full object-cover aspect-square" />
                 ) : (
                     <div className="w-full bg-zinc-200 flex items-center justify-center aspect-square">
-                        <MusicNoteIcon className="w-24 h-24 text-zinc-400" />
+                        <MusicNoteIcon className="w-16 h-16 text-zinc-400" />
                     </div>
                 )}
             </div>
-            <div className="p-4 md:p-6 flex flex-col justify-start flex-grow overflow-hidden">
-                <p className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Featured Album</p>
-                <h3 className="text-2xl font-bold text-zinc-900">{cd.title}</h3>
+            <div className="p-6 flex flex-col justify-center flex-grow">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Featured Album</p>
+                <h3 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h3>
                 <button
                     onClick={handleArtistClick}
-                    className="text-left text-lg text-zinc-600 hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 rounded-sm"
+                    className="text-left text-base text-zinc-500 hover:text-zinc-900 transition-colors"
                     title={cd.artist}
                 >
                     {capitalizeWords(cd.artist)}
                 </button>
-                <div className="mt-4 pt-4 border-t border-zinc-200 flex-1 overflow-y-auto">
+                <div className="mt-4 pt-4 border-t border-zinc-100">
                      {isLoading ? (
-                        <div className="flex items-center text-zinc-500">
-                            <SpinnerIcon className="w-4 h-4 mr-2" />
+                        <div className="flex items-center text-zinc-400 text-xs">
+                            <SpinnerIcon className="w-3 h-3 mr-2" />
                             <span>Loading trivia...</span>
                         </div>
                     ) : error ? (
-                        <p className="text-red-600 text-sm">{error}</p>
+                        <p className="text-red-400 text-xs">{error}</p>
                     ) : (
-                        <p className="text-zinc-700 italic text-sm">"{trivia}"</p>
+                        <p className="text-zinc-600 italic text-sm leading-relaxed">"{trivia}"</p>
                     )}
                 </div>
             </div>
