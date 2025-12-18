@@ -12,7 +12,6 @@ import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { getAlbumDetails } from '../gemini';
-import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 
 interface DetailViewProps {
   cds: CD[];

@@ -38,7 +38,7 @@ export type SortOrder = 'asc' | 'desc';
 
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
 
-export type SyncProvider = 'supabase' | 'none';
+export type SyncProvider = 'supabase' | 'google_drive' | 'none';
 
 export type SyncMode = 'realtime' | 'manual';
 

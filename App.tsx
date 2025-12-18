@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { CD, CollectionData, SyncProvider, SyncStatus, SyncMode, WantlistItem } from './types';
+import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem } from './types';
 import Header from './components/Header';
 import ListView from './views/ListView';
 import DetailView from './views/DetailView';
@@ -20,7 +20,6 @@ import { PlusIcon } from './components/icons/PlusIcon';
 import AddWantlistItemForm from './components/AddWantlistItemForm';
 import WantlistDetailView from './views/WantlistDetailView';
 import ArtistDetailView from './views/ArtistDetailView';
-import { useSimpleSync } from './hooks/useSimpleSync';
 import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 
