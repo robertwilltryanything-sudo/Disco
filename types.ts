@@ -11,6 +11,7 @@ export interface CD {
   tags?: string[];
   user_id?: string;
   created_at?: string;
+  format?: 'cd' | 'vinyl';
 }
 
 export interface WantlistItem {
@@ -26,6 +27,7 @@ export interface WantlistItem {
   tags?: string[];
   user_id?: string;
   created_at?: string;
+  format?: 'cd' | 'vinyl';
 }
 
 export interface CollectionData {

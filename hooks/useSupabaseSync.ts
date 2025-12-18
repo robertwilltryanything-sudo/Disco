@@ -28,11 +28,10 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('loading');
         setError(null);
         
-        // Helper function to fetch all rows from a table by handling pagination
         const fetchAllRows = async (tableName: string) => {
             let allItems: any[] = [];
             let from = 0;
-            const pageSize = 1000; // Standard Supabase limit
+            const pageSize = 1000;
             let hasMore = true;
 
             while (hasMore) {
@@ -46,7 +45,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
                 
                 if (data) {
                     allItems = [...allItems, ...data];
-                    // If we've reached the total count or received a partial page, we're done
                     if (allItems.length >= (count || 0) || data.length < pageSize) {
                         hasMore = false;
                     } else {
@@ -218,9 +216,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
 
     const updateCD = async (cd: CD) => {
         if (!supabase) return;
-        
         setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
-        
         setSyncStatus('saving');
         const { error } = await supabase.from('cds').update(cd).eq('id', cd.id);
         if (error) {
@@ -233,9 +229,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
 
     const deleteCD = async (id: string) => {
         if (!supabase) return;
-        
         setCollection(prev => prev.filter(c => c.id !== id));
-
         setSyncStatus('saving');
         const { error } = await supabase.from('cds').delete().eq('id', id);
         if (error) {
@@ -268,9 +262,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
 
     const updateWantlistItem = async (item: WantlistItem) => {
         if (!supabase) return;
-
         setWantlist(prev => prev.map(i => (i.id === item.id ? item : i)));
-
         setSyncStatus('saving');
         const { error } = await supabase.from('wantlist').update(item).eq('id', item.id);
         if (error) {
@@ -283,9 +275,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
 
     const deleteWantlistItem = async (id: string) => {
         if (!supabase) return;
-
         setWantlist(prev => prev.filter(item => item.id !== id));
-
         setSyncStatus('saving');
         const { error } = await supabase.from('wantlist').delete().eq('id', id);
 
