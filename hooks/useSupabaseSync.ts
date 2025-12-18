@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, Dispatch, SetStateAction, useCallback } from 'react';
 import { createClient, SupabaseClient, Session, User, RealtimeChannel } from '@supabase/supabase-js';
 import { CD, SyncStatus, SyncMode, WantlistItem, SyncProvider } from '../types';
@@ -29,44 +28,58 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('loading');
         setError(null);
         
-        // Supabase defaults to 1000 rows per request. We explicitly set a range to allow larger collections.
-        // We fetch up to 5000 items. For collections larger than this, pagination logic would be required.
-        const [cdsResult, wantlistResult] = await Promise.all([
-            supabase.from('cds').select('*').range(0, 4999).order('created_at', { ascending: false }),
-            supabase.from('wantlist').select('*').range(0, 4999).order('created_at', { ascending: false })
-        ]);
+        // Helper function to fetch all rows from a table by handling pagination
+        const fetchAllRows = async (tableName: string) => {
+            let allItems: any[] = [];
+            let from = 0;
+            const pageSize = 1000; // Standard Supabase limit
+            let hasMore = true;
 
-        const errors: string[] = [];
+            while (hasMore) {
+                const { data, error, count } = await supabase!
+                    .from(tableName)
+                    .select('*', { count: 'exact' })
+                    .range(from, from + pageSize - 1)
+                    .order('created_at', { ascending: false });
 
-        if (cdsResult.error) {
-            let errorMessage = `Failed to load collection: ${cdsResult.error.message}`;
-            if (cdsResult.error.message.toLowerCase().includes('does not exist') || cdsResult.error.message.toLowerCase().includes('could not find the table')) {
-                errorMessage = "The 'cds' table seems to be missing in your database. Please see supabase_setup.md for instructions.";
-            } else if (cdsResult.error.message.toLowerCase().includes('could not find the column')) {
-                errorMessage = "Your 'cds' table is out of date. Please see the 'Fixes' section in supabase_setup.md and run the appropriate script in your Supabase SQL Editor.";
+                if (error) throw error;
+                
+                if (data) {
+                    allItems = [...allItems, ...data];
+                    // If we've reached the total count or received a partial page, we're done
+                    if (allItems.length >= (count || 0) || data.length < pageSize) {
+                        hasMore = false;
+                    } else {
+                        from += pageSize;
+                    }
+                } else {
+                    hasMore = false;
+                }
             }
-            errors.push(errorMessage);
-        } else {
-            setCollection(cdsResult.data || []);
-        }
+            return allItems;
+        };
 
-        if (wantlistResult.error) {
-            let errorMessage = `Failed to load wantlist: ${wantlistResult.error.message}`;
-            if (wantlistResult.error.message.toLowerCase().includes('does not exist') || wantlistResult.error.message.toLowerCase().includes('could not find the table')) {
-                errorMessage = "The 'wantlist' table seems to be missing in your database. Please see supabase_setup.md for instructions.";
-            } else if (wantlistResult.error.message.toLowerCase().includes('could not find the column')) {
-                errorMessage = "Your 'wantlist' table is out of date. Please see the 'Fixes' section in supabase_setup.md and run the appropriate script in your Supabase SQL Editor.";
-            }
-            errors.push(errorMessage);
-        } else {
-            setWantlist(wantlistResult.data || []);
-        }
-
-        if (errors.length > 0) {
-            setError(errors.join('\n'));
-            setSyncStatus('error');
-        } else {
+        try {
+            const [cdsData, wantlistData] = await Promise.all([
+                fetchAllRows('cds'),
+                fetchAllRows('wantlist')
+            ]);
+            
+            setCollection(cdsData);
+            setWantlist(wantlistData);
             setSyncStatus('synced');
+        } catch (err: any) {
+            console.error("Supabase load error:", err);
+            let errorMessage = `Failed to load collection: ${err.message}`;
+            
+            if (err.message?.toLowerCase().includes('does not exist') || err.message?.toLowerCase().includes('could not find the table')) {
+                errorMessage = "Database tables are missing. Please see supabase_setup.md for instructions.";
+            } else if (err.message?.toLowerCase().includes('could not find the column')) {
+                errorMessage = "Database schema is out of date. Please run the fix scripts in supabase_setup.md.";
+            }
+            
+            setError(errorMessage);
+            setSyncStatus('error');
         }
     }, [setCollection, setWantlist]);
 
@@ -74,7 +87,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (!supabase || syncProvider !== 'supabase') return;
 
         const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabase!.auth.getSession();
             setSession(session);
             setUser(session?.user ?? null);
             if (!session) {
@@ -85,7 +98,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         
         getSession();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase!.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
             setError(null);
