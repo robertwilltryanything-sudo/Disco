@@ -2,6 +2,9 @@
 
 For the application to function correctly with Supabase sync, your database needs to have the correct tables and security policies. Run the following SQL queries in your project's **SQL Editor** in the Supabase Dashboard.
 
+## CRITICAL: Required Columns
+If you are seeing an error like `Could not find the 'format' column`, you MUST run the **Migration** section at the bottom of this file.
+
 ## 1. Collection Table
 
 ```sql
@@ -61,14 +64,16 @@ CREATE POLICY "Enable delete for own wantlist items" ON public.wantlist FOR DELE
 
 ## 3. Migration: Updating existing tables
 
-If you have already created the tables with the old column names, run this to rename them:
+If you have already created the tables and are getting errors about missing columns, run this:
 
 ```sql
--- Collection table
+-- Fix Column Names (if camelCase)
 ALTER TABLE IF EXISTS public.collection RENAME COLUMN "coverArtUrl" TO cover_art_url;
 ALTER TABLE IF EXISTS public.collection RENAME COLUMN "recordLabel" TO record_label;
-
--- Wantlist table
 ALTER TABLE IF EXISTS public.wantlist RENAME COLUMN "coverArtUrl" TO cover_art_url;
 ALTER TABLE IF EXISTS public.wantlist RENAME COLUMN "recordLabel" TO record_label;
+
+-- Add Missing 'format' Column
+ALTER TABLE public.collection ADD COLUMN IF NOT EXISTS format text DEFAULT 'cd';
+ALTER TABLE public.wantlist ADD COLUMN IF NOT EXISTS format text DEFAULT 'cd';
 ```
