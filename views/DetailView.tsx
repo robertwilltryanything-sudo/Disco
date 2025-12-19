@@ -51,7 +51,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               const updatedCd: CD = {
                   ...cd,
                   genre: cd.genre || details.genre,
-                  record_label: cd.record_label || details.recordLabel || details.record_label,
+                  record_label: cd.record_label || details.record_label,
                   year: cd.year || details.year,
                   tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])],
               };

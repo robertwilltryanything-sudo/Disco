@@ -129,7 +129,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         }
     } catch (error: any) {
         console.error("Error during save process:", error);
-        // Show specific DB error if available
+        // Show specific DB error if available, otherwise generic
         const errorMsg = error.details || error.message || "An unexpected error occurred while saving. Please check your connection or database configuration.";
         setFormError(errorMsg);
     } finally {

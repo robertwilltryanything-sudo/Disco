@@ -16,8 +16,10 @@ interface ChartDataItem {
   value: number;
 }
 
-// A simple, reusable bar chart component for the dashboard
-const BarChart = ({ data, title, onFilter }: { data: ChartDataItem[], title: string, onFilter: (value: string) => void }) => {
+/**
+ * A simple, reusable bar chart component for the dashboard.
+ */
+const BarChart: React.FC<{ data: ChartDataItem[]; title: string; onFilter: (value: string) => void }> = ({ data, title, onFilter }) => {
   const maxValue = Math.max(1, ...data.map(d => d.value));
   const barColors = [
     'bg-sky-300',
@@ -71,8 +73,10 @@ const BarChart = ({ data, title, onFilter }: { data: ChartDataItem[], title: str
   );
 };
 
-
-const TopItemsList = ({ data, title, onFilter }: { data: ChartDataItem[], title: string, onFilter: (value: string) => void }) => (
+/**
+ * Component for top items (labels, genres).
+ */
+const TopItemsList: React.FC<{ data: ChartDataItem[]; title: string; onFilter: (value: string) => void }> = ({ data, title, onFilter }) => (
     <div className="bg-white rounded-lg border border-zinc-200 p-6">
         <h3 className="text-lg font-bold text-zinc-800 mb-4">{title}</h3>
         <div className="space-y-2">
@@ -98,8 +102,7 @@ const TopItemsList = ({ data, title, onFilter }: { data: ChartDataItem[], title:
     </div>
 );
 
-
-const DashboardView = ({ cds, collectionMode }: DashboardViewProps) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) => {
     const navigate = useNavigate();
 
     const handleNavigate = (filterValue: string) => {

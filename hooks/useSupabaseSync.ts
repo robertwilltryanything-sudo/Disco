@@ -15,21 +15,33 @@ if (SUPABASE_URL && SUPABASE_URL !== 'undefined' && SUPABASE_ANON_KEY && SUPABAS
     }
 }
 
-// Helper to ensure only valid columns are sent to Postgres
-const cleanPayload = (data: any) => {
+/**
+ * Ensures only valid, snake_case columns are sent to Postgres.
+ * Normalizes common camelCase mishaps from AI or legacy code.
+ */
+const cleanPayload = (data: any, isInsert = false) => {
     const validKeys = [
         'artist', 'title', 'genre', 'year', 'cover_art_url', 
         'notes', 'version', 'record_label', 'tags', 'format'
     ];
+    
+    // Add ID only for updates
+    if (!isInsert && data.id) {
+        validKeys.push('id');
+    }
+
     const cleaned: any = {};
+    
+    // Normalize source data mapping
+    const source = { ...data };
+    if (source.recordLabel && !source.record_label) source.record_label = source.recordLabel;
+    if (source.coverArtUrl && !source.cover_art_url) source.cover_art_url = source.coverArtUrl;
+
     validKeys.forEach(key => {
-        if (data[key] !== undefined) {
-            cleaned[key] = data[key];
+        if (source[key] !== undefined) {
+            cleaned[key] = source[key];
         }
     });
-    // Fallback for common camelCase mishaps from AI or legacy data
-    if (data.recordLabel && !cleaned.record_label) cleaned.record_label = data.recordLabel;
-    if (data.coverArtUrl && !cleaned.cover_art_url) cleaned.cover_art_url = data.coverArtUrl;
     
     return cleaned;
 };
@@ -196,14 +208,15 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('saving');
         setError(null);
         
-        const payload = { ...cleanPayload(cdData), user_id: user.id };
+        // Pass isInsert=true to cleanPayload to strip the 'id' field
+        const payload = { ...cleanPayload(cdData, true), user_id: user.id };
         const { data, error: dbError } = await supabase.from('collection').insert(payload).select();
         
         if (dbError) {
             console.error("Supabase insert error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
-            throw dbError;
+            throw dbError; // Form catches this to show technical detail
         }
         
         const newCd = data?.[0] as CD ?? null;
@@ -219,7 +232,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('saving');
         setError(null);
         
-        const payload = cleanPayload(cd);
+        const payload = cleanPayload(cd, false);
         const { error: dbError } = await supabase.from('collection').update(payload).eq('id', cd.id);
         
         if (dbError) {
@@ -250,7 +263,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
-        const payload = { ...cleanPayload(itemData), user_id: user.id };
+        const payload = { ...cleanPayload(itemData, true), user_id: user.id };
         const { data, error: dbError } = await supabase.from('wantlist').insert(payload).select();
         if (dbError) {
             console.error("Supabase wantlist insert error:", dbError);
@@ -267,7 +280,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
-        const payload = cleanPayload(item);
+        const payload = cleanPayload(item, false);
         const { error: dbError } = await supabase.from('wantlist').update(payload).eq('id', item.id);
         if (dbError) {
             console.error("Supabase wantlist update error:", dbError);
