@@ -93,7 +93,6 @@ const AppContent: React.FC = () => {
       return saved ? JSON.parse(saved) : [];
   });
 
-  // Derived filtered views based on current mode
   const currentCollection = useMemo(() => 
     collection.filter(item => (item.format || 'cd') === collectionMode), 
   [collection, collectionMode]);
@@ -235,31 +234,45 @@ const AppContent: React.FC = () => {
     }
 
     let savedCd: CD | null = null;
-    if (cdData.id) {
-      const updatedCd: CD = { 
-          ...cdData, 
-          id: cdData.id, 
-          created_at: cdData.created_at || new Date().toISOString(),
-          format: cdData.format || collectionMode,
-          user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
-      };
-      if (syncProvider === 'supabase') { await supabaseSync.updateCD(updatedCd); } 
-      else { setCollection(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); }
-      savedCd = updatedCd;
-    } else {
-      const newCdBase = { ...cdData, format: collectionMode, created_at: new Date().toISOString() };
-      if (syncProvider === 'supabase') { savedCd = await supabaseSync.addCD(newCdBase); } 
-      else {
-         const newCd: CD = { ...newCdBase, id: crypto.randomUUID() };
-         setCollection(prev => [newCd, ...prev]);
-         savedCd = newCd;
-      }
+    try {
+        if (cdData.id) {
+          const updatedCd: CD = { 
+              ...cdData, 
+              id: cdData.id, 
+              created_at: cdData.created_at || new Date().toISOString(),
+              format: cdData.format || collectionMode,
+              user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
+          };
+          if (syncProvider === 'supabase') { 
+              await supabaseSync.updateCD(updatedCd); 
+              if (supabaseSync.error) throw new Error(supabaseSync.error);
+          } else { 
+              setCollection(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); 
+          }
+          savedCd = updatedCd;
+        } else {
+          const newCdBase = { ...cdData, format: collectionMode, created_at: new Date().toISOString() };
+          if (syncProvider === 'supabase') { 
+              savedCd = await supabaseSync.addCD(newCdBase); 
+              if (supabaseSync.error) throw new Error(supabaseSync.error);
+          } else {
+             const newCd: CD = { ...newCdBase, id: crypto.randomUUID() };
+             setCollection(prev => [newCd, ...prev]);
+             savedCd = newCd;
+          }
+        }
+        
+        if (savedCd) {
+            fetchAndApplyAlbumDetails(savedCd);
+            setIsAddModalOpen(false);
+            setCdToEdit(null);
+            setPrefillData(null);
+            setDuplicateCheckResult(null);
+        }
+    } catch (e) {
+        console.error("Save CD error:", e);
+        // Do not close the modal on error, allow AddCDForm to show the error via SupabaseSync's error state
     }
-    if (savedCd) fetchAndApplyAlbumDetails(savedCd);
-    setIsAddModalOpen(false);
-    setCdToEdit(null);
-    setPrefillData(null);
-    setDuplicateCheckResult(null);
   }, [currentCollection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult]);
 
   const handleDeleteCD = useCallback((id: string) => {
@@ -268,26 +281,43 @@ const AppContent: React.FC = () => {
   }, [syncProvider, supabaseSync]);
   
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
-      if (itemData.id) {
-           const updatedItem: WantlistItem = {
-              ...itemData,
-              id: itemData.id,
-              created_at: itemData.created_at || new Date().toISOString(),
-              format: itemData.format || collectionMode,
-              user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
-          };
-          if (syncProvider === 'supabase') await supabaseSync.updateWantlistItem(updatedItem);
-          else setWantlist(prev => prev.map(item => item.id === itemData.id ? updatedItem : item));
-      } else {
-          const newItemBase = { ...itemData, format: collectionMode, created_at: new Date().toISOString() };
-          if (syncProvider === 'supabase') await supabaseSync.addWantlistItem(newItemBase);
-          else {
-              const newItem: WantlistItem = { ...newItemBase, id: crypto.randomUUID() };
-              setWantlist(prev => [newItem, ...prev]);
+      try {
+          let savedItem: WantlistItem | null = null;
+          if (itemData.id) {
+               const updatedItem: WantlistItem = {
+                  ...itemData,
+                  id: itemData.id,
+                  created_at: itemData.created_at || new Date().toISOString(),
+                  format: itemData.format || collectionMode,
+                  user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
+              };
+              if (syncProvider === 'supabase') {
+                  await supabaseSync.updateWantlistItem(updatedItem);
+                  if (supabaseSync.error) throw new Error(supabaseSync.error);
+                  savedItem = updatedItem;
+              } else {
+                  setWantlist(prev => prev.map(item => item.id === itemData.id ? updatedItem : item));
+                  savedItem = updatedItem;
+              }
+          } else {
+              const newItemBase = { ...itemData, format: collectionMode, created_at: new Date().toISOString() };
+              if (syncProvider === 'supabase') {
+                  savedItem = await supabaseSync.addWantlistItem(newItemBase);
+                  if (supabaseSync.error) throw new Error(supabaseSync.error);
+              } else {
+                  const newItem: WantlistItem = { ...newItemBase, id: crypto.randomUUID() };
+                  setWantlist(prev => [newItem, ...prev]);
+                  savedItem = newItem;
+              }
           }
+          
+          if (savedItem) {
+              setIsAddWantlistModalOpen(false);
+              setWantlistItemToEdit(null);
+          }
+      } catch (e) {
+          console.error("Save Wantlist error:", e);
       }
-      setIsAddWantlistModalOpen(false);
-      setWantlistItemToEdit(null);
   }, [syncProvider, supabaseSync, collectionMode]);
 
   const handleDeleteWantlistItem = useCallback((id: string) => {

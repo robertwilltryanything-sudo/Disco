@@ -73,7 +73,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             if (err.message?.toLowerCase().includes('does not exist') || err.message?.toLowerCase().includes('could not find the table')) {
                 errorMessage = "Database tables are missing. Please see supabase_setup.md for instructions.";
             } else if (err.message?.toLowerCase().includes('could not find the column')) {
-                errorMessage = "Database schema is out of date. Please run the fix scripts in supabase_setup.md.";
+                errorMessage = "Database schema is out of date (missing 'format' column). Please run the fix scripts in supabase_setup.md.";
             }
             
             setError(errorMessage);
@@ -89,7 +89,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSession(session);
             setUser(session?.user ?? null);
             if (!session) {
-                setError("You are not signed in to Supabase.");
                 setSyncStatus('idle');
             }
         };
@@ -197,9 +196,11 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const addCD = async (cdData: Omit<CD, 'id'>) => {
         if (!supabase || !user) return null;
         setSyncStatus('saving');
+        setError(null);
         const { data, error } = await supabase.from('cds').insert({ ...cdData, user_id: user.id }).select();
         
         if (error) {
+            console.error("Add CD Supabase error:", error);
             setError(error.message);
             setSyncStatus('error');
             return null;
@@ -216,26 +217,29 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
 
     const updateCD = async (cd: CD) => {
         if (!supabase) return;
-        setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
         setSyncStatus('saving');
+        setError(null);
         const { error } = await supabase.from('cds').update(cd).eq('id', cd.id);
         if (error) {
+            console.error("Update CD Supabase error:", error);
             setError(error.message);
             setSyncStatus('error');
         } else {
+            setCollection(prev => prev.map(c => c.id === cd.id ? cd : c));
             setSyncStatus('synced');
         }
     };
 
     const deleteCD = async (id: string) => {
         if (!supabase) return;
-        setCollection(prev => prev.filter(c => c.id !== id));
         setSyncStatus('saving');
+        setError(null);
         const { error } = await supabase.from('cds').delete().eq('id', id);
         if (error) {
             setError(error.message);
             setSyncStatus('error');
         } else {
+            setCollection(prev => prev.filter(c => c.id !== id));
             setSyncStatus('synced');
         }
     };
@@ -243,9 +247,11 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     const addWantlistItem = async (itemData: Omit<WantlistItem, 'id' | 'created_at'>) => {
         if (!supabase || !user) return null;
         setSyncStatus('saving');
+        setError(null);
         const { data, error } = await supabase.from('wantlist').insert({ ...itemData, user_id: user.id }).select();
 
         if (error) {
+            console.error("Add Wantlist Supabase error:", error);
             setError(error.message);
             setSyncStatus('error');
             return null;
@@ -262,27 +268,30 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
 
     const updateWantlistItem = async (item: WantlistItem) => {
         if (!supabase) return;
-        setWantlist(prev => prev.map(i => (i.id === item.id ? item : i)));
         setSyncStatus('saving');
+        setError(null);
         const { error } = await supabase.from('wantlist').update(item).eq('id', item.id);
         if (error) {
+            console.error("Update Wantlist Supabase error:", error);
             setError(error.message);
             setSyncStatus('error');
         } else {
+            setWantlist(prev => prev.map(i => (i.id === item.id ? item : i)));
             setSyncStatus('synced');
         }
     };
 
     const deleteWantlistItem = async (id: string) => {
         if (!supabase) return;
-        setWantlist(prev => prev.filter(item => item.id !== id));
         setSyncStatus('saving');
+        setError(null);
         const { error } = await supabase.from('wantlist').delete().eq('id', id);
 
         if (error) {
             setError(error.message);
             setSyncStatus('error');
         } else {
+            setWantlist(prev => prev.filter(item => item.id !== id));
             setSyncStatus('synced');
         }
     };

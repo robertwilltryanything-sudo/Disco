@@ -100,7 +100,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         }
     } catch (error) {
         console.error("Error during save process:", error);
-        setFormError("An error occurred while saving. Please try again.");
+        setFormError("An error occurred while saving. Please check your connection or database configuration.");
+    } finally {
         setIsProcessing(false);
     }
   }, [artist, title, genre, year, version, coverArtUrl, notes, itemToEdit, onSave, recordLabel, tags]);
@@ -194,8 +195,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       } catch (error) {
         console.error("Error saving after art selection:", error);
         setFormError("An error occurred while saving. Please try again.");
-        setIsProcessing(false);
       } finally {
+        setIsProcessing(false);
         setIsSubmittingWithArtSelection(false);
       }
     }
@@ -217,8 +218,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       } catch (error) {
         console.error("Error saving after closing art selector:", error);
         setFormError("An error occurred while saving. Please try again.");
-        setIsProcessing(false);
       } finally {
+        setIsProcessing(false);
         setIsSubmittingWithArtSelection(false);
       }
     } else {
@@ -250,6 +251,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   };
 
   const albumType = isVinyl ? 'Vinyl' : 'CD';
+  const versionPlaceholder = isVinyl ? "Edition (e.g., Gatefold, 180g, Color Vinyl)" : "Version (e.g., Remaster, Deluxe Edition, Digipak)";
+  const notesPlaceholder = isVinyl ? "Personal notes (e.g., 'Look for gatefold', 'Target color variant')" : "Personal notes (e.g., 'Japanese import', 'Look for SACD version')";
 
   return (
     <>
@@ -352,7 +355,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               />
               <input
                 type="text"
-                placeholder="Version (e.g., Remaster, Deluxe Edition)"
+                placeholder={versionPlaceholder}
                 value={version}
                 onChange={(e) => setVersion(e.target.value)}
                 className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
@@ -415,7 +418,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                 )}
               </div>
               <textarea
-                placeholder="Personal notes (e.g., 'Japanese import', 'Look for vinyl version')"
+                placeholder={notesPlaceholder}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
