@@ -245,29 +245,20 @@ const AppContent: React.FC = () => {
           };
           
           if (syncProvider === 'supabase') { 
-              if (!supabaseSync.user) {
-                  alert("You must be signed in to save changes to the cloud.");
-                  return;
-              }
+              if (!supabaseSync.user) { throw new Error("You must be signed in to save changes to the cloud."); }
               const success = await supabaseSync.updateCD(updatedCd); 
-              if (success) savedCd = updatedCd;
+              if (!success) { throw new Error(supabaseSync.error || "Update failed."); }
+              savedCd = updatedCd;
           } else { 
               setCollection(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); 
               savedCd = updatedCd;
           }
         } else {
-          const newCdBase = { 
-              ...cdData, 
-              format: collectionMode, 
-              created_at: new Date().toISOString() 
-          };
-          
+          const newCdBase = { ...cdData, format: collectionMode, created_at: new Date().toISOString() };
           if (syncProvider === 'supabase') { 
-              if (!supabaseSync.user) {
-                  alert("You must be signed in to save to the cloud.");
-                  return;
-              }
+              if (!supabaseSync.user) { throw new Error("You must be signed in to save to the cloud."); }
               savedCd = await supabaseSync.addCD(newCdBase); 
+              if (!savedCd) { throw new Error(supabaseSync.error || "Save failed."); }
           } else {
              const newCd: CD = { ...newCdBase, id: crypto.randomUUID() };
              setCollection(prev => [newCd, ...prev]);
@@ -282,8 +273,9 @@ const AppContent: React.FC = () => {
             setPrefillData(null);
             setDuplicateCheckResult(null);
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("Save CD handler error:", e);
+        throw e;
     }
   }, [currentCollection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult]);
 
@@ -308,29 +300,20 @@ const AppContent: React.FC = () => {
               };
               
               if (syncProvider === 'supabase') {
-                  if (!supabaseSync.user) {
-                      alert("Please sign in to update your wantlist.");
-                      return;
-                  }
+                  if (!supabaseSync.user) { throw new Error("Please sign in to update your wantlist."); }
                   const success = await supabaseSync.updateWantlistItem(updatedItem);
-                  if (success) savedItem = updatedItem;
+                  if (!success) { throw new Error(supabaseSync.error || "Update failed."); }
+                  savedItem = updatedItem;
               } else {
                   setWantlist(prev => prev.map(item => item.id === itemData.id ? updatedItem : item));
                   savedItem = updatedItem;
               }
           } else {
-              const newItemBase = { 
-                  ...itemData, 
-                  format: collectionMode, 
-                  created_at: new Date().toISOString() 
-              };
-              
+              const newItemBase = { ...itemData, format: collectionMode, created_at: new Date().toISOString() };
               if (syncProvider === 'supabase') {
-                  if (!supabaseSync.user) {
-                      alert("Please sign in to save to your wantlist.");
-                      return;
-                  }
+                  if (!supabaseSync.user) { throw new Error("Please sign in to save to your wantlist."); }
                   savedItem = await supabaseSync.addWantlistItem(newItemBase);
+                  if (!savedItem) { throw new Error(supabaseSync.error || "Save failed."); }
               } else {
                   const newItem: WantlistItem = { ...newItemBase, id: crypto.randomUUID() };
                   setWantlist(prev => [newItem, ...prev]);
@@ -342,8 +325,9 @@ const AppContent: React.FC = () => {
               setIsAddWantlistModalOpen(false);
               setWantlistItemToEdit(null);
           }
-      } catch (e) {
+      } catch (e: any) {
           console.error("Save Wantlist handler error:", e);
+          throw e;
       }
   }, [syncProvider, supabaseSync, collectionMode]);
 

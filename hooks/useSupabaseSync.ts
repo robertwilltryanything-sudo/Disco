@@ -6,7 +6,6 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
 let supabase: SupabaseClient | null = null;
-// Ensure we don't treat "undefined" as a valid string from Vite's define
 if (SUPABASE_URL && SUPABASE_URL !== 'undefined' && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'undefined') {
     try {
         supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -18,10 +17,10 @@ if (SUPABASE_URL && SUPABASE_URL !== 'undefined' && SUPABASE_ANON_KEY && SUPABAS
 
 export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, setWantlist: Dispatch<SetStateAction<WantlistItem[]>>, syncMode: SyncMode, syncProvider: SyncProvider) => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'disabled');
-    const [error, setError] = useState<string | null>(supabase ? null : 'Supabase is not configured correctly in environment variables.');
+    const [error, setError] = useState<string | null>(supabase ? null : 'Supabase is not configured correctly.');
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
-    const cdsChannelRef = useRef<RealtimeChannel | null>(null);
+    const collectionChannelRef = useRef<RealtimeChannel | null>(null);
     const wantlistChannelRef = useRef<RealtimeChannel | null>(null);
     
     const loadDataFromSupabase = useCallback(async () => {
@@ -59,17 +58,17 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         };
 
         try {
-            const [cdsData, wantlistData] = await Promise.all([
-                fetchAllRows('cds'),
+            const [collectionData, wantlistData] = await Promise.all([
+                fetchAllRows('collection'),
                 fetchAllRows('wantlist')
             ]);
             
-            setCollection(cdsData);
+            setCollection(collectionData);
             setWantlist(wantlistData);
             setSyncStatus('synced');
         } catch (err: any) {
             console.error("Supabase load error:", err);
-            setError(`Load Error: ${err.message || 'Unknown database error'}`);
+            setError(`Load Error: ${err.message || 'Check database connection'}`);
             setSyncStatus('error');
         }
     }, [setCollection, setWantlist]);
@@ -96,9 +95,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     
     useEffect(() => {
         const cleanup = () => {
-            if (cdsChannelRef.current) {
-                supabase?.removeChannel(cdsChannelRef.current);
-                cdsChannelRef.current = null;
+            if (collectionChannelRef.current) {
+                supabase?.removeChannel(collectionChannelRef.current);
+                collectionChannelRef.current = null;
             }
             if (wantlistChannelRef.current) {
                 supabase?.removeChannel(wantlistChannelRef.current);
@@ -115,8 +114,8 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             loadDataFromSupabase();
             
             if (syncMode === 'realtime') {
-                const cdsChannel = supabase.channel('cds-changes')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'cds' }, (payload) => {
+                const collectionChannel = supabase.channel('collection-changes')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'collection' }, (payload) => {
                         if (payload.eventType === 'INSERT') {
                             setCollection(prev => [payload.new as CD, ...prev.filter(cd => cd.id !== payload.new.id)]);
                         } else if (payload.eventType === 'UPDATE') {
@@ -126,7 +125,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
                         }
                     })
                     .subscribe();
-                cdsChannelRef.current = cdsChannel;
+                collectionChannelRef.current = collectionChannel;
                 
                 const wantlistChannel = supabase.channel('wantlist-changes')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'wantlist' }, (payload) => {
@@ -152,9 +151,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setError(null);
         const { error } = await supabase.auth.signInWithOtp({ 
             email,
-            options: {
-                emailRedirectTo: window.location.origin
-            }
+            options: { emailRedirectTo: window.location.origin }
         });
         if (error) {
             setError(`Authentication failed: ${error.message}`);
@@ -174,23 +171,16 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     };
 
     const addCD = async (cdData: Omit<CD, 'id'>) => {
-        if (!supabase) {
-            setError("Supabase client is not initialized.");
-            return null;
-        }
-        if (!user) {
-            setError("You must be signed in to add items to the cloud.");
-            setSyncStatus('error');
-            return null;
-        }
+        if (!supabase) { setError("Database client not ready."); return null; }
+        if (!user) { setError("Authentication required."); return null; }
         
         setSyncStatus('saving');
         setError(null);
-        const { data, error: dbError } = await supabase.from('cds').insert({ ...cdData, user_id: user.id }).select();
+        const { data, error: dbError } = await supabase.from('collection').insert({ ...cdData, user_id: user.id }).select();
         
         if (dbError) {
             console.error("Supabase Add CD Error:", dbError);
-            setError(`Save failed: ${dbError.message}`);
+            setError(dbError.message);
             setSyncStatus('error');
             return null;
         }
@@ -204,70 +194,49 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     };
 
     const updateCD = async (cd: CD) => {
-        if (!supabase) return false;
-        if (!user) {
-            setError("User session lost. Please sign in again.");
-            return false;
-        }
-
+        if (!supabase || !user) return false;
         setSyncStatus('saving');
         setError(null);
-
-        // STRIP IMMUTABLE FIELDS: Postgres fails if you try to update the primary key or owner ID
+        
         const { id, user_id, created_at, ...updatePayload } = cd;
-
-        const { error: dbError } = await supabase.from('cds').update(updatePayload).eq('id', id);
+        const { error: dbError } = await supabase.from('collection').update(updatePayload).eq('id', id);
         
         if (dbError) {
-            console.error("Supabase Update CD Error:", dbError);
-            setError(`Update failed: ${dbError.message}`);
+            console.error("Supabase Update Error:", dbError);
+            setError(dbError.message);
             setSyncStatus('error');
             return false;
-        } else {
-            setCollection(prev => prev.map(c => c.id === id ? cd : c));
-            setSyncStatus('synced');
-            return true;
         }
+        setSyncStatus('synced');
+        return true;
     };
 
     const deleteCD = async (id: string) => {
         if (!supabase) return false;
         setSyncStatus('saving');
         setError(null);
-        const { error: dbError } = await supabase.from('cds').delete().eq('id', id);
+        const { error: dbError } = await supabase.from('collection').delete().eq('id', id);
         if (dbError) {
-            console.error("Supabase Delete CD Error:", dbError);
-            setError(`Delete failed: ${dbError.message}`);
+            setError(dbError.message);
             setSyncStatus('error');
             return false;
-        } else {
-            setCollection(prev => prev.filter(c => c.id !== id));
-            setSyncStatus('synced');
-            return true;
         }
+        setSyncStatus('synced');
+        return true;
     };
     
     const addWantlistItem = async (itemData: Omit<WantlistItem, 'id' | 'created_at'>) => {
-        if (!supabase || !user) {
-            setError("Sign in required to save to cloud.");
-            return null;
-        }
+        if (!supabase || !user) return null;
         setSyncStatus('saving');
         setError(null);
         const { data, error: dbError } = await supabase.from('wantlist').insert({ ...itemData, user_id: user.id }).select();
-
         if (dbError) {
-            console.error("Supabase Add Wantlist Error:", dbError);
-            setError(`Save failed: ${dbError.message}`);
+            setError(dbError.message);
             setSyncStatus('error');
             return null;
         }
-        
         const newItem = data?.[0] as WantlistItem ?? null;
-        if (newItem) {
-            setWantlist(prev => [newItem, ...prev.filter(item => item.id !== newItem.id)]);
-            setSyncStatus('synced');
-        }
+        if (newItem) setSyncStatus('synced');
         return newItem;
     };
 
@@ -275,22 +244,15 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (!supabase || !user) return false;
         setSyncStatus('saving');
         setError(null);
-
-        // STRIP IMMUTABLE FIELDS
         const { id, user_id, created_at, ...updatePayload } = item;
-
         const { error: dbError } = await supabase.from('wantlist').update(updatePayload).eq('id', id);
-        
         if (dbError) {
-            console.error("Supabase Update Wantlist Error:", dbError);
-            setError(`Update failed: ${dbError.message}`);
+            setError(dbError.message);
             setSyncStatus('error');
             return false;
-        } else {
-            setWantlist(prev => prev.map(i => (i.id === id ? item : i)));
-            setSyncStatus('synced');
-            return true;
         }
+        setSyncStatus('synced');
+        return true;
     };
 
     const deleteWantlistItem = async (id: string) => {
@@ -298,23 +260,14 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('saving');
         setError(null);
         const { error: dbError } = await supabase.from('wantlist').delete().eq('id', id);
-
         if (dbError) {
-            console.error("Supabase Delete Wantlist Error:", dbError);
-            setError(`Delete failed: ${dbError.message}`);
+            setError(dbError.message);
             setSyncStatus('error');
             return false;
-        } else {
-            setWantlist(prev => prev.filter(item => item.id !== id));
-            setSyncStatus('synced');
-            return true;
         }
+        setSyncStatus('synced');
+        return true;
     };
-
-    const manualSync = useCallback(async () => {
-        if (!supabase || !session) return;
-        await loadDataFromSupabase();
-    }, [session, loadDataFromSupabase]);
 
     return {
         isConfigured: !!supabase,
@@ -330,7 +283,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         addWantlistItem,
         updateWantlistItem,
         deleteWantlistItem,
-        manualSync,
+        manualSync: () => session && loadDataFromSupabase(),
         setSyncStatus,
     };
 };
