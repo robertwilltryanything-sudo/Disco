@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { CD } from '../types';
+import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { MusicNoteIcon } from '../components/icons/MusicNoteIcon';
 import { EditIcon } from '../components/icons/EditIcon';
@@ -17,9 +17,10 @@ interface DetailViewProps {
   cds: CD[];
   onDeleteCD: (id: string) => void;
   onUpdateCD: (cd: CD) => Promise<void>;
+  collectionMode: CollectionMode;
 }
 
-const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD }) => {
+const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -38,6 +39,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD }) 
     return recs.slice(0, MAX);
   }, [cd, cds]);
 
+  const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
   const wikipediaUrl = useMemo(() => cd ? `https://en.wikipedia.org/wiki/${encodeURIComponent(cd.title.replace(/ /g, '_'))}` : '', [cd]);
 
   const handleRefreshData = useCallback(async () => {
@@ -59,7 +61,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD }) 
       finally { setIsRefreshing(false); }
   }, [cd, onUpdateCD]);
 
-  if (!cd) return <div className="text-center p-8"><h2 className="text-2xl font-bold text-red-600">CD Not Found</h2><Link to="/" className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black"><ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>;
+  if (!cd) return <div className="text-center p-8"><h2 className="text-2xl font-bold text-red-600">{albumType} Not Found</h2><Link to="/" className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black"><ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>;
 
   return (
     <div className="max-w-4xl mx-auto">

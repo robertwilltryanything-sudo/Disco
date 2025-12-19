@@ -282,8 +282,17 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="p-4 bg-zinc-50 rounded-lg space-y-4">
-        <h2 className="text-xl font-bold text-zinc-900">{cdToEdit ? `Edit ${albumType}` : `Add New ${albumType}`}</h2>
+      <form onSubmit={handleSubmit} className="relative p-4 bg-zinc-50 rounded-lg space-y-4">
+        <button
+            type="button"
+            onClick={onCancel}
+            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 transition-all z-10"
+            aria-label="Close form"
+        >
+            <XIcon className="h-6 w-6" />
+        </button>
+
+        <h2 className="text-xl font-bold text-zinc-900 pr-10">{cdToEdit ? `Edit ${albumType}` : `Add New ${albumType}`}</h2>
         
         {isProcessing && !isSelectorOpen && (
             <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg">

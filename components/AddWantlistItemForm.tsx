@@ -253,8 +253,17 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="p-4 bg-zinc-50 rounded-lg space-y-4">
-        <h2 className="text-xl font-bold text-zinc-900">{itemToEdit ? `Edit ${albumType} Wantlist Item` : `Add ${albumType} to Wantlist`}</h2>
+      <form onSubmit={handleSubmit} className="relative p-4 bg-zinc-50 rounded-lg space-y-4">
+        <button
+            type="button"
+            onClick={onCancel}
+            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 transition-all z-10"
+            aria-label="Close form"
+        >
+            <XIcon className="h-6 w-6" />
+        </button>
+
+        <h2 className="text-xl font-bold text-zinc-900 pr-10">{itemToEdit ? `Edit ${albumType} Wantlist Item` : `Add ${albumType} to Wantlist`}</h2>
         
         {isProcessing && !isSelectorOpen && (
             <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -436,7 +445,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-800"
               >
                 Cancel
               </button>

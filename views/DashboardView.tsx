@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CD } from '../types';
+import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { capitalizeWords } from '../utils';
 import { AlbumIcon } from '../components/icons/AlbumIcon';
@@ -8,6 +8,7 @@ import { MusicianIcon } from '../components/icons/MusicianIcon';
 
 interface DashboardViewProps {
   cds: CD[];
+  collectionMode: CollectionMode;
 }
 
 // A simple, reusable bar chart component for the dashboard
@@ -93,7 +94,7 @@ const TopItemsList = ({ data, title, onFilter }: { data: { label: string; value:
 );
 
 
-const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) => {
     const navigate = useNavigate();
 
     const handleNavigate = (filterValue: string) => {
@@ -141,6 +142,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
         };
     }, [cds]);
     
+    const albumTypePlural = collectionMode === 'vinyl' ? 'Vinyl' : 'CDs';
+    const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
+
     return (
     <div>
         <div className="mb-6 flex justify-between items-center">
@@ -153,8 +157,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
 
         {cds.length === 0 ? (
              <div className="text-center py-10 px-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300">
-                <p className="text-zinc-600">Your collection is empty.</p>
-                <p className="text-sm text-zinc-500 mt-1">Add some CDs to see your stats here!</p>
+                <p className="text-zinc-600">Your {collectionMode} collection is empty.</p>
+                <p className="text-sm text-zinc-500 mt-1">Add some {albumTypePlural} to see your stats here!</p>
             </div>
         ) : (
             <>
@@ -162,7 +166,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
                     <div className="relative bg-white rounded-lg border border-zinc-200 p-6 overflow-hidden">
                        <div className="relative z-10">
                          <h3 className="text-base font-bold text-zinc-500 uppercase tracking-wider">
-                           Total Albums
+                           Total {albumTypePlural}
                          </h3>
                          <p className="text-4xl font-extrabold text-zinc-900 mt-1">{cds.length}</p>
                        </div>
@@ -179,7 +183,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds }) => {
                     </div>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <BarChart data={albumsByDecade} title="Albums by Decade" onFilter={handleNavigate} />
+                    <BarChart data={albumsByDecade} title={`${albumType}s by Decade`} onFilter={handleNavigate} />
                     <div className="space-y-6">
                         <TopItemsList data={topGenres} title="Top 5 Genres" onFilter={handleNavigate} />
                         <TopItemsList data={topLabels} title="Top 5 Record Labels" onFilter={handleNavigate} />

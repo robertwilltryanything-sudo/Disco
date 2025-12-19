@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CD } from '../types';
+import { CD, CollectionMode } from '../types';
 import { capitalizeWords } from '../utils';
 import { AlbumIcon } from './icons/AlbumIcon';
 import { MusicianIcon } from './icons/MusicianIcon';
@@ -10,6 +10,7 @@ import { StarIcon } from './icons/StarIcon';
 interface QuickStatsProps {
   cds: CD[];
   className?: string;
+  collectionMode: CollectionMode;
 }
 
 const StatItem: React.FC<{ label: string; value: string | number; icon: React.ReactNode; }> = ({ label, value, icon }) => (
@@ -22,15 +23,12 @@ const StatItem: React.FC<{ label: string; value: string | number; icon: React.Re
     </div>
 );
 
-const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '' }) => {
+const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '', collectionMode }) => {
   const { totalCDs, uniqueArtists, latestCD, mostProlificArtist } = useMemo(() => {
     if (!cds || cds.length === 0) {
       return { totalCDs: 0, uniqueArtists: 0, latestCD: null, mostProlificArtist: null };
     }
 
-    // Safely sort to find the latest CD. The `|| 0` fallback prevents crashes
-    // if `created_at` is missing on legacy data items. Items without a valid date
-    // are treated as the oldest.
     const latest = [...cds].sort((a, b) => {
         const dateA = new Date(a?.created_at || 0).getTime();
         const dateB = new Date(b?.created_at || 0).getTime();
@@ -63,11 +61,13 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '' }) => {
     };
   }, [cds]);
 
+  const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CDs';
+
   return (
     <div className={`bg-white rounded-lg border border-zinc-200 p-6 h-full flex flex-col ${className}`}>
         <h3 className="text-lg font-bold text-zinc-800">Collection Snapshot</h3>
         <div className="divide-y divide-zinc-200 flex-grow">
-            <StatItem label="Total CDs" value={totalCDs} icon={<AlbumIcon className="w-5 h-5 text-zinc-500" />} />
+            <StatItem label={`Total ${albumType}`} value={totalCDs} icon={<AlbumIcon className="w-5 h-5 text-zinc-500" />} />
             <StatItem label="Unique Artists" value={uniqueArtists} icon={<MusicianIcon className="w-5 h-5 text-zinc-500" />} />
             {latestCD && (
                 <div className="flex justify-between items-center py-3">

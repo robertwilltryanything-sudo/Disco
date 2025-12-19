@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useTransition } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { CD, SortKey, SortOrder, WantlistItem } from '../types';
+import { CD, SortKey, SortOrder, WantlistItem, CollectionMode } from '../types';
 import CDList from '../components/CDList';
 import SearchBar from '../components/SearchBar';
 import SortControls from '../components/SortControls';
@@ -19,11 +19,12 @@ interface ListViewProps {
   onAddToWantlist: (item: Omit<WantlistItem, 'id' | 'created_at'>) => Promise<void>;
   onRequestAdd: (artist?: string) => void;
   onRequestEdit: (cd: CD) => void;
+  collectionMode: CollectionMode;
 }
 
 const VIEW_MODE_KEY = 'disco_view_mode';
 
-const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onRequestAdd, onRequestEdit }) => {
+const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onRequestAdd, onRequestEdit, collectionMode }) => {
   const [sortBy, setSortBy] = useState<SortKey>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
@@ -193,6 +194,8 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     return { filteredAndSortedCds: sorted, potentialArtistForScan: artistForScan };
   }, [cds, urlSearchQuery, sortBy, sortOrder]);
 
+  const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
+
   return (
     <div>
       {!urlSearchQuery && (
@@ -203,25 +206,25 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
             ) : (
               <div className="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center h-full text-center min-h-[256px]">
                 <h3 className="text-xl font-bold text-zinc-800">Welcome to DiscO!</h3>
-                <p className="text-zinc-600 mt-2">Your collection is empty. Add your first CD to get started.</p>
+                <p className="text-zinc-600 mt-2">Your {collectionMode} collection is empty. Add your first {albumType} to get started.</p>
                 <button
                   onClick={() => onRequestAdd()}
                   className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
                 >
                   <PlusIcon className="h-5 w-5" />
-                  Add a CD
+                  Add a {albumType}
                 </button>
               </div>
             )}
           </div>
           <div className="lg:w-1/3 mt-6 lg:mt-0">
-            <QuickStats cds={cds} />
+            <QuickStats cds={cds} collectionMode={collectionMode} />
           </div>
         </div>
       )}
       <div className="sticky top-[89px] md:top-[93px] bg-zinc-100/80 backdrop-blur-sm z-10 py-3 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-          <SearchBar initialQuery={urlSearchQuery} onSearch={handleSearch} />
+          <SearchBar initialQuery={urlSearchQuery} onSearch={handleSearch} albumType={albumType} />
           <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
             <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
             <div className="hidden sm:flex items-center gap-2">
@@ -261,9 +264,9 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
       </div>
       
       {view === 'grid' ? (
-        <CDList cds={filteredAndSortedCds} />
+        <CDList cds={filteredAndSortedCds} albumType={albumType} />
       ) : (
-        <CDTable cds={filteredAndSortedCds} onRequestEdit={onRequestEdit} />
+        <CDTable cds={filteredAndSortedCds} onRequestEdit={onRequestEdit} albumType={albumType} />
       )}
 
       {potentialArtistForScan && filteredAndSortedCds.length > 0 && (

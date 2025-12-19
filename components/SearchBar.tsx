@@ -5,9 +5,10 @@ import { XIcon } from './icons/XIcon';
 interface SearchBarProps {
   initialQuery: string;
   onSearch: (query: string) => void;
+  albumType?: string;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ initialQuery, onSearch }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ initialQuery, onSearch, albumType = 'collection' }) => {
   const [value, setValue] = useState(initialQuery);
 
   // Sync internal state if the initialQuery prop changes (e.g., from URL)
@@ -32,7 +33,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ initialQuery, onSearch }) => {
       </div>
       <input
         type="search"
-        placeholder="Search your collection... (Press Enter)"
+        placeholder={`Search your ${albumType.toLowerCase()}... (Press Enter)`}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-4 pl-10 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"

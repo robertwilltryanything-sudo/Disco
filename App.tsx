@@ -11,7 +11,7 @@ import { useSupabaseSync } from './hooks/useSupabaseSync';
 import AddCDForm from './components/AddCDForm';
 import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
 import { areStringsSimilar } from './utils';
-import ImportConfirmModal from './components/ImportConfirmModal';
+import importConfirmModal from './components/ImportConfirmModal';
 import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
 import DuplicatesView from './views/DuplicatesView';
@@ -22,6 +22,7 @@ import WantlistDetailView from './views/WantlistDetailView';
 import ArtistDetailView from './views/ArtistDetailView';
 import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
+import ImportConfirmModal from './components/ImportConfirmModal';
 
 const INITIAL_COLLECTION: CD[] = [
   {
@@ -328,11 +329,11 @@ const AppContent: React.FC = () => {
       />
       <main className="container mx-auto p-4 md:p-6 animate-in fade-in duration-500">
         <Routes>
-          <Route path="/" element={<ListView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} />} />
-          <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} />} />
+          <Route path="/" element={<ListView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
+          <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} collectionMode={collectionMode} />} />
           <Route path="/artists" element={<ArtistsView cds={currentCollection} />} />
           <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} />} />
-          <Route path="/dashboard" element={<DashboardView cds={currentCollection} />} />
+          <Route path="/dashboard" element={<DashboardView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} />} />
           <Route path="/wantlist" element={<WantlistView wantlist={currentWantlist} onRequestEdit={(item) => { setWantlistItemToEdit(item); setIsAddWantlistModalOpen(true); }} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} />} />
           <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} />} />
