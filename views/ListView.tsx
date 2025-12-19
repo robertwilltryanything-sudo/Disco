@@ -84,17 +84,18 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
         return;
     }
 
-    const FEATURED_ALBUM_KEY = 'disco_featured_album';
-    const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+    // Use mode-specific keys to ensure CD and Vinyl featured albums are tracked independently
+    const storageKey = `disco_featured_album_${collectionMode}`;
+    const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-    const storedDataRaw = localStorage.getItem(FEATURED_ALBUM_KEY);
+    const storedDataRaw = localStorage.getItem(storageKey);
     let storedData: { cdId: string; timestamp: number } | null = null;
     if (storedDataRaw) {
       try {
         storedData = JSON.parse(storedDataRaw);
       } catch (e) {
         console.error("Could not parse featured album data from localStorage", e);
-        localStorage.removeItem(FEATURED_ALBUM_KEY);
+        localStorage.removeItem(storageKey);
       }
     }
     
@@ -107,7 +108,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     const needsNewFeaturedAlbum = 
         !storedData || 
         !currentFeaturedCdInCollection ||
-        (now - (storedData.timestamp || 0) > ONE_WEEK_IN_MS);
+        (now - (storedData.timestamp || 0) > ONE_DAY_IN_MS);
 
     if (needsNewFeaturedAlbum) {
         const potentialCds = currentFeaturedCdInCollection 
@@ -120,7 +121,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
         const newFeaturedCd = selectionPool[randomIndex];
         
         if (newFeaturedCd) {
-            localStorage.setItem(FEATURED_ALBUM_KEY, JSON.stringify({
+            localStorage.setItem(storageKey, JSON.stringify({
                 cdId: newFeaturedCd.id,
                 timestamp: now,
             }));
@@ -129,7 +130,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     } else {
         setFeaturedCd(currentFeaturedCdInCollection);
     }
-  }, [cds]);
+  }, [cds, collectionMode]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -156,7 +157,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
           (cd.title && cd.title.toLowerCase().includes(lowerCaseQuery)) ||
           yearMatches ||
           (cd.genre && cd.genre.toLowerCase().includes(lowerCaseQuery)) ||
-          // Fix: Changed recordLabel to record_label to match CD interface
           (cd.record_label && cd.record_label.toLowerCase().includes(lowerCaseQuery)) ||
           (cd.tags && cd.tags.some(tag => tag && tag.toLowerCase().includes(lowerCaseQuery)))
         );
@@ -183,13 +183,10 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     let artistForScan: string | null = null;
     if (urlSearchQuery && sorted.length > 0) {
       const firstArtist = sorted[0].artist;
-      // Condition 1: All results must be from the same artist.
       const allSameArtist = sorted.every(cd => areStringsSimilar(cd.artist, firstArtist, 0.95));
-      // Condition 2: The search query itself must be similar to that artist's name.
       const queryMatchesArtist = areStringsSimilar(urlSearchQuery, firstArtist, 0.85);
 
       if (allSameArtist && queryMatchesArtist) {
-        // Use the artist name from the data for accuracy, not the user's potentially misspelled query.
         artistForScan = firstArtist;
       }
     }
