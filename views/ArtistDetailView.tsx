@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CD, WantlistItem } from '../types';
+import { CD, WantlistItem, CollectionMode } from '../types';
 import { areStringsSimilar, capitalizeWords } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import CDItem from '../components/CDItem';
@@ -10,9 +10,10 @@ interface ArtistDetailViewProps {
   cds: CD[];
   wantlist: WantlistItem[];
   onAddToWantlist: (item: Omit<WantlistItem, 'id' | 'created_at'>) => Promise<void>;
+  collectionMode: CollectionMode;
 }
 
-const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, wantlist, onAddToWantlist }) => {
+const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, wantlist, onAddToWantlist, collectionMode }) => {
     const { artistName: encodedArtistName } = useParams<{ artistName: string }>();
     const artistName = decodeURIComponent(encodedArtistName || '');
 
@@ -21,6 +22,8 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, wantlist, onAd
             .filter(cd => areStringsSimilar(cd.artist, artistName))
             .sort((a, b) => (a.year || 0) - (b.year || 0));
     }, [cds, artistName]);
+
+    const albumTypePlural = collectionMode === 'vinyl' ? 'Vinyl' : 'CDs';
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -35,7 +38,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, wantlist, onAd
             </div>
 
             <div className="bg-white rounded-lg border border-zinc-200 p-6">
-                <h2 className="text-xl font-bold text-zinc-800">In Your Collection ({userAlbumsByArtist.length})</h2>
+                <h2 className="text-xl font-bold text-zinc-800">In Your {albumTypePlural} ({userAlbumsByArtist.length})</h2>
                 {userAlbumsByArtist.length > 0 ? (
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {userAlbumsByArtist.map(cd => (
@@ -43,7 +46,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, wantlist, onAd
                         ))}
                     </div>
                 ) : (
-                    <p className="mt-2 text-zinc-500">You don't have any albums by this artist yet.</p>
+                    <p className="mt-2 text-zinc-500">You don't have any {collectionMode}s by this artist yet.</p>
                 )}
             </div>
             

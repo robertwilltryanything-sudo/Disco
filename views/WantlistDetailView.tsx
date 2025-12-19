@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { WantlistItem, CD } from '../types';
+import { WantlistItem, CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { MusicNoteIcon } from '../components/icons/MusicNoteIcon';
 import { EditIcon } from '../components/icons/EditIcon';
@@ -17,9 +17,10 @@ interface WantlistDetailViewProps {
   cds: CD[];
   onDelete: (id: string) => void;
   onMoveToCollection: (item: WantlistItem) => void;
+  collectionMode: CollectionMode;
 }
 
-const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onMoveToCollection }) => {
+const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onMoveToCollection, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -59,6 +60,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     return Array.from(recommendedMap.values()).slice(0, MAX_RECOMMENDATIONS);
   }, [item, cds]);
 
+  const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
   const wikipediaUrl = useMemo(() => {
     if (!item) return '';
     return `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/ /g, '_'))}`;
@@ -92,7 +94,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
   if (!item) {
     return (
       <div className="text-center p-8">
-        <h2 className="text-2xl font-bold text-red-600">Wantlist Item Not Found</h2>
+        <h2 className="text-2xl font-bold text-red-600">{albumType} Wantlist Item Not Found</h2>
         <Link
           to="/wantlist"
           className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black"
@@ -114,7 +116,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium"
         >
           <ArrowLeftIcon className="h-5 w-5" />
-          Back to Wantlist
+          Back to {albumType} Wantlist
         </Link>
       </div>
       <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
@@ -195,7 +197,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                 </button>
                 <button
                   onClick={handleRequestDelete}
-                  className="p-2 rounded-full bg-white/70 text-red-500 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="p-2 rounded-full bg-white/70 text-red-50 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                   aria-label={`Delete ${item.title}`}
                   >
                   <TrashIcon className="w-6 h-6" />
