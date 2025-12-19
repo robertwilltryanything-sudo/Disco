@@ -15,6 +15,25 @@ if (SUPABASE_URL && SUPABASE_URL !== 'undefined' && SUPABASE_ANON_KEY && SUPABAS
     }
 }
 
+// Helper to ensure only valid columns are sent to Postgres
+const cleanPayload = (data: any) => {
+    const validKeys = [
+        'artist', 'title', 'genre', 'year', 'cover_art_url', 
+        'notes', 'version', 'record_label', 'tags', 'format'
+    ];
+    const cleaned: any = {};
+    validKeys.forEach(key => {
+        if (data[key] !== undefined) {
+            cleaned[key] = data[key];
+        }
+    });
+    // Fallback for common camelCase mishaps from AI or legacy data
+    if (data.recordLabel && !cleaned.record_label) cleaned.record_label = data.recordLabel;
+    if (data.coverArtUrl && !cleaned.cover_art_url) cleaned.cover_art_url = data.coverArtUrl;
+    
+    return cleaned;
+};
+
 export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, setWantlist: Dispatch<SetStateAction<WantlistItem[]>>, syncMode: SyncMode, syncProvider: SyncProvider) => {
     const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'disabled');
     const [error, setError] = useState<string | null>(supabase ? null : 'Supabase is not configured correctly.');
@@ -176,9 +195,12 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         
         setSyncStatus('saving');
         setError(null);
-        const { data, error: dbError } = await supabase.from('collection').insert({ ...cdData, user_id: user.id }).select();
+        
+        const payload = { ...cleanPayload(cdData), user_id: user.id };
+        const { data, error: dbError } = await supabase.from('collection').insert(payload).select();
         
         if (dbError) {
+            console.error("Supabase insert error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
             throw dbError;
@@ -197,10 +219,11 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('saving');
         setError(null);
         
-        const { id, user_id, created_at, ...updatePayload } = cd;
-        const { error: dbError } = await supabase.from('collection').update(updatePayload).eq('id', id);
+        const payload = cleanPayload(cd);
+        const { error: dbError } = await supabase.from('collection').update(payload).eq('id', cd.id);
         
         if (dbError) {
+            console.error("Supabase update error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
             throw dbError;
@@ -227,8 +250,10 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
-        const { data, error: dbError } = await supabase.from('wantlist').insert({ ...itemData, user_id: user.id }).select();
+        const payload = { ...cleanPayload(itemData), user_id: user.id };
+        const { data, error: dbError } = await supabase.from('wantlist').insert(payload).select();
         if (dbError) {
+            console.error("Supabase wantlist insert error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
             throw dbError;
@@ -242,9 +267,10 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
-        const { id, user_id, created_at, ...updatePayload } = item;
-        const { error: dbError } = await supabase.from('wantlist').update(updatePayload).eq('id', id);
+        const payload = cleanPayload(item);
+        const { error: dbError } = await supabase.from('wantlist').update(payload).eq('id', item.id);
         if (dbError) {
+            console.error("Supabase wantlist update error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
             throw dbError;

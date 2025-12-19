@@ -100,7 +100,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         }
     } catch (error: any) {
         console.error("Error during save process:", error);
-        setFormError(error.message || "An unexpected error occurred while saving.");
+        const errorMsg = error.details || error.message || "An unexpected error occurred while saving to your wantlist. Please check your connection.";
+        setFormError(errorMsg);
     } finally {
         setIsProcessing(false);
     }
@@ -129,12 +130,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       try {
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
-              const mappedInfo = {
-                  ...albumInfo,
-                  record_label: (albumInfo as any).recordLabel || albumInfo.record_label,
-                  cover_art_url: (albumInfo as any).coverArtUrl || albumInfo.cover_art_url
-              };
-              handlePopulateFromData(mappedInfo);
+              handlePopulateFromData(albumInfo);
           }
       } catch (error: any) {
           console.error("Error getting album info:", error);
@@ -282,9 +278,12 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             </div>
         )}
         {formError && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg whitespace-pre-wrap">
-                <p className="font-bold mb-1">Error:</p>
-                {formError}
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg whitespace-pre-wrap shadow-sm">
+                <p className="font-bold mb-1 flex items-center gap-2">
+                    <XIcon className="h-4 w-4" />
+                    Error Saving to Wantlist
+                </p>
+                <p className="text-sm opacity-90">{formError}</p>
             </div>
         )}
         

@@ -129,7 +129,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         }
     } catch (error: any) {
         console.error("Error during save process:", error);
-        setFormError(error.message || "An unexpected error occurred while saving.");
+        // Show specific DB error if available
+        const errorMsg = error.details || error.message || "An unexpected error occurred while saving. Please check your connection or database configuration.";
+        setFormError(errorMsg);
     } finally {
         setIsProcessing(false);
     }
@@ -158,13 +160,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       try {
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
-              // Map Gemini camelCase results to our snake_case properties
-              const mappedInfo = {
-                  ...albumInfo,
-                  record_label: (albumInfo as any).recordLabel || albumInfo.record_label,
-                  cover_art_url: (albumInfo as any).coverArtUrl || albumInfo.cover_art_url
-              };
-              handlePopulateFromData(mappedInfo);
+              handlePopulateFromData(albumInfo);
           }
       } catch (error: any) {
           console.error("Error getting album info:", error);
@@ -312,9 +308,12 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             </div>
         )}
         {formError && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg whitespace-pre-wrap">
-                <p className="font-bold mb-1">Error:</p>
-                {formError}
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg whitespace-pre-wrap shadow-sm">
+                <p className="font-bold mb-1 flex items-center gap-2">
+                    <XIcon className="h-4 w-4" />
+                    Error Saving Album
+                </p>
+                <p className="text-sm opacity-90">{formError}</p>
             </div>
         )}
         

@@ -24,7 +24,7 @@ const albumInfoSchema = {
         genre: { type: Type.STRING, description: "The primary genre." },
         year: { type: Type.INTEGER, description: "Original release year." },
         version: { type: Type.STRING, description: "Edition details (e.g., 'Remastered')." },
-        recordLabel: { type: Type.STRING, description: "Record label name." },
+        record_label: { type: Type.STRING, description: "Record label name." },
         tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Descriptive tags." }
     },
     required: ["artist", "title"],
@@ -35,7 +35,7 @@ const albumDetailsSchema = {
     properties: {
         genre: { type: Type.STRING },
         year: { type: Type.INTEGER },
-        recordLabel: { type: Type.STRING },
+        record_label: { type: Type.STRING },
         tags: { type: Type.ARRAY, items: { type: Type.STRING } }
     },
 };
@@ -110,7 +110,7 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: "Identify the album from this cover art. Provide JSON with artist, title, genre, year, label, and tags." }
+                    { text: "Identify the album from this cover art. Provide JSON with artist, title, genre, year, record_label, and tags." }
                 ]
             },
             config: {
