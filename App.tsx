@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
@@ -24,6 +23,28 @@ import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import SupabaseAuth from './components/SupabaseAuth';
+
+/**
+ * Migration helper to ensure old data with camelCase keys is updated
+ * to the standardized snake_case format used by the database.
+ */
+const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
+    const normalized = { ...item };
+    if (item.coverArtUrl && !item.cover_art_url) normalized.cover_art_url = item.coverArtUrl;
+    if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
+    // Clean up old keys to avoid payload bloat
+    delete normalized.coverArtUrl;
+    delete normalized.recordLabel;
+    return normalized as T;
+};
+
+const generateId = () => {
+    try {
+        return crypto.randomUUID();
+    } catch (e) {
+        return Math.random().toString(36).substring(2) + Date.now().toString(36);
+    }
+};
 
 const INITIAL_COLLECTION: CD[] = [
   {
@@ -87,12 +108,14 @@ const AppContent: React.FC = () => {
 
   const [collection, setCollection] = useState<CD[]>(() => {
     const saved = localStorage.getItem('disco_collection');
-    return saved ? JSON.parse(saved) : INITIAL_COLLECTION;
+    const data = saved ? JSON.parse(saved) : INITIAL_COLLECTION;
+    return Array.isArray(data) ? data.map(normalizeData<CD>) : [];
   });
 
   const [wantlist, setWantlist] = useState<WantlistItem[]>(() => {
       const saved = localStorage.getItem('disco_wantlist');
-      return saved ? JSON.parse(saved) : [];
+      const data = saved ? JSON.parse(saved) : [];
+      return Array.isArray(data) ? data.map(normalizeData<WantlistItem>) : [];
   });
 
   const currentCollection = useMemo(() => 
@@ -169,7 +192,8 @@ const AppContent: React.FC = () => {
           try {
             const content = event.target?.result as string;
             const importedData = JSON.parse(content);
-            setPendingImport(Array.isArray(importedData) ? importedData : (importedData.collection || null));
+            const rawItems = Array.isArray(importedData) ? importedData : (importedData.collection || []);
+            setPendingImport(rawItems.map(normalizeData<CD>));
           } catch (error) { alert("Failed to parse the file."); }
         };
         reader.readAsText(file);
@@ -206,12 +230,13 @@ const AppContent: React.FC = () => {
         try {
             const details = await getAlbumDetails(cd.artist, cd.title);
             if (details) {
+                const normalizedDetails = normalizeData<CD>(details);
                 const updatedCd: CD = {
                     ...cd,
-                    genre: cd.genre || details.genre,
-                    year: cd.year || details.year,
-                    record_label: cd.record_label || details.record_label,
-                    tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])],
+                    genre: cd.genre || normalizedDetails.genre,
+                    year: cd.year || normalizedDetails.year,
+                    record_label: cd.record_label || normalizedDetails.record_label,
+                    tags: [...new Set([...(cd.tags || []), ...(normalizedDetails.tags || [])])],
                 };
                 if (syncProvider === 'supabase' && supabaseSync.user) {
                     await supabaseSync.updateCD(updatedCd);
@@ -261,7 +286,7 @@ const AppContent: React.FC = () => {
               savedCd = await supabaseSync.addCD(newCdBase); 
               if (!savedCd) { throw new Error(supabaseSync.error || "Save failed."); }
           } else {
-             const newCd: CD = { ...newCdBase, id: crypto.randomUUID() };
+             const newCd: CD = { ...newCdBase, id: generateId() };
              setCollection(prev => [newCd, ...prev]);
              savedCd = newCd;
           }
@@ -316,7 +341,7 @@ const AppContent: React.FC = () => {
                   savedItem = await supabaseSync.addWantlistItem(newItemBase);
                   if (!savedItem) { throw new Error(supabaseSync.error || "Save failed."); }
               } else {
-                  const newItem: WantlistItem = { ...newItemBase, id: crypto.randomUUID() };
+                  const newItem: WantlistItem = { ...newItemBase, id: generateId() };
                   setWantlist(prev => [newItem, ...prev]);
                   savedItem = newItem;
               }

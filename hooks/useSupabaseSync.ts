@@ -25,18 +25,17 @@ const cleanPayload = (data: any, isInsert = false) => {
         'notes', 'version', 'record_label', 'tags', 'format'
     ];
     
-    // Add ID only for updates
-    if (!isInsert && data.id) {
-        validKeys.push('id');
-    }
-
-    const cleaned: any = {};
-    
-    // Normalize source data mapping
+    // Normalize source data
     const source = { ...data };
     if (source.recordLabel && !source.record_label) source.record_label = source.recordLabel;
     if (source.coverArtUrl && !source.cover_art_url) source.cover_art_url = source.coverArtUrl;
 
+    // Add ID only for updates
+    if (!isInsert && source.id) {
+        validKeys.push('id');
+    }
+
+    const cleaned: any = {};
     validKeys.forEach(key => {
         if (source[key] !== undefined) {
             cleaned[key] = source[key];
@@ -208,7 +207,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('saving');
         setError(null);
         
-        // Pass isInsert=true to cleanPayload to strip the 'id' field
         const payload = { ...cleanPayload(cdData, true), user_id: user.id };
         const { data, error: dbError } = await supabase.from('collection').insert(payload).select();
         
@@ -216,7 +214,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             console.error("Supabase insert error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
-            throw dbError; // Form catches this to show technical detail
+            throw dbError; // Form catches this
         }
         
         const newCd = data?.[0] as CD ?? null;
@@ -239,7 +237,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             console.error("Supabase update error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
-            throw dbError;
+            throw dbError; // Form catches this
         }
         setSyncStatus('synced');
         return true;

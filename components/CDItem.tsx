@@ -15,8 +15,12 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setIsIntersecting(true); observer.unobserve(entry.target); }
-    }, { rootMargin: "200px" });
+      if (entry.isIntersecting) { 
+          setIsIntersecting(true); 
+          observer.unobserve(entry.target); 
+      }
+    }, { rootMargin: "300px" });
+    
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
@@ -30,15 +34,25 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
   const details = useMemo(() => [cd.genre, cd.year].filter(Boolean).join(' • '), [cd.genre, cd.year]);
 
   return (
-    <Link ref={ref} to={`/cd/${cd.id}`} className="block group relative bg-white rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-800 hover:shadow-lg transition-all duration-300">
-       <div className="relative aspect-square overflow-hidden bg-zinc-100">
-        {isIntersecting ? (
-          cd.cover_art_url ? (
-            <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center"><MusicNoteIcon className="w-10 h-10 text-zinc-300" /></div>
-          )
-        ) : null}
+    <Link 
+        ref={ref} 
+        to={`/cd/${cd.id}`} 
+        className="block group relative bg-white rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-800 hover:shadow-lg transition-all duration-300"
+    >
+       <div className="relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center">
+        {cd.cover_art_url ? (
+            isIntersecting ? (
+                <img 
+                    src={cd.cover_art_url} 
+                    alt={`${cd.title} cover`} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 animate-in fade-in" 
+                />
+            ) : (
+                <div className="w-full h-full bg-zinc-200 animate-pulse" />
+            )
+        ) : (
+            <MusicNoteIcon className="w-10 h-10 text-zinc-300" />
+        )}
       </div>
       <div className="p-4">
         <h3 className="font-bold text-sm text-zinc-900 truncate mb-0.5" title={cd.title}>{cd.title}</h3>
