@@ -1,18 +1,17 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CD } from '../types';
+import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { capitalizeWords } from '../utils';
 
 interface ArtistsViewProps {
   cds: CD[];
+  collectionMode: CollectionMode;
 }
 
-const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
+const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
   const artists = useMemo(() => {
     // Filter for CDs that have a valid, non-empty artist string to prevent errors.
-    // FIX: Explicitly type the Set to ensure TypeScript infers a Set of strings,
-    // which allows for correct type inference during the sort operation.
     const artistSet = new Set<string>(
         cds.filter(cd => cd && typeof cd.artist === 'string' && cd.artist)
            .map(cd => cd.artist)
@@ -20,6 +19,8 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
     // Now that we're guaranteed to have strings, we can sort safely.
     return [...artistSet].sort((a, b) => a.localeCompare(b));
   }, [cds]);
+
+  const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
 
   return (
     <div>
@@ -37,7 +38,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds }) => {
       {artists.length === 0 ? (
         <div className="text-center py-10 px-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300">
             <p className="text-zinc-600">No artists found in your collection.</p>
-            <p className="text-sm text-zinc-500 mt-1">Add a new CD to get started!</p>
+            <p className="text-sm text-zinc-500 mt-1">Add a new {albumType} to get started!</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-zinc-200 p-6">

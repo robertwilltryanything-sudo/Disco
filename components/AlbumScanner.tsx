@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CameraIcon } from './icons/CameraIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
+import { XIcon } from './icons/XIcon';
 
 interface AlbumScannerProps {
   isOpen: boolean;
@@ -92,6 +93,15 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
       aria-modal="true"
     >
       <div className="bg-white rounded-lg w-full max-w-lg relative overflow-hidden">
+        <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 transition-all z-20"
+            aria-label="Close scanner"
+        >
+            <XIcon className="h-6 w-6" />
+        </button>
+
         <div className="p-4 border-b border-zinc-200">
             <h2 className="text-xl font-bold text-center text-zinc-800">Scan Album Cover</h2>
         </div>

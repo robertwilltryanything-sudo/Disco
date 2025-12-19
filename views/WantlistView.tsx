@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { WantlistItem } from '../types';
+import { WantlistItem, CollectionMode } from '../types';
 import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import WantlistGrid from '../components/WantlistGrid';
@@ -11,11 +11,12 @@ interface WantlistViewProps {
     onRequestEdit: (item: WantlistItem) => void;
     onDelete: (id: string) => void;
     onMoveToCollection: (item: WantlistItem) => void;
+    collectionMode: CollectionMode;
 }
 
 const WANTLIST_VIEW_MODE_KEY = 'disco_wantlist_view_mode';
 
-const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, onDelete, onMoveToCollection }) => {
+const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, onDelete, onMoveToCollection, collectionMode }) => {
     const [view, setView] = useState<'grid' | 'list'>(() => {
         const storedView = localStorage.getItem(WANTLIST_VIEW_MODE_KEY);
         return storedView === 'grid' ? 'grid' : 'list';
@@ -45,10 +46,12 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
         }
   }, [location.state, wantlist, navigate, onRequestEdit]);
 
+    const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
+
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-6 flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-zinc-800">My Wantlist</h1>
+                <h1 className="text-3xl font-bold text-zinc-800">My {albumType} Wantlist</h1>
                 <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
                     <button
                         onClick={() => setView('grid')}

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CD } from '../types';
+import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { areStringsSimilar } from '../utils';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
@@ -11,9 +11,10 @@ import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 interface DuplicatesViewProps {
   cds: CD[];
   onDeleteCD: (id: string) => void;
+  collectionMode: CollectionMode;
 }
 
-const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD }) => {
+const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD, collectionMode }) => {
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'done'>('idle');
   const [duplicateGroups, setDuplicateGroups] = useState<CD[][]>([]);
   const [cdToDelete, setCdToDelete] = useState<CD | null>(null);
@@ -59,7 +60,6 @@ const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD }) => {
   }, [runScan]);
 
   // Re-run the scan whenever the underlying CD collection changes, if a scan has already been performed.
-  // This keeps the duplicate list in sync after deletions.
   useEffect(() => {
     if (scanStatus === 'done') {
       runScan();
@@ -77,12 +77,14 @@ const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD }) => {
     }
   }, [cdToDelete, onDeleteCD]);
 
+  const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
+
   const renderContent = () => {
     if (scanStatus === 'scanning') {
       return (
         <div className="text-center py-10 px-4">
           <SpinnerIcon className="h-8 w-8 text-zinc-500 mx-auto" />
-          <p className="text-zinc-600 mt-2">Scanning your collection for duplicates...</p>
+          <p className="text-zinc-600 mt-2">Scanning your {collectionMode} collection for duplicates...</p>
         </div>
       );
     }
@@ -92,7 +94,7 @@ const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD }) => {
         return (
           <div className="text-center py-10 px-4 bg-green-50 rounded-lg border border-dashed border-green-300">
             <p className="text-green-800 font-semibold">No duplicates found!</p>
-            <p className="text-sm text-green-700 mt-1">Your collection looks clean.</p>
+            <p className="text-sm text-green-700 mt-1">Your {collectionMode} collection looks clean.</p>
           </div>
         );
       }
@@ -110,10 +112,9 @@ const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD }) => {
       );
     }
     
-    // Initial 'idle' state
     return (
        <div className="text-center py-10 px-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-300">
-            <p className="text-zinc-600">This tool helps you find and merge similar entries in your collection.</p>
+            <p className="text-zinc-600">This tool helps you find and merge similar {albumType} entries in your collection.</p>
             <p className="text-sm text-zinc-500 mt-1">Click the button below to start the scan.</p>
         </div>
     );
@@ -122,7 +123,7 @@ const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD }) => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-zinc-800">Find Duplicates</h1>
+        <h1 className="text-3xl font-bold text-zinc-800">Find {albumType} Duplicates</h1>
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium"
