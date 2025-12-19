@@ -22,6 +22,7 @@ import ArtistDetailView from './views/ArtistDetailView';
 import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
+import SupabaseAuth from './components/SupabaseAuth';
 
 const INITIAL_COLLECTION: CD[] = [
   {
@@ -211,7 +212,7 @@ const AppContent: React.FC = () => {
                     recordLabel: cd.recordLabel || details.recordLabel,
                     tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])],
                 };
-                if (syncProvider === 'supabase') {
+                if (syncProvider === 'supabase' && supabaseSync.user) {
                     await supabaseSync.updateCD(updatedCd);
                 } else {
                     setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
@@ -241,20 +242,32 @@ const AppContent: React.FC = () => {
               id: cdData.id, 
               created_at: cdData.created_at || new Date().toISOString(),
               format: cdData.format || collectionMode,
-              user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
           };
+          
           if (syncProvider === 'supabase') { 
+              if (!supabaseSync.user) {
+                  alert("You must be signed in to save changes to the cloud.");
+                  return;
+              }
               const success = await supabaseSync.updateCD(updatedCd); 
-              if (!success) return; 
+              if (success) savedCd = updatedCd;
           } else { 
               setCollection(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); 
+              savedCd = updatedCd;
           }
-          savedCd = updatedCd;
         } else {
-          const newCdBase = { ...cdData, format: collectionMode, created_at: new Date().toISOString() };
+          const newCdBase = { 
+              ...cdData, 
+              format: collectionMode, 
+              created_at: new Date().toISOString() 
+          };
+          
           if (syncProvider === 'supabase') { 
+              if (!supabaseSync.user) {
+                  alert("You must be signed in to save to the cloud.");
+                  return;
+              }
               savedCd = await supabaseSync.addCD(newCdBase); 
-              if (!savedCd) return;
           } else {
              const newCd: CD = { ...newCdBase, id: crypto.randomUUID() };
              setCollection(prev => [newCd, ...prev]);
@@ -275,8 +288,12 @@ const AppContent: React.FC = () => {
   }, [currentCollection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult]);
 
   const handleDeleteCD = useCallback(async (id: string) => {
-    if (syncProvider === 'supabase') await supabaseSync.deleteCD(id);
-    else setCollection(prev => prev.filter(cd => cd.id !== id));
+    if (syncProvider === 'supabase') {
+        if (!supabaseSync.user) return;
+        await supabaseSync.deleteCD(id);
+    } else {
+        setCollection(prev => prev.filter(cd => cd.id !== id));
+    }
   }, [syncProvider, supabaseSync]);
   
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
@@ -288,9 +305,13 @@ const AppContent: React.FC = () => {
                   id: itemData.id,
                   created_at: itemData.created_at || new Date().toISOString(),
                   format: itemData.format || collectionMode,
-                  user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
               };
+              
               if (syncProvider === 'supabase') {
+                  if (!supabaseSync.user) {
+                      alert("Please sign in to update your wantlist.");
+                      return;
+                  }
                   const success = await supabaseSync.updateWantlistItem(updatedItem);
                   if (success) savedItem = updatedItem;
               } else {
@@ -298,8 +319,17 @@ const AppContent: React.FC = () => {
                   savedItem = updatedItem;
               }
           } else {
-              const newItemBase = { ...itemData, format: collectionMode, created_at: new Date().toISOString() };
+              const newItemBase = { 
+                  ...itemData, 
+                  format: collectionMode, 
+                  created_at: new Date().toISOString() 
+              };
+              
               if (syncProvider === 'supabase') {
+                  if (!supabaseSync.user) {
+                      alert("Please sign in to save to your wantlist.");
+                      return;
+                  }
                   savedItem = await supabaseSync.addWantlistItem(newItemBase);
               } else {
                   const newItem: WantlistItem = { ...newItemBase, id: crypto.randomUUID() };
@@ -318,8 +348,12 @@ const AppContent: React.FC = () => {
   }, [syncProvider, supabaseSync, collectionMode]);
 
   const handleDeleteWantlistItem = useCallback(async (id: string) => {
-    if (syncProvider === 'supabase') await supabaseSync.deleteWantlistItem(id);
-    else setWantlist(prev => prev.filter(item => item.id !== id));
+    if (syncProvider === 'supabase') {
+        if (!supabaseSync.user) return;
+        await supabaseSync.deleteWantlistItem(id);
+    } else {
+        setWantlist(prev => prev.filter(item => item.id !== id));
+    }
   }, [syncProvider, supabaseSync]);
 
   const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
@@ -330,6 +364,7 @@ const AppContent: React.FC = () => {
 
   const location = useLocation();
   const isOnWantlistPage = location.pathname.startsWith('/wantlist');
+  const isSupabaseSelectedButLoggedOut = syncProvider === 'supabase' && !supabaseSync.user;
 
   return (
     <div className="min-h-screen pb-20 md:pb-0 font-sans selection:bg-zinc-200">
@@ -354,6 +389,18 @@ const AppContent: React.FC = () => {
         onToggleMode={handleToggleMode}
       />
       <main className="container mx-auto p-4 md:p-6 animate-in fade-in duration-500">
+        {isSupabaseSelectedButLoggedOut && (
+            <div className="mb-8">
+                <SupabaseAuth 
+                    user={null} 
+                    signIn={supabaseSync.signIn} 
+                    syncStatus={supabaseSync.syncStatus} 
+                    error={supabaseSync.error} 
+                    onOpenSyncSettings={() => setIsSyncSettingsOpen(true)} 
+                />
+            </div>
+        )}
+
         <Routes>
           <Route path="/" element={<ListView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
           <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} collectionMode={collectionMode} />} />
