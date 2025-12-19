@@ -2,11 +2,11 @@
 
 For the application to function correctly with Supabase sync, your database needs to have the correct tables and security policies. Run the following SQL queries in your project's **SQL Editor** in the Supabase Dashboard.
 
-## CRITICAL: Required Columns
-If you are seeing an error like `Could not find the 'format' column`, you MUST run the **Migration** section at the bottom of this file.
+## 1. Initial Table Creation
 
-## 1. Collection Table
+If you are starting fresh, run these:
 
+### Collection Table
 ```sql
 -- Create the main table for the collection
 CREATE TABLE public.collection (
@@ -34,8 +34,7 @@ CREATE POLICY "Enable update for own items" ON public.collection FOR UPDATE USIN
 CREATE POLICY "Enable delete for own items" ON public.collection FOR DELETE USING (auth.uid() = user_id);
 ```
 
-## 2. Wantlist Table
-
+### Wantlist Table
 ```sql
 CREATE TABLE public.wantlist (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -62,18 +61,34 @@ CREATE POLICY "Enable update for own wantlist items" ON public.wantlist FOR UPDA
 CREATE POLICY "Enable delete for own wantlist items" ON public.wantlist FOR DELETE USING (auth.uid() = user_id);
 ```
 
-## 3. Migration: Updating existing tables
+---
 
-If you have already created the tables and are getting errors about missing columns, run this:
+## 2. URGENT: FIXING ERRORS (Migration)
+
+If you already created the tables and see errors like **"Could not find the format column"** or artwork is missing, run this entire block in your Supabase SQL Editor:
 
 ```sql
--- Fix Column Names (if camelCase)
-ALTER TABLE IF EXISTS public.collection RENAME COLUMN "coverArtUrl" TO cover_art_url;
-ALTER TABLE IF EXISTS public.collection RENAME COLUMN "recordLabel" TO record_label;
-ALTER TABLE IF EXISTS public.wantlist RENAME COLUMN "coverArtUrl" TO cover_art_url;
-ALTER TABLE IF EXISTS public.wantlist RENAME COLUMN "recordLabel" TO record_label;
+-- 1. Ensure column names use snake_case (matches code)
+DO $$ 
+BEGIN
+  BEGIN
+    ALTER TABLE public.collection RENAME COLUMN "coverArtUrl" TO cover_art_url;
+  EXCEPTION WHEN undefined_column THEN END;
+  
+  BEGIN
+    ALTER TABLE public.collection RENAME COLUMN "recordLabel" TO record_label;
+  EXCEPTION WHEN undefined_column THEN END;
+  
+  BEGIN
+    ALTER TABLE public.wantlist RENAME COLUMN "coverArtUrl" TO cover_art_url;
+  EXCEPTION WHEN undefined_column THEN END;
+  
+  BEGIN
+    ALTER TABLE public.wantlist RENAME COLUMN "recordLabel" TO record_label;
+  EXCEPTION WHEN undefined_column THEN END;
+END $$;
 
--- Add Missing 'format' Column
+-- 2. Add Missing 'format' Column
 ALTER TABLE public.collection ADD COLUMN IF NOT EXISTS format text DEFAULT 'cd';
 ALTER TABLE public.wantlist ADD COLUMN IF NOT EXISTS format text DEFAULT 'cd';
 ```

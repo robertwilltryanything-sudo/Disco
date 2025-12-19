@@ -214,7 +214,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             console.error("Supabase insert error:", dbError);
             let finalMsg = dbError.message;
             if (dbError.message.includes("'format' column")) {
-                finalMsg = "DATABASE SYNC ERROR: The 'format' column is missing from your Supabase collection table. Please run the SQL migration in supabase_setup.md to fix this.";
+                finalMsg = "ACTION REQUIRED: Your Supabase database is missing the 'format' column. Please run the migration SQL at the bottom of supabase_setup.md in your Supabase SQL Editor to fix this.";
             }
             setError(finalMsg);
             setSyncStatus('error');
@@ -241,7 +241,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             console.error("Supabase update error:", dbError);
             let finalMsg = dbError.message;
             if (dbError.message.includes("'format' column")) {
-                finalMsg = "DATABASE SYNC ERROR: The 'format' column is missing from your Supabase collection table. Please run the SQL migration in supabase_setup.md to fix this.";
+                finalMsg = "ACTION REQUIRED: Your Supabase database is missing the 'format' column. Please run the migration SQL in supabase_setup.md to fix this.";
             }
             setError(finalMsg);
             setSyncStatus('error');
@@ -275,7 +275,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             console.error("Supabase wantlist insert error:", dbError);
             let finalMsg = dbError.message;
              if (dbError.message.includes("'format' column")) {
-                finalMsg = "DATABASE SYNC ERROR: The 'format' column is missing from your Supabase wantlist table. Please run the SQL migration in supabase_setup.md to fix this.";
+                finalMsg = "ACTION REQUIRED: Missing 'format' column in Supabase 'wantlist' table. Run the migration SQL in supabase_setup.md.";
             }
             setError(finalMsg);
             setSyncStatus('error');
@@ -296,7 +296,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             console.error("Supabase wantlist update error:", dbError);
             let finalMsg = dbError.message;
              if (dbError.message.includes("'format' column")) {
-                finalMsg = "DATABASE SYNC ERROR: The 'format' column is missing from your Supabase wantlist table. Please run the SQL migration in supabase_setup.md to fix this.";
+                finalMsg = "ACTION REQUIRED: Missing 'format' column in Supabase 'wantlist' table. Run the migration SQL in supabase_setup.md.";
             }
             setError(finalMsg);
             setSyncStatus('error');
