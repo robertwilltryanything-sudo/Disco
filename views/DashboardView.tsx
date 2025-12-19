@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
@@ -7,9 +6,19 @@ import { capitalizeWords } from '../utils';
 import { AlbumIcon } from '../components/icons/AlbumIcon';
 import { MusicianIcon } from '../components/icons/MusicianIcon';
 
+interface DashboardViewProps {
+  cds: CD[];
+  collectionMode: CollectionMode;
+}
+
+interface ChartDataItem {
+  label: string;
+  value: number;
+}
+
 // A simple, reusable bar chart component for the dashboard
-const BarChart = ({ data, title, onFilter }: { data: { label: string; value: number }[], title: string, onFilter: (value: string) => void }) => {
-  const maxValue = Math.max(1, ...data.map(d => d.value)); // Use Math.max(1, ...) to avoid division by zero
+const BarChart = ({ data, title, onFilter }: { data: ChartDataItem[], title: string, onFilter: (value: string) => void }) => {
+  const maxValue = Math.max(1, ...data.map(d => d.value));
   const barColors = [
     'bg-sky-300',
     'bg-orange-200',
@@ -63,7 +72,7 @@ const BarChart = ({ data, title, onFilter }: { data: { label: string; value: num
 };
 
 
-const TopItemsList = ({ data, title, onFilter }: { data: { label: string; value: number }[], title: string, onFilter: (value: string) => void }) => (
+const TopItemsList = ({ data, title, onFilter }: { data: ChartDataItem[], title: string, onFilter: (value: string) => void }) => (
     <div className="bg-white rounded-lg border border-zinc-200 p-6">
         <h3 className="text-lg font-bold text-zinc-800 mb-4">{title}</h3>
         <div className="space-y-2">
@@ -90,20 +99,20 @@ const TopItemsList = ({ data, title, onFilter }: { data: { label: string; value:
 );
 
 
-const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) => {
+const DashboardView = ({ cds, collectionMode }: DashboardViewProps) => {
     const navigate = useNavigate();
 
     const handleNavigate = (filterValue: string) => {
         navigate({ pathname: '/', search: `?q=${encodeURIComponent(filterValue)}` });
     };
 
-    const { uniqueArtists, albumsByDecade, topGenres, topLabels } = useMemo(() => {
-        const validCds = cds.filter(cd => cd); // Ensure cd object exists
+    const stats = useMemo(() => {
+        const validCds = cds.filter((cd: CD) => !!cd);
 
-        const artistSet = new Set(validCds.filter(cd => cd.artist).map(cd => cd.artist));
+        const artistSet = new Set(validCds.map((cd: CD) => cd.artist).filter(Boolean));
 
-        const decadeCounts: { [key: string]: number } = {};
-        validCds.forEach(cd => {
+        const decadeCounts: Record<string, number> = {};
+        validCds.forEach((cd: CD) => {
             if (cd.year) {
                 const decade = Math.floor(cd.year / 10) * 10;
                 const decadeLabel = `${decade}s`;
@@ -116,11 +125,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
             .map(([label, value]) => ({ label, value }));
         
         const countItems = (key: 'genre' | 'record_label') => {
-            const counts: { [key: string]: number } = {};
-            validCds.forEach(cd => {
-                const item = cd[key];
-                if (item) {
-                    const lowerItem = item.toLowerCase();
+            const counts: Record<string, number> = {};
+            validCds.forEach((cd: CD) => {
+                const itemValue = cd[key];
+                if (itemValue) {
+                    const lowerItem = itemValue.toLowerCase();
                     counts[lowerItem] = (counts[lowerItem] || 0) + 1;
                 }
             });
@@ -131,10 +140,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
         };
 
         return {
-            uniqueArtists: artistSet.size,
+            uniqueArtistsCount: artistSet.size,
             albumsByDecade: sortedDecades,
             topGenres: countItems('genre'),
-            // Fix: recordLabel changed to record_label to match CD interface
             topLabels: countItems('record_label'),
         };
     }, [cds]);
@@ -174,16 +182,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
                            <h3 className="text-base font-bold text-zinc-500 uppercase tracking-wider">
                               Unique Artists
                            </h3>
-                           <p className="text-4xl font-extrabold text-zinc-900 mt-1">{uniqueArtists}</p>
+                           <p className="text-4xl font-extrabold text-zinc-900 mt-1">{stats.uniqueArtistsCount}</p>
                        </div>
                        <MusicianIcon className="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-100" />
                     </div>
                 </div>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <BarChart data={albumsByDecade} title={`${albumType}s by Decade`} onFilter={handleNavigate} />
+                    <BarChart data={stats.albumsByDecade} title={`${albumType}s by Decade`} onFilter={handleNavigate} />
                     <div className="space-y-6">
-                        <TopItemsList data={topGenres} title="Top 5 Genres" onFilter={handleNavigate} />
-                        <TopItemsList data={topLabels} title="Top 5 Record Labels" onFilter={handleNavigate} />
+                        <TopItemsList data={stats.topGenres} title="Top 5 Genres" onFilter={handleNavigate} />
+                        <TopItemsList data={stats.topLabels} title="Top 5 Record Labels" onFilter={handleNavigate} />
                     </div>
                 </div>
             </>
