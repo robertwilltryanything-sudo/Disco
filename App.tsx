@@ -244,8 +244,8 @@ const AppContent: React.FC = () => {
               user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
           };
           if (syncProvider === 'supabase') { 
-              await supabaseSync.updateCD(updatedCd); 
-              if (supabaseSync.error) throw new Error(supabaseSync.error);
+              const success = await supabaseSync.updateCD(updatedCd); 
+              if (!success) return; 
           } else { 
               setCollection(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); 
           }
@@ -254,7 +254,7 @@ const AppContent: React.FC = () => {
           const newCdBase = { ...cdData, format: collectionMode, created_at: new Date().toISOString() };
           if (syncProvider === 'supabase') { 
               savedCd = await supabaseSync.addCD(newCdBase); 
-              if (supabaseSync.error) throw new Error(supabaseSync.error);
+              if (!savedCd) return;
           } else {
              const newCd: CD = { ...newCdBase, id: crypto.randomUUID() };
              setCollection(prev => [newCd, ...prev]);
@@ -270,13 +270,12 @@ const AppContent: React.FC = () => {
             setDuplicateCheckResult(null);
         }
     } catch (e) {
-        console.error("Save CD error:", e);
-        // Do not close the modal on error, allow AddCDForm to show the error via SupabaseSync's error state
+        console.error("Save CD handler error:", e);
     }
   }, [currentCollection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult]);
 
-  const handleDeleteCD = useCallback((id: string) => {
-    if (syncProvider === 'supabase') supabaseSync.deleteCD(id);
+  const handleDeleteCD = useCallback(async (id: string) => {
+    if (syncProvider === 'supabase') await supabaseSync.deleteCD(id);
     else setCollection(prev => prev.filter(cd => cd.id !== id));
   }, [syncProvider, supabaseSync]);
   
@@ -292,9 +291,8 @@ const AppContent: React.FC = () => {
                   user_id: (syncProvider === 'supabase' && supabaseSync.user) ? supabaseSync.user.id : undefined
               };
               if (syncProvider === 'supabase') {
-                  await supabaseSync.updateWantlistItem(updatedItem);
-                  if (supabaseSync.error) throw new Error(supabaseSync.error);
-                  savedItem = updatedItem;
+                  const success = await supabaseSync.updateWantlistItem(updatedItem);
+                  if (success) savedItem = updatedItem;
               } else {
                   setWantlist(prev => prev.map(item => item.id === itemData.id ? updatedItem : item));
                   savedItem = updatedItem;
@@ -303,7 +301,6 @@ const AppContent: React.FC = () => {
               const newItemBase = { ...itemData, format: collectionMode, created_at: new Date().toISOString() };
               if (syncProvider === 'supabase') {
                   savedItem = await supabaseSync.addWantlistItem(newItemBase);
-                  if (supabaseSync.error) throw new Error(supabaseSync.error);
               } else {
                   const newItem: WantlistItem = { ...newItemBase, id: crypto.randomUUID() };
                   setWantlist(prev => [newItem, ...prev]);
@@ -316,19 +313,19 @@ const AppContent: React.FC = () => {
               setWantlistItemToEdit(null);
           }
       } catch (e) {
-          console.error("Save Wantlist error:", e);
+          console.error("Save Wantlist handler error:", e);
       }
   }, [syncProvider, supabaseSync, collectionMode]);
 
-  const handleDeleteWantlistItem = useCallback((id: string) => {
-    if (syncProvider === 'supabase') supabaseSync.deleteWantlistItem(id);
+  const handleDeleteWantlistItem = useCallback(async (id: string) => {
+    if (syncProvider === 'supabase') await supabaseSync.deleteWantlistItem(id);
     else setWantlist(prev => prev.filter(item => item.id !== id));
   }, [syncProvider, supabaseSync]);
 
   const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
       const cdData: Omit<CD, 'id'> = { ...item, created_at: new Date().toISOString() };
       await handleSaveCD(cdData);
-      handleDeleteWantlistItem(item.id);
+      await handleDeleteWantlistItem(item.id);
   }, [handleSaveCD, handleDeleteWantlistItem]);
 
   const location = useLocation();
