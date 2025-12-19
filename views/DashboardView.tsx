@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
@@ -5,11 +6,6 @@ import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { capitalizeWords } from '../utils';
 import { AlbumIcon } from '../components/icons/AlbumIcon';
 import { MusicianIcon } from '../components/icons/MusicianIcon';
-
-interface DashboardViewProps {
-  cds: CD[];
-  collectionMode: CollectionMode;
-}
 
 // A simple, reusable bar chart component for the dashboard
 const BarChart = ({ data, title, onFilter }: { data: { label: string; value: number }[], title: string, onFilter: (value: string) => void }) => {
@@ -119,7 +115,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([label, value]) => ({ label, value }));
         
-        const countItems = (key: 'genre' | 'recordLabel') => {
+        const countItems = (key: 'genre' | 'record_label') => {
             const counts: { [key: string]: number } = {};
             validCds.forEach(cd => {
                 const item = cd[key];
@@ -138,7 +134,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
             uniqueArtists: artistSet.size,
             albumsByDecade: sortedDecades,
             topGenres: countItems('genre'),
-            topLabels: countItems('recordLabel'),
+            // Fix: recordLabel changed to record_label to match CD interface
+            topLabels: countItems('record_label'),
         };
     }, [cds]);
     

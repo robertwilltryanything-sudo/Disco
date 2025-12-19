@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback, useTransition } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CD, SortKey, SortOrder, WantlistItem, CollectionMode } from '../types';
@@ -155,7 +156,8 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
           (cd.title && cd.title.toLowerCase().includes(lowerCaseQuery)) ||
           yearMatches ||
           (cd.genre && cd.genre.toLowerCase().includes(lowerCaseQuery)) ||
-          (cd.recordLabel && cd.recordLabel.toLowerCase().includes(lowerCaseQuery)) ||
+          // Fix: Changed recordLabel to record_label to match CD interface
+          (cd.record_label && cd.record_label.toLowerCase().includes(lowerCaseQuery)) ||
           (cd.tags && cd.tags.some(tag => tag && tag.toLowerCase().includes(lowerCaseQuery)))
         );
       });

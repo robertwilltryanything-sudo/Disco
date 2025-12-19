@@ -106,7 +106,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     );
   }
 
-  const hasReleaseInfo = item.year || item.genre || item.recordLabel || item.version;
+  const hasReleaseInfo = item.year || item.genre || item.record_label || item.version;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -122,8 +122,8 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
       <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
         <div className="md:flex">
             <div className="md:flex-shrink-0">
-                {item.coverArtUrl ? (
-                    <img src={item.coverArtUrl} alt={`${item.title} cover`} className="w-full aspect-square object-cover md:w-64 rounded-br-lg" />
+                {item.cover_art_url ? (
+                    <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-full aspect-square object-cover md:w-64 rounded-br-lg" />
                 ) : (
                     <div className="w-full aspect-square bg-zinc-200 flex items-center justify-center md:w-64 rounded-br-lg">
                         <MusicNoteIcon className="w-24 h-24 text-zinc-400" />
@@ -140,7 +140,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                       <div className="mt-2 text-zinc-600 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         {item.year && <p><span className="font-bold text-zinc-800">Year:</span> {item.year}</p>}
                         {item.genre && <p><span className="font-bold text-zinc-800">Genre:</span> {item.genre}</p>}
-                        {item.recordLabel && <p><span className="font-bold text-zinc-800">Label:</span> {item.recordLabel}</p>}
+                        {item.record_label && <p><span className="font-bold text-zinc-800">Label:</span> {item.record_label}</p>}
                         {item.version && <p><span className="font-bold text-zinc-800">Version:</span> {item.version}</p>}
                       </div>
                   </div>

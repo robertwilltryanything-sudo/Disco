@@ -32,8 +32,8 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
       aria-label={`View details for ${item.title}`}
     >
       <td className="p-2">
-        {item.coverArtUrl ? (
-          <img src={item.coverArtUrl} alt={`${item.title} cover`} className="w-12 h-12 object-cover rounded-md" />
+        {item.cover_art_url ? (
+          <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-12 h-12 object-cover rounded-md" />
         ) : (
           <div className="w-12 h-12 bg-zinc-200 flex items-center justify-center rounded-md">
             <MusicNoteIcon className="w-6 h-6 text-zinc-400" />

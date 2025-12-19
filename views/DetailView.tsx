@@ -51,7 +51,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               const updatedCd: CD = {
                   ...cd,
                   genre: cd.genre || details.genre,
-                  recordLabel: cd.recordLabel || details.recordLabel,
+                  record_label: cd.record_label || details.recordLabel || details.record_label,
                   year: cd.year || details.year,
                   tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])],
               };
@@ -69,8 +69,8 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
         <div className="md:flex">
             <div className="md:flex-shrink-0 md:w-80">
-                {cd.coverArtUrl ? (
-                    <img src={cd.coverArtUrl} alt={`${cd.title} cover`} className="w-full aspect-square object-cover" />
+                {cd.cover_art_url ? (
+                    <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-full aspect-square object-cover" />
                 ) : (
                     <div className="w-full aspect-square bg-zinc-50 flex items-center justify-center"><MusicNoteIcon className="w-24 h-24 text-zinc-200" /></div>
                 )}
@@ -90,7 +90,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               <div className="mt-8 grid grid-cols-2 gap-4 text-sm border-t border-zinc-100 pt-6">
                   {cd.year && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Year</p><p className="text-zinc-900 font-medium">{cd.year}</p></div>}
                   {cd.genre && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Genre</p><p className="text-zinc-900 font-medium">{cd.genre}</p></div>}
-                  {cd.recordLabel && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.recordLabel}</p></div>}
+                  {cd.record_label && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.record_label}</p></div>}
                   {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
               </div>
 

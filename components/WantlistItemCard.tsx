@@ -26,8 +26,8 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
   return (
     <Link to={`/wantlist/${item.id}`} className="block group relative bg-white rounded-lg border border-zinc-200 overflow-hidden">
       <div className="relative">
-        {item.coverArtUrl ? (
-          <img src={item.coverArtUrl} alt={`${item.title} cover`} className="w-full h-auto aspect-square object-cover" />
+        {item.cover_art_url ? (
+          <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-full h-auto aspect-square object-cover" />
         ) : (
           <div className="w-full h-auto aspect-square bg-zinc-200 flex items-center justify-center">
             <MusicNoteIcon className="w-12 h-12 text-zinc-400" />

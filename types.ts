@@ -4,10 +4,10 @@ export interface CD {
   title: string;
   genre?: string;
   year?: number;
-  coverArtUrl?: string;
+  cover_art_url?: string;
   notes?: string;
   version?: string;
-  recordLabel?: string;
+  record_label?: string;
   tags?: string[];
   user_id?: string;
   created_at?: string;
@@ -20,10 +20,10 @@ export interface WantlistItem {
   title: string;
   genre?: string;
   year?: number;
-  coverArtUrl?: string;
+  cover_art_url?: string;
   notes?: string;
   version?: string;
-  recordLabel?: string;
+  record_label?: string;
   tags?: string[];
   user_id?: string;
   created_at?: string;
@@ -35,7 +35,7 @@ export interface CollectionData {
   lastUpdated: string | null;
 }
 
-export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'recordLabel' | 'created_at';
+export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'record_label' | 'created_at';
 export type SortOrder = 'asc' | 'desc';
 
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';

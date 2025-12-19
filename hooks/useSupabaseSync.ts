@@ -171,18 +171,17 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     };
 
     const addCD = async (cdData: Omit<CD, 'id'>) => {
-        if (!supabase) { setError("Database client not ready."); return null; }
-        if (!user) { setError("Authentication required."); return null; }
+        if (!supabase) throw new Error("Database client not ready.");
+        if (!user) throw new Error("Authentication required.");
         
         setSyncStatus('saving');
         setError(null);
         const { data, error: dbError } = await supabase.from('collection').insert({ ...cdData, user_id: user.id }).select();
         
         if (dbError) {
-            console.error("Supabase Add CD Error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
-            return null;
+            throw dbError;
         }
         
         const newCd = data?.[0] as CD ?? null;
@@ -194,7 +193,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     };
 
     const updateCD = async (cd: CD) => {
-        if (!supabase || !user) return false;
+        if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
         
@@ -202,38 +201,37 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         const { error: dbError } = await supabase.from('collection').update(updatePayload).eq('id', id);
         
         if (dbError) {
-            console.error("Supabase Update Error:", dbError);
             setError(dbError.message);
             setSyncStatus('error');
-            return false;
+            throw dbError;
         }
         setSyncStatus('synced');
         return true;
     };
 
     const deleteCD = async (id: string) => {
-        if (!supabase) return false;
+        if (!supabase) throw new Error("Database not connected.");
         setSyncStatus('saving');
         setError(null);
         const { error: dbError } = await supabase.from('collection').delete().eq('id', id);
         if (dbError) {
             setError(dbError.message);
             setSyncStatus('error');
-            return false;
+            throw dbError;
         }
         setSyncStatus('synced');
         return true;
     };
     
     const addWantlistItem = async (itemData: Omit<WantlistItem, 'id' | 'created_at'>) => {
-        if (!supabase || !user) return null;
+        if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
         const { data, error: dbError } = await supabase.from('wantlist').insert({ ...itemData, user_id: user.id }).select();
         if (dbError) {
             setError(dbError.message);
             setSyncStatus('error');
-            return null;
+            throw dbError;
         }
         const newItem = data?.[0] as WantlistItem ?? null;
         if (newItem) setSyncStatus('synced');
@@ -241,7 +239,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     };
 
     const updateWantlistItem = async (item: WantlistItem) => {
-        if (!supabase || !user) return false;
+        if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
         const { id, user_id, created_at, ...updatePayload } = item;
@@ -249,21 +247,21 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (dbError) {
             setError(dbError.message);
             setSyncStatus('error');
-            return false;
+            throw dbError;
         }
         setSyncStatus('synced');
         return true;
     };
 
     const deleteWantlistItem = async (id: string) => {
-        if (!supabase) return false;
+        if (!supabase) throw new Error("Database not connected.");
         setSyncStatus('saving');
         setError(null);
         const { error: dbError } = await supabase.from('wantlist').delete().eq('id', id);
         if (dbError) {
             setError(dbError.message);
             setSyncStatus('error');
-            return false;
+            throw dbError;
         }
         setSyncStatus('synced');
         return true;

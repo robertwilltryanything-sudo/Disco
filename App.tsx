@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
@@ -31,7 +32,8 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'The Dark Side of the Moon',
     genre: 'Progressive Rock',
     year: 1973,
-    coverArtUrl: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
+    // Fix: Changed coverArtUrl to cover_art_url to match CD interface
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
     notes: 'Classic.',
     created_at: new Date(Date.now() - 10000).toISOString(),
     format: 'cd'
@@ -42,7 +44,8 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'The Joshua Tree',
     genre: 'Rock',
     year: 1987,
-    coverArtUrl: 'https://upload.wikimedia.org/wikipedia/en/6/6b/The_Joshua_Tree.png',
+    // Fix: Changed coverArtUrl to cover_art_url to match CD interface
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/6/6b/The_Joshua_Tree.png',
     created_at: new Date(Date.now() - 20000).toISOString(),
     format: 'cd'
   },
@@ -52,7 +55,8 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'Oxygène',
     genre: 'Electronic',
     year: 1976,
-    coverArtUrl: 'https://upload.wikimedia.org/wikipedia/en/2/25/Oxygene_album_cover.jpg',
+    // Fix: Changed coverArtUrl to cover_art_url to match CD interface
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/2/25/Oxygene_album_cover.jpg',
     created_at: new Date(Date.now() - 50000).toISOString(),
     format: 'cd'
   },
@@ -62,7 +66,8 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'Alchemy Live',
     genre: 'Rock',
     year: 1984,
-    coverArtUrl: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Dire_Straits_-_Alchemy.jpg',
+    // Fix: Changed coverArtUrl to cover_art_url to match CD interface
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Dire_Straits_-_Alchemy.jpg',
     notes: 'Incredible live performance.',
     created_at: new Date(Date.now() - 30000).toISOString(),
     format: 'vinyl'
@@ -73,7 +78,8 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'Equinoxe',
     genre: 'Electronic',
     year: 1978,
-    coverArtUrl: 'https://upload.wikimedia.org/wikipedia/en/b/b2/Equinoxe_album_cover.jpg',
+    // Fix: Changed coverArtUrl to cover_art_url to match CD interface
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b2/Equinoxe_album_cover.jpg',
     created_at: new Date(Date.now() - 40000).toISOString(),
     format: 'vinyl'
   }
@@ -205,11 +211,12 @@ const AppContent: React.FC = () => {
         try {
             const details = await getAlbumDetails(cd.artist, cd.title);
             if (details) {
+                // Fix: Changed recordLabel to record_label to match CD interface
                 const updatedCd: CD = {
                     ...cd,
                     genre: cd.genre || details.genre,
                     year: cd.year || details.year,
-                    recordLabel: cd.recordLabel || details.recordLabel,
+                    record_label: cd.record_label || details.recordLabel,
                     tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])],
                 };
                 if (syncProvider === 'supabase' && supabaseSync.user) {

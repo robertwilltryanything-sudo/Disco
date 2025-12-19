@@ -28,10 +28,10 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [genre, setGenre] = useState('');
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
-  const [recordLabel, setRecordLabel] = useState('');
+  const [record_label, setRecordLabel] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
-  const [coverArtUrl, setCoverArtUrl] = useState<string | undefined>('');
+  const [cover_art_url, setCoverArtUrl] = useState<string | undefined>('');
   const [manualUrl, setManualUrl] = useState('');
   const [notes, setNotes] = useState('');
   
@@ -66,9 +66,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setGenre(cdToEdit.genre || '');
       setYear(cdToEdit.year || '');
       setVersion(cdToEdit.version || '');
-      setRecordLabel(cdToEdit.recordLabel || '');
+      setRecordLabel(cdToEdit.record_label || '');
       setTags(cdToEdit.tags || []);
-      setCoverArtUrl(cdToEdit.coverArtUrl);
+      setCoverArtUrl(cdToEdit.cover_art_url);
       setNotes(cdToEdit.notes || '');
     } else {
       resetForm();
@@ -78,9 +78,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setGenre(prefill.genre || '');
         setYear(prefill.year || '');
         setVersion(prefill.version || '');
-        setRecordLabel(prefill.recordLabel || '');
+        setRecordLabel(prefill.record_label || '');
         setTags(prefill.tags || []);
-        setCoverArtUrl(prefill.coverArtUrl);
+        setCoverArtUrl(prefill.cover_art_url);
         setNotes(prefill.notes || '');
       }
     }
@@ -100,17 +100,17 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         const cdData: Omit<CD, 'id'> & { id?: string } = {
             id: cdToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined,
-            version, recordLabel, tags, coverArtUrl, notes,
+            version, record_label, tags, cover_art_url, notes,
             created_at: cdToEdit?.created_at,
         };
 
-        if (!cdData.coverArtUrl && !cdToEdit) {
+        if (!cdData.cover_art_url && !cdToEdit) {
             setProcessingStatus('Searching for cover art...');
             const imageUrls = await findCoverArt(artist, title);
 
             if (imageUrls && imageUrls.length > 0) {
                 if (imageUrls.length === 1) {
-                    cdData.coverArtUrl = imageUrls[0];
+                    cdData.cover_art_url = imageUrls[0];
                     setProcessingStatus('Saving album...');
                     await onSave(cdData);
                 } else {
@@ -127,13 +127,13 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             setProcessingStatus(cdToEdit ? 'Saving changes...' : 'Saving album...');
             await onSave(cdData);
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error during save process:", error);
-        setFormError("An error occurred while saving. Please check your connection or database configuration.");
+        setFormError(error.message || "An unexpected error occurred while saving.");
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genre, year, version, coverArtUrl, notes, cdToEdit, onSave, recordLabel, tags]);
+  }, [artist, title, genre, year, version, cover_art_url, notes, cdToEdit, onSave, record_label, tags]);
   
   const handlePopulateFromData = (data: Partial<Omit<CD, 'id'>> | null) => {
       if (data) {
@@ -142,9 +142,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setGenre(data.genre || '');
         setYear(data.year || '');
         setVersion(data.version || '');
-        setRecordLabel(data.recordLabel || '');
+        setRecordLabel(data.record_label || '');
         setTags(data.tags || []);
-        setCoverArtUrl(data.coverArtUrl);
+        setCoverArtUrl(data.cover_art_url);
       } else {
         setFormError("Could not extract album information.");
       }
@@ -157,10 +157,18 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setFormError(null);
       try {
           const albumInfo = await getAlbumInfo(imageBase64);
-          handlePopulateFromData(albumInfo);
-      } catch (error) {
+          if (albumInfo) {
+              // Map Gemini camelCase results to our snake_case properties
+              const mappedInfo = {
+                  ...albumInfo,
+                  record_label: (albumInfo as any).recordLabel || albumInfo.record_label,
+                  cover_art_url: (albumInfo as any).coverArtUrl || albumInfo.cover_art_url
+              };
+              handlePopulateFromData(mappedInfo);
+          }
+      } catch (error: any) {
           console.error("Error getting album info:", error);
-          setFormError("An error occurred while scanning the album cover.");
+          setFormError(error.message || "An error occurred while scanning the album cover.");
       } finally {
           setIsProcessing(false);
       }
@@ -199,9 +207,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       } else {
         setFormError("Could not find cover art online.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error finding art online:", error);
-      setFormError("An error occurred while searching for cover art.");
+      setFormError(error.message || "An error occurred while searching for cover art.");
     } finally {
       setIsProcessing(false);
     }
@@ -217,19 +225,19 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setProcessingStatus('Saving album...');
         await onSave({
           id: cdToEdit?.id, artist, title, genre,
-          year: year ? Number(year) : undefined, version, recordLabel, tags,
-          coverArtUrl: url, notes,
+          year: year ? Number(year) : undefined, version, record_label, tags,
+          cover_art_url: url, notes,
           created_at: cdToEdit?.created_at,
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error saving after art selection:", error);
-        setFormError("An error occurred while saving. Please try again.");
+        setFormError(error.message || "An error occurred while saving.");
       } finally {
         setIsProcessing(false);
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, recordLabel, tags]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags]);
 
   const handleCloseSelector = useCallback(async () => {
     setIsSelectorOpen(false);
@@ -240,13 +248,13 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
           setProcessingStatus('Saving album...');
           await onSave({
             id: cdToEdit?.id, artist, title, genre,
-            year: year ? Number(year) : undefined, version, recordLabel, tags,
-            coverArtUrl: undefined, notes,
+            year: year ? Number(year) : undefined, version, record_label, tags,
+            cover_art_url: undefined, notes,
             created_at: cdToEdit?.created_at,
           });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error saving after closing art selector:", error);
-        setFormError("An error occurred while saving. Please try again.");
+        setFormError(error.message || "An error occurred while saving.");
       } finally {
         setIsProcessing(false);
         setIsSubmittingWithArtSelection(false);
@@ -254,7 +262,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } else {
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, recordLabel, tags]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);
@@ -304,7 +312,8 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             </div>
         )}
         {formError && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg whitespace-pre-wrap">
+                <p className="font-bold mb-1">Error:</p>
                 {formError}
             </div>
         )}
@@ -312,9 +321,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         <div className="flex flex-col md:flex-row gap-4 items-start">
             <div className="md:w-1/3 w-1/2 mx-auto md:mx-0 flex flex-col items-center">
                 <div className="relative w-full group">
-                  {coverArtUrl ? (
+                  {cover_art_url ? (
                       <>
-                        <img src={coverArtUrl} alt="Album cover preview" className="w-full h-auto aspect-square object-cover rounded-lg" />
+                        <img src={cover_art_url} alt="Album cover preview" className="w-full h-auto aspect-square object-cover rounded-lg" />
                         <button
                             type="button"
                             onClick={handleRemoveArt}
@@ -406,7 +415,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
               <input
                 type="text"
                 placeholder="Record Label"
-                value={recordLabel}
+                value={record_label}
                 onChange={(e) => setRecordLabel(e.target.value)}
                 className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
               />

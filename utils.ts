@@ -1,3 +1,4 @@
+
 import { CD } from "./types";
 
 /**
@@ -83,10 +84,12 @@ export const getBestCD = (cds: CD[]): CD => {
 
   const scoreCD = (cd: CD): number => {
     let score = 0;
-    if (cd.coverArtUrl) score += 100;
+    // Fix: Changed coverArtUrl to cover_art_url to match CD interface
+    if (cd.cover_art_url) score += 100;
     if (cd.genre) score += 10;
     if (cd.year) score += 10;
-    if (cd.recordLabel) score += 10;
+    // Fix: Changed recordLabel to record_label to match CD interface
+    if (cd.record_label) score += 10;
     if (cd.version) score += 5;
     if (cd.notes) score += 5;
     if (cd.tags && cd.tags.length > 0) score += cd.tags.length;

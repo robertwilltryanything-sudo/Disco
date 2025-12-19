@@ -23,8 +23,8 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
         {group.map(cd => (
           <div key={cd.id} className="flex items-center gap-4 p-3 border border-zinc-200 rounded-lg bg-white">
             <div className="flex-shrink-0">
-                {cd.coverArtUrl ? (
-                    <img src={cd.coverArtUrl} alt={`${cd.title} cover`} className="w-16 h-16 object-cover rounded-md" />
+                {cd.cover_art_url ? (
+                    <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-16 h-16 object-cover rounded-md" />
                 ) : (
                     <div className="w-16 h-16 bg-zinc-200 flex items-center justify-center rounded-md">
                         <MusicNoteIcon className="w-8 h-8 text-zinc-400" />
@@ -37,7 +37,7 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
               <div className="text-xs text-zinc-500 mt-1 space-x-2">
                 {cd.year && <span>{cd.year}</span>}
                 {cd.genre && <span>• {cd.genre}</span>}
-                {cd.recordLabel && <span>• {cd.recordLabel}</span>}
+                {cd.record_label && <span>• {cd.record_label}</span>}
               </div>
             </div>
             <button 

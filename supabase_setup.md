@@ -14,10 +14,10 @@ CREATE TABLE public.collection (
   title text NOT NULL,
   genre text NULL,
   year integer NULL,
-  coverArtUrl text NULL,
+  cover_art_url text NULL,
   notes text NULL,
   version text NULL,
-  recordLabel text NULL,
+  record_label text NULL,
   tags text[] NULL,
   format text NULL DEFAULT 'cd', -- differentiation for cd/vinyl
   CONSTRAINT collection_pkey PRIMARY KEY (id),
@@ -42,10 +42,10 @@ CREATE TABLE public.wantlist (
   title text NOT NULL,
   genre text NULL,
   year integer NULL,
-  coverArtUrl text NULL,
+  cover_art_url text NULL,
   notes text NULL,
   version text NULL,
-  recordLabel text NULL,
+  record_label text NULL,
   tags text[] NULL,
   format text NULL DEFAULT 'cd',
   CONSTRAINT wantlist_pkey PRIMARY KEY (id),
@@ -59,28 +59,16 @@ CREATE POLICY "Enable update for own wantlist items" ON public.wantlist FOR UPDA
 CREATE POLICY "Enable delete for own wantlist items" ON public.wantlist FOR DELETE USING (auth.uid() = user_id);
 ```
 
-## 3. Migration: Renaming `cds` to `collection`
+## 3. Migration: Updating existing tables
 
-If you have already created the `cds` table, run this to rename it without losing your data:
-
-```sql
--- Rename the table
-ALTER TABLE IF EXISTS public.cds RENAME TO collection;
-
--- (Optional) Update constraints and policies names if you want them to match exactly, 
--- though Supabase/Postgres often handles the renaming of constraints automatically.
-```
-
-## 4. Column Parity Fixes
-
-If your tables already exist and you need to ensure they have the `format` column:
+If you have already created the tables with the old column names, run this to rename them:
 
 ```sql
--- Add format to collection table
-ALTER TABLE public.collection
-ADD COLUMN IF NOT EXISTS "format" text NULL DEFAULT 'cd';
+-- Collection table
+ALTER TABLE IF EXISTS public.collection RENAME COLUMN "coverArtUrl" TO cover_art_url;
+ALTER TABLE IF EXISTS public.collection RENAME COLUMN "recordLabel" TO record_label;
 
--- Add format to wantlist table
-ALTER TABLE public.wantlist
-ADD COLUMN IF NOT EXISTS "format" text NULL DEFAULT 'cd';
+-- Wantlist table
+ALTER TABLE IF EXISTS public.wantlist RENAME COLUMN "coverArtUrl" TO cover_art_url;
+ALTER TABLE IF EXISTS public.wantlist RENAME COLUMN "recordLabel" TO record_label;
 ```

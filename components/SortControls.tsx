@@ -1,3 +1,4 @@
+
 import React, { Dispatch, SetStateAction } from 'react';
 import { SortKey, SortOrder } from '../types';
 import { ArrowUpIcon } from './icons/ArrowUpIcon';
@@ -32,7 +33,8 @@ const SortControls: React.FC<SortControlsProps> = ({ sortBy, setSortBy, sortOrde
         <option value="title">Title</option>
         <option value="year">Year</option>
         <option value="genre">Genre</option>
-        <option value="recordLabel">Record Label</option>
+        {/* Fix: Changed recordLabel to record_label to match SortKey type */}
+        <option value="record_label">Record Label</option>
       </select>
       <button
         onClick={toggleSortOrder}

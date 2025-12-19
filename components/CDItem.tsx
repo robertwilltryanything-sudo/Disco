@@ -33,8 +33,8 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
     <Link ref={ref} to={`/cd/${cd.id}`} className="block group relative bg-white rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-800 hover:shadow-lg transition-all duration-300">
        <div className="relative aspect-square overflow-hidden bg-zinc-100">
         {isIntersecting ? (
-          cd.coverArtUrl ? (
-            <img src={cd.coverArtUrl} alt={`${cd.title} cover`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          cd.cover_art_url ? (
+            <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
             <div className="w-full h-full flex items-center justify-center"><MusicNoteIcon className="w-10 h-10 text-zinc-300" /></div>
           )
