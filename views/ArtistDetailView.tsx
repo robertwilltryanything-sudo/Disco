@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CD, WantlistItem, CollectionMode } from '../types';
-import { areStringsSimilar, capitalizeWords } from '../utils';
+import { areStringsSimilar } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import CDItem from '../components/CDItem';
 import MissingAlbumScanner from '../components/MissingAlbumScanner';
@@ -33,7 +33,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, wantlist, onAd
                         <ArrowLeftIcon className="h-4 w-4" />
                         All Artists
                     </Link>
-                    <h1 className="text-3xl font-bold text-zinc-800">{capitalizeWords(artistName)}</h1>
+                    <h1 className="text-3xl font-bold text-zinc-800">{artistName}</h1>
                 </div>
             </div>
 

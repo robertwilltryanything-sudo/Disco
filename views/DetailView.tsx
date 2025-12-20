@@ -7,7 +7,6 @@ import { EditIcon } from '../components/icons/EditIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { GlobeIcon } from '../components/icons/GlobeIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
-import { capitalizeWords } from '../utils';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
@@ -61,6 +60,12 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
       finally { setIsRefreshing(false); }
   }, [cd, onUpdateCD]);
 
+  const handleSearchFilter = (value: string | number | undefined) => {
+    if (value) {
+      navigate({ pathname: '/', search: `?q=${encodeURIComponent(value.toString())}` });
+    }
+  };
+
   if (!cd) return <div className="text-center p-8"><h2 className="text-2xl font-bold text-red-600">{albumType} Not Found</h2><Link to="/" className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black"><ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>;
 
   return (
@@ -79,7 +84,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-grow">
                   <h1 className="text-3xl font-bold text-zinc-900">{cd.title}</h1>
-                  <h2 className="text-xl font-semibold text-zinc-500 mt-1 cursor-pointer hover:text-zinc-900 transition-colors" onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}>{capitalizeWords(cd.artist)}</h2>
+                  <h2 className="text-xl font-semibold text-zinc-500 mt-1 cursor-pointer hover:text-zinc-900 hover:underline transition-colors" onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}>{cd.artist}</h2>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => navigate('/', { state: { editCdId: cd.id } })} className="p-2 rounded-full text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-all"><EditIcon className="w-5 h-5" /></button>
@@ -88,8 +93,28 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               </div>
 
               <div className="mt-8 grid grid-cols-2 gap-4 text-sm border-t border-zinc-100 pt-6">
-                  {cd.year && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Year</p><p className="text-zinc-900 font-medium">{cd.year}</p></div>}
-                  {cd.genre && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Genre</p><p className="text-zinc-900 font-medium">{cd.genre}</p></div>}
+                  {cd.year && (
+                    <div>
+                      <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Year</p>
+                      <button 
+                        onClick={() => handleSearchFilter(cd.year)}
+                        className="text-zinc-900 font-medium hover:text-zinc-600 hover:underline transition-all"
+                      >
+                        {cd.year}
+                      </button>
+                    </div>
+                  )}
+                  {cd.genre && (
+                    <div>
+                      <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Genre</p>
+                      <button 
+                        onClick={() => handleSearchFilter(cd.genre)}
+                        className="text-zinc-900 font-medium hover:text-zinc-600 hover:underline transition-all"
+                      >
+                        {cd.genre}
+                      </button>
+                    </div>
+                  )}
                   {cd.record_label && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.record_label}</p></div>}
                   {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
               </div>

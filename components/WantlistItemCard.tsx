@@ -5,7 +5,6 @@ import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
-import { capitalizeWords } from '../utils';
 
 interface WantlistItemCardProps {
   item: WantlistItem;
@@ -65,7 +64,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
       <div className="p-3">
         <h3 className="font-bold text-base text-zinc-900 truncate" title={item.title}>{item.title}</h3>
         <p className="text-sm text-zinc-600 truncate" title={item.artist}>
-          {capitalizeWords(item.artist)}
+          {item.artist}
         </p>
         {details && <p className="text-sm text-zinc-500 mt-1">{details}</p>}
       </div>

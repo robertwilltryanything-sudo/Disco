@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
-import { capitalizeWords } from '../utils';
 import { AlbumIcon } from './icons/AlbumIcon';
 import { MusicianIcon } from './icons/MusicianIcon';
 import { ClockIcon } from './icons/ClockIcon';
@@ -95,7 +94,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '', collection
                         className="font-medium text-zinc-900 text-right text-sm hover:underline truncate"
                         title={`${mostProlificArtist.name} (${mostProlificArtist.count} albums)`}
                     >
-                        {capitalizeWords(mostProlificArtist.name)}
+                        {mostProlificArtist.name}
                     </Link>
                 </div>
             )}

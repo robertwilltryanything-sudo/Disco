@@ -4,7 +4,6 @@ import { CD } from '../types';
 import { getAlbumTrivia } from '../gemini';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
-import { capitalizeWords } from '../utils';
 
 interface FeaturedAlbumProps {
   cd: CD;
@@ -89,7 +88,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                     className="text-left text-base text-zinc-500 hover:text-zinc-900 transition-colors"
                     title={cd.artist}
                 >
-                    {capitalizeWords(cd.artist)}
+                    {cd.artist}
                 </button>
                 <div className="mt-4 pt-4 border-t border-zinc-100">
                      {isLoading ? (

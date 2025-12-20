@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
-import { capitalizeWords } from '../utils';
 
 interface ArtistsViewProps {
   cds: CD[];
@@ -50,7 +49,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
                 className="block text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 p-2 rounded-lg truncate"
                 title={artist}
                 >
-                {capitalizeWords(artist)}
+                {artist}
                 </Link>
             ))}
             </div>

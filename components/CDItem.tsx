@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { CD } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
-import { capitalizeWords } from '../utils';
 
 interface CDItemProps {
   cd: CD;
@@ -60,7 +59,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
           onClick={handleArtistClick}
           className="text-left w-full text-xs text-zinc-400 font-bold uppercase tracking-tight truncate hover:text-zinc-900 transition-colors"
         >
-          {capitalizeWords(cd.artist)}
+          {cd.artist}
         </button>
         {details && <p className="text-[10px] text-zinc-300 font-medium mt-1.5">{details}</p>}
       </div>

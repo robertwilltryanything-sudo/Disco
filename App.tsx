@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
 import Header from './components/Header';
 import ListView from './views/ListView';
@@ -102,6 +102,7 @@ const INITIAL_COLLECTION: CD[] = [
 ];
 
 const AppContent: React.FC = () => {
+  const navigate = useNavigate();
   const [collectionMode, setCollectionMode] = useState<CollectionMode>(() => {
     return (localStorage.getItem('disco_mode') as CollectionMode) || 'cd';
   });
@@ -298,12 +299,17 @@ const AppContent: React.FC = () => {
             setCdToEdit(null);
             setPrefillData(null);
             setDuplicateCheckResult(null);
+
+            // If it was an edit, navigate to detail view to show changes
+            if (cdData.id) {
+                navigate(`/cd/${savedCd.id}`);
+            }
         }
     } catch (e: any) {
         console.error("Save CD handler error:", e);
         throw e;
     }
-  }, [currentCollection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult]);
+  }, [currentCollection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult, navigate]);
 
   const handleDeleteCD = useCallback(async (id: string) => {
     if (syncProvider === 'supabase') {
@@ -350,12 +356,17 @@ const AppContent: React.FC = () => {
           if (savedItem) {
               setIsAddWantlistModalOpen(false);
               setWantlistItemToEdit(null);
+
+              // If it was an edit, navigate to detail view to show changes
+              if (itemData.id) {
+                navigate(`/wantlist/${savedItem.id}`);
+              }
           }
       } catch (e: any) {
           console.error("Save Wantlist handler error:", e);
           throw e;
       }
-  }, [syncProvider, supabaseSync, collectionMode]);
+  }, [syncProvider, supabaseSync, collectionMode, navigate]);
 
   const handleDeleteWantlistItem = useCallback(async (id: string) => {
     if (syncProvider === 'supabase') {

@@ -67,7 +67,7 @@ const MissingAlbumScanner: React.FC<MissingAlbumScannerProps> = ({ artistName, u
          return (
              <div className="bg-white rounded-lg border border-zinc-200 p-6 text-center">
                 <h2 className="text-xl font-bold text-zinc-800">Missing Something?</h2>
-                <p className="mt-2 text-zinc-600 max-w-md mx-auto">Compare your collection against this artist's official studio discography to find out what you're missing.</p>
+                <p className="mt-2 text-zinc-600 max-w-md mx-auto">Compare your collection against {artistName}'s official studio discography to find out what you're missing.</p>
                 <button
                     type="button"
                     onClick={handleCompare}
@@ -108,7 +108,7 @@ const MissingAlbumScanner: React.FC<MissingAlbumScannerProps> = ({ artistName, u
     if (scanStatus === 'done') {
         return (
             <div className="bg-white rounded-lg border border-zinc-200 p-6">
-                <h2 className="text-xl font-bold text-zinc-800 mb-4 text-center">Discography Comparison</h2>
+                <h2 className="text-xl font-bold text-zinc-800 mb-4 text-center">Discography Comparison for {artistName}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div>
                         <h3 className="font-bold text-zinc-800 mb-2">Missing From Your Collection ({missingAlbums.length})</h3>

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { CD } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { EditIcon } from './icons/EditIcon';
-import { capitalizeWords } from '../utils';
 
 interface CDTableRowProps {
   cd: CD;
@@ -48,7 +47,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
           {/* Info Stack for Mobile */}
           <div className="flex-grow md:hidden">
             <p className="font-bold text-zinc-900" title={cd.title}>{cd.title}</p>
-            <p className="text-zinc-700 text-sm" title={cd.artist}>{capitalizeWords(cd.artist)}</p>
+            <p className="text-zinc-700 text-sm" title={cd.artist}>{cd.artist}</p>
             {(cd.genre || cd.year) && (
               <p className="text-xs text-zinc-500 mt-1">{[cd.genre, cd.year].filter(Boolean).join(' • ')}</p>
             )}
@@ -68,7 +67,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
 
       {/* Desktop-only cells. Hidden on mobile. */}
       <td className="hidden md:table-cell p-3 font-bold text-zinc-900 align-middle" title={cd.title}>{cd.title}</td>
-      <td className="hidden md:table-cell p-3 text-zinc-700 align-middle" title={cd.artist}>{capitalizeWords(cd.artist)}</td>
+      <td className="hidden md:table-cell p-3 text-zinc-700 align-middle" title={cd.artist}>{cd.artist}</td>
       <td className="hidden md:table-cell p-3 text-zinc-600 align-middle">{cd.genre}</td>
       <td className="hidden md:table-cell p-3 text-zinc-600 align-middle">{cd.year}</td>
       <td className="hidden md:table-cell p-3 text-right align-middle">
