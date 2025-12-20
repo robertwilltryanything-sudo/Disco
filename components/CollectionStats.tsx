@@ -100,10 +100,10 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '', collection
             )}
         </div>
         <Link 
-            to="/dashboard"
+            to="/stats"
             className="mt-4 block w-full text-center bg-zinc-100 text-zinc-800 font-bold py-2 px-4 rounded-lg hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
         >
-            View Full Dashboard
+            View Full Stats
         </Link>
     </div>
   );

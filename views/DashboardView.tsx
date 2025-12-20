@@ -156,7 +156,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
     return (
     <div>
         <div className="mb-6 flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-zinc-800">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-zinc-800">Stats</h1>
             <Link to="/" className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium">
                 <ArrowLeftIcon className="h-5 w-5" />
                 Back to Collection

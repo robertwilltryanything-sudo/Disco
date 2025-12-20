@@ -118,7 +118,7 @@ const Header: React.FC<HeaderProps> = ({
         
         <nav className="hidden md:flex flex-shrink-0">
             <ul className="flex items-center gap-6">
-                <NavItem to="/dashboard">Dashboard</NavItem>
+                <NavItem to="/stats">Stats</NavItem>
                 <NavItem to="/artists">Artists</NavItem>
                 <NavItem to="/wantlist">Wantlist</NavItem>
                 <li>
