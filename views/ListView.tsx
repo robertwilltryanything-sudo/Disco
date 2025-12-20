@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useCallback, useTransition } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CD, SortKey, SortOrder, WantlistItem, CollectionMode } from '../types';
@@ -78,59 +77,59 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     }
   }, [location.state, cds, navigate, onRequestEdit, onRequestAdd]);
 
+  // Handle Featured Album Selection (Strictly 24-hour cycle)
   useEffect(() => {
     if (cds.length === 0) {
-        setFeaturedCd(null);
+        if (featuredCd !== null) setFeaturedCd(null);
         return;
     }
 
-    // Use mode-specific keys to ensure CD and Vinyl featured albums are tracked independently
     const storageKey = `disco_featured_album_${collectionMode}`;
     const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
+    const now = Date.now();
 
     const storedDataRaw = localStorage.getItem(storageKey);
     let storedData: { cdId: string; timestamp: number } | null = null;
+    
     if (storedDataRaw) {
       try {
         storedData = JSON.parse(storedDataRaw);
       } catch (e) {
-        console.error("Could not parse featured album data from localStorage", e);
         localStorage.removeItem(storageKey);
       }
     }
     
-    let currentFeaturedCdInCollection: CD | null = null;
-    if (storedData && storedData.cdId) {
-        currentFeaturedCdInCollection = cds.find(cd => cd.id === storedData.cdId) || null;
-    }
+    const currentFeaturedInCollection = storedData ? cds.find(cd => cd.id === storedData.cdId) : null;
     
-    const now = Date.now();
-    const needsNewFeaturedAlbum = 
+    // Check if we need to rotate to a new album
+    const needsRotation = 
         !storedData || 
-        !currentFeaturedCdInCollection ||
-        (now - (storedData.timestamp || 0) > ONE_DAY_IN_MS);
+        !currentFeaturedInCollection ||
+        (now - storedData.timestamp > ONE_DAY_IN_MS);
 
-    if (needsNewFeaturedAlbum) {
-        const potentialCds = currentFeaturedCdInCollection 
-            ? cds.filter(cd => cd.id !== currentFeaturedCdInCollection!.id) 
+    if (needsRotation) {
+        // Exclude current featured to encourage variety if we have options
+        const pool = cds.length > 1 && currentFeaturedInCollection 
+            ? cds.filter(cd => cd.id !== currentFeaturedInCollection.id) 
             : cds;
-        
-        const selectionPool = potentialCds.length > 0 ? potentialCds : cds;
 
-        const randomIndex = Math.floor(Math.random() * selectionPool.length);
-        const newFeaturedCd = selectionPool[randomIndex];
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        const newSelection = pool[randomIndex];
         
-        if (newFeaturedCd) {
+        if (newSelection) {
             localStorage.setItem(storageKey, JSON.stringify({
-                cdId: newFeaturedCd.id,
+                cdId: newSelection.id,
                 timestamp: now,
             }));
-            setFeaturedCd(newFeaturedCd);
+            if (featuredCd?.id !== newSelection.id) {
+                setFeaturedCd(newSelection);
+            }
         }
-    } else {
-        setFeaturedCd(currentFeaturedCdInCollection);
+    } else if (currentFeaturedInCollection && featuredCd?.id !== currentFeaturedInCollection.id) {
+        // We have a valid stored album, ensure state matches
+        setFeaturedCd(currentFeaturedInCollection);
     }
-  }, [cds, collectionMode]);
+  }, [cds, collectionMode, featuredCd]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
