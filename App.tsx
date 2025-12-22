@@ -29,6 +29,7 @@ import SupabaseAuth from './components/SupabaseAuth';
  * to the standardized snake_case format used by the database.
  */
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
+    if (!item) return item;
     const normalized = { ...item };
     if (item.coverArtUrl && !item.cover_art_url) normalized.cover_art_url = item.coverArtUrl;
     if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
@@ -275,6 +276,7 @@ const AppContent: React.FC = () => {
               if (!supabaseSync.user) { throw new Error("You must be signed in to save changes to the cloud."); }
               const success = await supabaseSync.updateCD(updatedCd); 
               if (!success) { throw new Error(supabaseSync.error || "Update failed."); }
+              // Find the updated object in state to ensure we have the authoritative version
               savedCd = updatedCd;
           } else { 
               setCollection(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); 

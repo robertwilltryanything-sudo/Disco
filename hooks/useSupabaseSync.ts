@@ -16,8 +16,22 @@ if (SUPABASE_URL && SUPABASE_URL !== 'undefined' && SUPABASE_ANON_KEY && SUPABAS
 }
 
 /**
+ * Migration helper to ensure data from Supabase (which might have legacy camelCase 
+ * column names) is updated to the standardized snake_case format used by the app.
+ */
+const normalizeIncomingData = <T extends CD | WantlistItem>(item: any): T => {
+    if (!item) return item;
+    const normalized = { ...item };
+    if (item.coverArtUrl && !item.cover_art_url) normalized.cover_art_url = item.coverArtUrl;
+    if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
+    // Clean up old keys to avoid confusion
+    delete normalized.coverArtUrl;
+    delete normalized.recordLabel;
+    return normalized as T;
+};
+
+/**
  * Ensures only valid, snake_case columns are sent to Postgres.
- * Normalizes common camelCase mishaps from AI or legacy code.
  */
 const cleanPayload = (data: any, isInsert = false) => {
     const validKeys = [
@@ -25,12 +39,10 @@ const cleanPayload = (data: any, isInsert = false) => {
         'notes', 'version', 'record_label', 'tags', 'format'
     ];
     
-    // Normalize source data
     const source = { ...data };
     if (source.recordLabel && !source.record_label) source.record_label = source.recordLabel;
     if (source.coverArtUrl && !source.cover_art_url) source.cover_art_url = source.coverArtUrl;
 
-    // Add ID only for updates
     if (!isInsert && source.id) {
         validKeys.push('id');
     }
@@ -84,7 +96,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
                     hasMore = false;
                 }
             }
-            return allItems;
+            return allItems.map(normalizeIncomingData);
         };
 
         try {
@@ -147,9 +159,11 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
                 const collectionChannel = supabase.channel('collection-changes')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'collection' }, (payload) => {
                         if (payload.eventType === 'INSERT') {
-                            setCollection(prev => [payload.new as CD, ...prev.filter(cd => cd.id !== payload.new.id)]);
+                            const newCd = normalizeIncomingData<CD>(payload.new);
+                            setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
                         } else if (payload.eventType === 'UPDATE') {
-                            setCollection(prev => prev.map(cd => cd.id === payload.new.id ? payload.new as CD : cd));
+                            const updatedCd = normalizeIncomingData<CD>(payload.new);
+                            setCollection(prev => prev.map(cd => cd.id === updatedCd.id ? updatedCd : cd));
                         } else if (payload.eventType === 'DELETE') {
                             setCollection(prev => prev.filter(cd => cd.id !== payload.old.id));
                         }
@@ -160,9 +174,11 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
                 const wantlistChannel = supabase.channel('wantlist-changes')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'wantlist' }, (payload) => {
                          if (payload.eventType === 'INSERT') {
-                            setWantlist(prev => [payload.new as WantlistItem, ...prev.filter(item => item.id !== payload.new.id)]);
+                            const newItem = normalizeIncomingData<WantlistItem>(payload.new);
+                            setWantlist(prev => [newItem, ...prev.filter(item => item.id !== newItem.id)]);
                         } else if (payload.eventType === 'UPDATE') {
-                            setWantlist(prev => prev.map(item => item.id === payload.new.id ? payload.new as WantlistItem : item));
+                            const updatedItem = normalizeIncomingData<WantlistItem>(payload.new);
+                            setWantlist(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
                         } else if (payload.eventType === 'DELETE') {
                             setWantlist(prev => prev.filter(item => item.id !== payload.old.id));
                         }
@@ -201,27 +217,17 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
     };
 
     const addCD = async (cdData: Omit<CD, 'id'>) => {
-        if (!supabase) throw new Error("Database client not ready.");
-        if (!user) throw new Error("Authentication required.");
-        
+        if (!supabase || !user) throw new Error("Authentication required.");
         setSyncStatus('saving');
         setError(null);
-        
         const payload = { ...cleanPayload(cdData, true), user_id: user.id };
         const { data, error: dbError } = await supabase.from('collection').insert(payload).select();
-        
         if (dbError) {
-            console.error("Supabase insert error:", dbError);
-            let finalMsg = dbError.message;
-            if (dbError.message.includes("'format' column")) {
-                finalMsg = "ACTION REQUIRED: Your Supabase database is missing the 'format' column. Please run the migration SQL at the bottom of supabase_setup.md in your Supabase SQL Editor to fix this.";
-            }
-            setError(finalMsg);
+            setError(dbError.message);
             setSyncStatus('error');
-            throw new Error(finalMsg);
+            throw new Error(dbError.message);
         }
-        
-        const newCd = data?.[0] as CD ?? null;
+        const newCd = normalizeIncomingData<CD>(data?.[0]) ?? null;
         if (newCd) {
             setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
             setSyncStatus('synced');
@@ -233,25 +239,20 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
-        
         const payload = cleanPayload(cd, false);
-        const { error: dbError } = await supabase.from('collection').update(payload).eq('id', cd.id);
-        
+        const { data, error: dbError } = await supabase.from('collection').update(payload).eq('id', cd.id).select();
         if (dbError) {
-            console.error("Supabase update error:", dbError);
-            let finalMsg = dbError.message;
-            if (dbError.message.includes("'format' column")) {
-                finalMsg = "ACTION REQUIRED: Your Supabase database is missing the 'format' column. Please run the migration SQL in supabase_setup.md to fix this.";
-            }
-            setError(finalMsg);
+            setError(dbError.message);
             setSyncStatus('error');
-            throw new Error(finalMsg);
+            throw new Error(dbError.message);
         }
-
-        // Explicitly update local state for immediate feedback
-        setCollection(prev => prev.map(item => item.id === cd.id ? cd : item));
-        setSyncStatus('synced');
-        return true;
+        const updatedCd = normalizeIncomingData<CD>(data?.[0]) ?? null;
+        if (updatedCd) {
+            setCollection(prev => prev.map(item => item.id === updatedCd.id ? updatedCd : item));
+            setSyncStatus('synced');
+            return true;
+        }
+        return false;
     };
 
     const deleteCD = async (id: string) => {
@@ -264,8 +265,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSyncStatus('error');
             throw dbError;
         }
-
-        // Explicitly update local state for immediate feedback
         setCollection(prev => prev.filter(item => item.id !== id));
         setSyncStatus('synced');
         return true;
@@ -278,16 +277,11 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         const payload = { ...cleanPayload(itemData, true), user_id: user.id };
         const { data, error: dbError } = await supabase.from('wantlist').insert(payload).select();
         if (dbError) {
-            console.error("Supabase wantlist insert error:", dbError);
-            let finalMsg = dbError.message;
-             if (dbError.message.includes("'format' column")) {
-                finalMsg = "ACTION REQUIRED: Missing 'format' column in Supabase 'wantlist' table. Run the migration SQL in supabase_setup.md.";
-            }
-            setError(finalMsg);
+            setError(dbError.message);
             setSyncStatus('error');
-            throw new Error(finalMsg);
+            throw new Error(dbError.message);
         }
-        const newItem = data?.[0] as WantlistItem ?? null;
+        const newItem = normalizeIncomingData<WantlistItem>(data?.[0]) ?? null;
         if (newItem) {
             setWantlist(prev => [newItem, ...prev.filter(i => i.id !== newItem.id)]);
             setSyncStatus('synced');
@@ -300,22 +294,19 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('saving');
         setError(null);
         const payload = cleanPayload(item, false);
-        const { error: dbError } = await supabase.from('wantlist').update(payload).eq('id', item.id);
+        const { data, error: dbError } = await supabase.from('wantlist').update(payload).eq('id', item.id).select();
         if (dbError) {
-            console.error("Supabase wantlist update error:", dbError);
-            let finalMsg = dbError.message;
-             if (dbError.message.includes("'format' column")) {
-                finalMsg = "ACTION REQUIRED: Missing 'format' column in Supabase 'wantlist' table. Run the migration SQL in supabase_setup.md.";
-            }
-            setError(finalMsg);
+            setError(dbError.message);
             setSyncStatus('error');
-            throw new Error(finalMsg);
+            throw new Error(dbError.message);
         }
-
-        // Explicitly update local state for immediate feedback
-        setWantlist(prev => prev.map(i => i.id === item.id ? item : i));
-        setSyncStatus('synced');
-        return true;
+        const updatedItem = normalizeIncomingData<WantlistItem>(data?.[0]) ?? null;
+        if (updatedItem) {
+            setWantlist(prev => prev.map(i => i.id === updatedItem.id ? updatedItem : i));
+            setSyncStatus('synced');
+            return true;
+        }
+        return false;
     };
 
     const deleteWantlistItem = async (id: string) => {
@@ -328,8 +319,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSyncStatus('error');
             throw dbError;
         }
-
-        // Explicitly update local state for immediate feedback
         setWantlist(prev => prev.filter(item => item.id !== id));
         setSyncStatus('synced');
         return true;
