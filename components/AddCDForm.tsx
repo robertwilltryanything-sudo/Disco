@@ -129,7 +129,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         }
     } catch (error: any) {
         console.error("Error during save process:", error);
-        // Show specific DB error if available, otherwise generic
         const errorMsg = error.details || error.message || "An unexpected error occurred while saving. Please check your connection or database configuration.";
         setFormError(errorMsg);
     } finally {
@@ -362,15 +361,28 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                         </button>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={handleFindArt}
-                        className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={!artist || !title}
-                    >
-                        <GlobeIcon className="h-4 w-4" />
-                        Find Art
-                    </button>
+                    <div className={!cdToEdit ? "grid grid-cols-2 gap-2" : ""}>
+                        <button
+                            type="button"
+                            onClick={handleFindArt}
+                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!artist || !title}
+                        >
+                            <GlobeIcon className="h-4 w-4" />
+                            Find Art
+                        </button>
+                        {!cdToEdit && (
+                            <button
+                                type="button"
+                                onClick={() => setIsScannerOpen(true)}
+                                disabled={isProcessing}
+                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
+                            >
+                                <CameraIcon className="h-4 w-4" />
+                                Scan Album
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
             <div className="flex-1 w-full space-y-3">
@@ -481,25 +493,13 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 </>
               )}
             </button>
-            {cdToEdit ? (
-              <button
-                type="button"
-                onClick={onCancel}
-                className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
-              >
-                Cancel
-              </button>
-            ) : (
-              <button
-                  type="button"
-                  onClick={() => setIsScannerOpen(true)}
-                  disabled={isProcessing}
-                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                  <CameraIcon className="h-5 w-5" />
-                  Scan Album
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+            >
+              Cancel
+            </button>
         </div>
       </form>
       <AlbumScanner 
