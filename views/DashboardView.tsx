@@ -51,7 +51,7 @@ const BarChart: React.FC<{ data: ChartDataItem[]; title: string; onFilter: (valu
                     </button>
                     <div className="w-full bg-zinc-200 rounded-full h-6" role="presentation">
                         <div
-                            className={`${barColor} h-6 rounded-full transition-all duration-500 ease-out`}
+                            className={`${barColor} h-6 rounded-full`}
                             style={{ width: `${barWidthPercentage}%` }}
                             role="progressbar"
                             aria-valuenow={item.value}

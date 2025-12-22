@@ -85,7 +85,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                 <h3 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h3>
                 <button
                     onClick={handleArtistClick}
-                    className="text-left text-base text-zinc-500 hover:text-zinc-900 transition-colors"
+                    className="text-left text-base text-zinc-500 hover:text-zinc-900"
                     title={cd.artist}
                 >
                     {cd.artist}

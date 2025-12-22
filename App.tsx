@@ -409,7 +409,7 @@ const AppContent: React.FC = () => {
         collectionMode={collectionMode}
         onToggleMode={handleToggleMode}
       />
-      <main className="container mx-auto p-4 md:p-6 animate-in fade-in duration-500">
+      <main className="container mx-auto p-4 md:p-6">
         {isSupabaseSelectedButLoggedOut && (
             <div className="mb-8">
                 <SupabaseAuth 
@@ -452,7 +452,7 @@ const AppContent: React.FC = () => {
       <ImportConfirmModal isOpen={!!pendingImport} onClose={() => setPendingImport(null)} onMerge={() => confirmImport('merge')} onReplace={() => confirmImport('replace')} importCount={pendingImport?.length || 0} />
       <SyncSettingsModal isOpen={isSyncSettingsOpen} onClose={() => setIsSyncSettingsOpen(false)} currentProvider={syncProvider} onProviderChange={setSyncProvider} syncMode={syncMode} onSyncModeChange={setSyncMode} />
       <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} />
-      <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-all" aria-label="Add New"><PlusIcon className="h-6 w-6" /></button>
+      <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30" aria-label="Add New"><PlusIcon className="h-6 w-6" /></button>
     </div>
   );
 };

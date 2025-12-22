@@ -36,7 +36,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
     <Link 
         ref={ref} 
         to={`/cd/${cd.id}`} 
-        className="block group relative bg-white rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-800 hover:shadow-lg transition-all duration-300"
+        className="block group relative bg-white rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-800 hover:shadow-lg"
     >
        <div className="relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center">
         {cd.cover_art_url ? (
@@ -44,10 +44,10 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
                 <img 
                     src={cd.cover_art_url} 
                     alt={`${cd.title} cover`} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 animate-in fade-in" 
+                    className="w-full h-full object-cover" 
                 />
             ) : (
-                <div className="w-full h-full bg-zinc-200 animate-pulse" />
+                <div className="w-full h-full bg-zinc-200" />
             )
         ) : (
             <MusicNoteIcon className="w-10 h-10 text-zinc-300" />
@@ -57,7 +57,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
         <h3 className="font-bold text-sm text-zinc-900 truncate mb-0.5" title={cd.title}>{cd.title}</h3>
         <button
           onClick={handleArtistClick}
-          className="text-left w-full text-xs text-zinc-400 font-bold uppercase tracking-tight truncate hover:text-zinc-900 transition-colors"
+          className="text-left w-full text-xs text-zinc-400 font-bold uppercase tracking-tight truncate hover:text-zinc-900"
         >
           {cd.artist}
         </button>

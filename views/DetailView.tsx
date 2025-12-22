@@ -70,7 +70,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6"><Link to="/" className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium transition-colors"><ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>
+      <div className="mb-6"><Link to="/" className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium"><ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
         <div className="md:flex">
             <div className="md:flex-shrink-0 md:w-80">
@@ -84,11 +84,11 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-grow">
                   <h1 className="text-3xl font-bold text-zinc-900">{cd.title}</h1>
-                  <h2 className="text-xl font-semibold text-zinc-500 mt-1 cursor-pointer hover:text-zinc-900 hover:underline transition-colors" onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}>{cd.artist}</h2>
+                  <h2 className="text-xl font-semibold text-zinc-500 mt-1 cursor-pointer hover:text-zinc-900 hover:underline" onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}>{cd.artist}</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => navigate('/', { state: { editCdId: cd.id } })} className="p-2 rounded-full text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-all"><EditIcon className="w-5 h-5" /></button>
-                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"><TrashIcon className="w-5 h-5" /></button>
+                  <button onClick={() => navigate('/', { state: { editCdId: cd.id } })} className="p-2 rounded-full text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100"><EditIcon className="w-5 h-5" /></button>
+                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50"><TrashIcon className="w-5 h-5" /></button>
                 </div>
               </div>
 
@@ -98,7 +98,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Year</p>
                       <button 
                         onClick={() => handleSearchFilter(cd.year)}
-                        className="text-zinc-900 font-medium hover:text-zinc-600 hover:underline transition-all"
+                        className="text-zinc-900 font-medium hover:text-zinc-600 hover:underline"
                       >
                         {cd.year}
                       </button>
@@ -109,7 +109,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Genre</p>
                       <button 
                         onClick={() => handleSearchFilter(cd.genre)}
-                        className="text-zinc-900 font-medium hover:text-zinc-600 hover:underline transition-all"
+                        className="text-zinc-900 font-medium hover:text-zinc-600 hover:underline"
                       >
                         {cd.genre}
                       </button>
@@ -122,8 +122,8 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               {cd.notes && <div className="mt-6 pt-6 border-t border-zinc-100"><h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Notes</h3><p className="text-zinc-600 italic">"{cd.notes}"</p></div>}
 
               <div className="mt-8 flex flex-wrap gap-3">
-                  <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-bold py-2 px-4 rounded-lg hover:bg-zinc-200 transition-all text-sm"><GlobeIcon className="h-4 w-4" />Wikipedia</a>
-                  <button onClick={handleRefreshData} disabled={isRefreshing} className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 font-bold py-2 px-4 rounded-lg hover:bg-blue-100 transition-all disabled:opacity-50 text-sm"><SparklesIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />Update Info</button>
+                  <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-bold py-2 px-4 rounded-lg hover:bg-zinc-200 text-sm"><GlobeIcon className="h-4 w-4" />Wikipedia</a>
+                  <button onClick={handleRefreshData} disabled={isRefreshing} className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 font-bold py-2 px-4 rounded-lg hover:bg-blue-100 disabled:opacity-50 text-sm"><SparklesIcon className="w-4 h-4" />Update Info</button>
               </div>
             </div>
         </div>
