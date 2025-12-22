@@ -54,7 +54,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
             }
         };
         fetchTrivia();
-    }, [cd]); // Re-fetch if the featured CD changes
+    }, [cd.id]); // Use ID as dependency to prevent re-fetching on reference changes
 
     const handleArtistClick = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -68,7 +68,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
     return (
         <Link
           to={`/cd/${cd.id}`}
-          className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-300 flex flex-col md:flex-row"
+          className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden flex flex-col md:flex-row"
           aria-label={`View details for featured album: ${cd.title} by ${cd.artist}`}
         >
             <div className="md:w-64 flex-shrink-0">

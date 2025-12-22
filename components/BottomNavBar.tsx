@@ -24,7 +24,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, onClick, children, label, state }
         end={to === '/'}
         state={state}
         className={({ isActive }) =>
-          `flex flex-col items-center justify-center gap-1 w-full h-full transition-colors duration-200 ${
+          `flex flex-col items-center justify-center gap-1 w-full h-full ${
             isActive ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
           }`
         }
@@ -37,7 +37,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, onClick, children, label, state }
   return (
      <button
         onClick={onClick}
-        className="flex flex-col items-center justify-center gap-1 w-full h-full text-zinc-500 hover:text-zinc-700 transition-colors duration-200"
+        className="flex flex-col items-center justify-center gap-1 w-full h-full text-zinc-500 hover:text-zinc-700"
       >
         {children}
         <span className="text-[10px] font-medium leading-none">{label}</span>

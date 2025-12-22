@@ -20,17 +20,17 @@ const MissingAlbumItem: React.FC<MissingAlbumItemProps> = ({ album, artistName, 
   }, [wantlist, artistName, album.title]);
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-md border transition-colors duration-300 ${
+    <div className={`flex items-center gap-3 p-3 rounded-md border ${
         isOnWantlist 
             ? 'bg-green-50 border-green-200' 
             : 'bg-zinc-50 border-zinc-200'
     }`}>
       <div className="flex-shrink-0">
-        <QuestionMarkCircleIcon className={`w-8 h-8 transition-colors duration-300 ${isOnWantlist ? 'text-green-400' : 'text-zinc-400'}`} />
+        <QuestionMarkCircleIcon className={`w-8 h-8 ${isOnWantlist ? 'text-green-400' : 'text-zinc-400'}`} />
       </div>
       <div className="flex-grow">
-        <p className={`font-semibold transition-colors duration-300 ${isOnWantlist ? 'text-green-900' : 'text-zinc-800'}`}>{album.title}</p>
-        <p className={`text-sm transition-colors duration-300 ${isOnWantlist ? 'text-green-700' : 'text-zinc-600'}`}>{album.year}</p>
+        <p className={`font-semibold ${isOnWantlist ? 'text-green-900' : 'text-zinc-800'}`}>{album.title}</p>
+        <p className={`text-sm ${isOnWantlist ? 'text-green-700' : 'text-zinc-600'}`}>{album.year}</p>
       </div>
       <div className="flex-shrink-0">
         {isOnWantlist ? (

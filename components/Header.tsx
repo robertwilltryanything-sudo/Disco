@@ -108,7 +108,7 @@ const Header: React.FC<HeaderProps> = ({
               <span className="text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full mr-2">{collectionCount}</span>
               <button 
                 onClick={onToggleMode}
-                className="p-1 rounded-full hover:bg-zinc-100 transition-colors text-zinc-600 hover:text-zinc-900"
+                className="p-1 rounded-full hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900"
                 title={`Switch to ${collectionMode === 'cd' ? 'Vinyl' : 'CD'} mode`}
               >
                 {collectionMode === 'cd' ? <CompactDiscIcon className="w-6 h-6" /> : <VinylIcon className="w-6 h-6" />}

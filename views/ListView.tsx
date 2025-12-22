@@ -77,7 +77,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     }
   }, [location.state, cds, navigate, onRequestEdit, onRequestAdd]);
 
-  // Handle Featured Album Selection (Strictly 24-hour cycle)
+  // Handle Featured Album Selection (Stable daily rotation)
   useEffect(() => {
     if (cds.length === 0) {
         if (featuredCd !== null) setFeaturedCd(null);
@@ -85,11 +85,10 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     }
 
     const storageKey = `disco_featured_album_${collectionMode}`;
-    const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
-    const now = Date.now();
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
     const storedDataRaw = localStorage.getItem(storageKey);
-    let storedData: { cdId: string; timestamp: number } | null = null;
+    let storedData: { cdId: string; date: string } | null = null;
     
     if (storedDataRaw) {
       try {
@@ -101,17 +100,16 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     
     const currentFeaturedInCollection = storedData ? cds.find(cd => cd.id === storedData.cdId) : null;
     
-    // Check if we need to rotate to a new album
-    const needsRotation = 
-        !storedData || 
-        !currentFeaturedInCollection ||
-        (now - storedData.timestamp > ONE_DAY_IN_MS);
+    // Rotate if: No data, data is from a previous day, or the saved album was deleted
+    const needsRotation = !storedData || storedData.date !== today || !currentFeaturedInCollection;
 
     if (needsRotation) {
-        // Exclude current featured to encourage variety if we have options
-        const pool = cds.length > 1 && currentFeaturedInCollection 
-            ? cds.filter(cd => cd.id !== currentFeaturedInCollection.id) 
-            : cds;
+        // Selection pool
+        let pool = cds;
+        // If we're rotating due to a new day, try to pick something different than the last featured if possible
+        if (storedData && cds.length > 1) {
+            pool = cds.filter(cd => cd.id !== storedData?.cdId);
+        }
 
         const randomIndex = Math.floor(Math.random() * pool.length);
         const newSelection = pool[randomIndex];
@@ -119,17 +117,17 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
         if (newSelection) {
             localStorage.setItem(storageKey, JSON.stringify({
                 cdId: newSelection.id,
-                timestamp: now,
+                date: today,
             }));
             if (featuredCd?.id !== newSelection.id) {
                 setFeaturedCd(newSelection);
             }
         }
     } else if (currentFeaturedInCollection && featuredCd?.id !== currentFeaturedInCollection.id) {
-        // We have a valid stored album, ensure state matches
+        // Keep existing daily selection but update the reference from the current collection array
         setFeaturedCd(currentFeaturedInCollection);
     }
-  }, [cds, collectionMode, featuredCd]);
+  }, [cds, collectionMode, featuredCd?.id]);
 
   useEffect(() => {
     window.scrollTo(0, 0);

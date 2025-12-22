@@ -20,7 +20,7 @@ const ProviderOption: React.FC<{
     children: React.ReactNode;
 }> = ({ title, description, isSelected, onSelect, children }) => (
     <div 
-        className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+        className={`p-4 border rounded-lg cursor-pointer ${
             isSelected 
                 ? 'border-zinc-800 bg-zinc-50 ring-2 ring-zinc-800' 
                 : 'border-zinc-300 bg-white hover:border-zinc-500'
