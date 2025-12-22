@@ -7,8 +7,11 @@
 async function searchWikipediaForArticle(artist: string, title: string): Promise<string | null> {
     const WIKIPEDIA_API_ENDPOINT = 'https://en.wikipedia.org/w/api.php';
     
+    // Multiple variations of search terms to increase hit rate
     const searchTerms: string[] = [
         `${title} (${artist} album)`,
+        `${title} (album)`,
+        `${artist} ${title}`,
         title,
     ];
 
@@ -17,7 +20,7 @@ async function searchWikipediaForArticle(artist: string, title: string): Promise
             action: 'query',
             list: 'search',
             srsearch: term,
-            srlimit: '1',
+            srlimit: '3', // Check top 3 results to bypass disambiguations
             format: 'json',
             origin: '*'
         });
@@ -28,6 +31,12 @@ async function searchWikipediaForArticle(artist: string, title: string): Promise
             const data = await response.json();
 
             if (data.query.search.length > 0) {
+                // Filter out common non-album pages like "List of..." or disambiguations
+                const bestMatch = data.query.search.find((res: any) => 
+                    !res.title.toLowerCase().includes('discography') && 
+                    !res.title.toLowerCase().includes('(disambiguation)')
+                );
+                if (bestMatch) return bestMatch.title;
                 return data.query.search[0].title;
             }
         } catch (error) {
@@ -35,7 +44,7 @@ async function searchWikipediaForArticle(artist: string, title: string): Promise
         }
     }
 
-    // Fallback using opensearch for broader matching
+    // Fallback using opensearch
     const generalSearchTerm = `${artist} ${title}`;
      const params2 = new URLSearchParams({
         action: 'opensearch',
@@ -87,19 +96,17 @@ async function getCoverFilenameFromInfobox(pageTitle: string): Promise<string | 
     }
     
     const wikitext = pages[pageId].revisions[0]['*'];
-    const coverRegex = /\|\s*Cover\s*=\s*(.+?)\n/i;
+    // Look for cover in album/release infoboxes
+    const coverRegex = /\|\s*cover\s*=\s*(.+?)\n/i;
     const match = wikitext.match(coverRegex);
     
     if (match && match[1]) {
-        // Clean the extracted string from wiki markup to get just the filename.
         let filename = match[1].trim();
-        // Remove wiki link syntax, e.g., [[File:filename.jpg]] -> filename.jpg
         filename = filename.replace(/\[\[(?:File:)?|\]\]/g, '');
-        // Remove any image attributes, which come after a pipe, e.g., filename.jpg|thumb -> filename.jpg
         filename = filename.split('|')[0].trim();
 
-        if (filename) {
-            return `File:${filename}`;
+        if (filename && !filename.includes('{{')) { // Skip templates
+            return filename.startsWith('File:') ? filename : `File:${filename}`;
         }
     }
     
@@ -108,8 +115,6 @@ async function getCoverFilenameFromInfobox(pageTitle: string): Promise<string | 
 
 /**
  * Retrieves all image filenames used on a given Wikipedia page.
- * @param pageTitle The title of the Wikipedia article.
- * @returns A promise that resolves to an array of image file titles (e.g., "File:Image.jpg").
  */
 async function getAllImageFilesFromArticle(pageTitle: string): Promise<string[]> {
     const WIKIPEDIA_API_ENDPOINT = 'https://en.wikipedia.org/w/api.php';
@@ -134,9 +139,7 @@ async function getAllImageFilesFromArticle(pageTitle: string): Promise<string[]>
 }
 
 /**
- * Gets a full, sized image URL from a file title (e.g., "File:Image.jpg").
- * @param fileTitle The title of the file.
- * @returns A promise that resolves to the full image URL or null.
+ * Gets a full, sized image URL from a file title.
  */
 async function getImageUrlFromFileTitle(fileTitle: string): Promise<string | null> {
     const WIKIPEDIA_API_ENDPOINT = 'https://en.wikipedia.org/w/api.php';
@@ -145,7 +148,7 @@ async function getImageUrlFromFileTitle(fileTitle: string): Promise<string | nul
         titles: fileTitle,
         prop: 'imageinfo',
         iiprop: 'url',
-        iiurlwidth: '500', // Request a 500px wide thumbnail for performance and consistency
+        iiurlwidth: '800', // High res for better display
         format: 'json',
         origin: '*'
     });
@@ -165,94 +168,66 @@ async function getImageUrlFromFileTitle(fileTitle: string): Promise<string | nul
 
 /**
  * Finds album cover art by searching a Wikipedia article for all images and ranking them.
- * This is more robust than just looking at the infobox and can find alternate/version covers.
- * @param artist The artist's name.
- * @param title The album's title.
- * @returns A promise that resolves to an array of URLs for the cover art, or null if none are found.
  */
 export async function findCoverArt(artist: string, title: string): Promise<string[] | null> {
-    console.log(`Searching for cover art for "${artist} - ${title}" on Wikipedia...`);
-
     try {
-        // 1. Find the most relevant Wikipedia article.
         const articleTitle = await searchWikipediaForArticle(artist, title);
-        if (!articleTitle) {
-            console.log("Could not find a matching Wikipedia article.");
-            return null;
-        }
-        console.log(`Found article: "${articleTitle}"`);
+        if (!articleTitle) return null;
 
-        // 2. Get all potential cover art filenames from the article.
         const [infoboxCover, allImages] = await Promise.all([
             getCoverFilenameFromInfobox(articleTitle),
             getAllImageFilesFromArticle(articleTitle)
         ]);
 
         const candidateFiles = new Set(allImages);
-        if (infoboxCover) {
-            candidateFiles.add(infoboxCover); // Ensure primary cover is included
-        }
+        if (infoboxCover) candidateFiles.add(infoboxCover);
         
-        if (candidateFiles.size === 0) {
-            console.log("No images found on the article page.");
-            return null;
-        }
+        if (candidateFiles.size === 0) return null;
 
-        // 3. Filter and rank the images to find the best matches.
         const lowerCaseTitle = title.toLowerCase();
+        const lowerCaseArtist = artist.toLowerCase();
         
         const rankedImages = Array.from(candidateFiles)
             .map(fileTitle => {
                 const lowerCaseFile = fileTitle.toLowerCase();
-                let score = 0;
+                let score = 5; // Base score for any valid image
 
-                // Exclude non-cover image types
-                if (lowerCaseFile.endsWith('.svg') || lowerCaseFile.includes('logo')) {
+                // Exclude obvious non-covers
+                if (lowerCaseFile.endsWith('.svg') || lowerCaseFile.includes('logo') || lowerCaseFile.includes('icon')) {
                     return { fileTitle, score: -1 };
                 }
-                // Allow common image formats
                 if (!/\.(png|jpg|jpeg|webp|gif)$/.test(lowerCaseFile)) {
                      return { fileTitle, score: -1 };
                 }
 
-                // Score based on keywords and if it's the official infobox cover
-                if (lowerCaseFile.includes('cover')) score += 20;
-                if (lowerCaseFile.includes('artwork')) score += 15;
-                if (fileTitle === infoboxCover) score += 50; 
+                // High priority for infobox items
+                if (fileTitle === infoboxCover) score += 100; 
+                
+                // Content-based boosts
+                if (lowerCaseFile.includes('cover')) score += 50;
+                if (lowerCaseFile.includes('artwork')) score += 30;
+                if (lowerCaseFile.includes('front')) score += 20;
 
-                // Score based on matching title strings (normalizing spaces and underscores)
-                const normalizedFile = lowerCaseFile.replace(/ /g, '_');
-                const normalizedTitle = lowerCaseTitle.replace(/ /g, '_');
-                if (normalizedFile.includes(normalizedTitle)) score += 10;
+                // Relevance-based boosts
+                if (lowerCaseFile.includes(lowerCaseTitle.replace(/ /g, '_'))) score += 40;
+                if (lowerCaseFile.includes(lowerCaseArtist.replace(/ /g, '_'))) score += 10;
 
                 return { fileTitle, score };
             })
             .filter(item => item.score > 0)
             .sort((a, b) => b.score - a.score);
 
-        if (rankedImages.length === 0) {
-            console.log("No suitable cover images found after ranking.");
-            return null;
-        }
+        if (rankedImages.length === 0) return null;
 
-        // 4. Get URLs for the top candidates (up to 8).
-        const topCandidates = rankedImages.slice(0, 8).map(item => item.fileTitle);
+        const topCandidates = rankedImages.slice(0, 10).map(item => item.fileTitle);
         const urlPromises = topCandidates.map(getImageUrlFromFileTitle);
         const urls = await Promise.all(urlPromises);
         
-        // Remove any nulls and duplicates
         const finalUrls = [...new Set(urls.filter((url): url is string => url !== null))];
-        
-        if (finalUrls.length > 0) {
-            console.log(`Found ${finalUrls.length} potential cover art image(s).`);
-            return finalUrls;
-        }
-
-        console.log("Could not retrieve final image URLs.");
-        return null;
+        return finalUrls.length > 0 ? finalUrls : null;
 
     } catch (error) {
-        console.error(`An error occurred during the Wikipedia search for "${artist} - ${title}":`, error);
+        console.error(`Wikipedia search failed:`, error);
         return null;
     }
 }
