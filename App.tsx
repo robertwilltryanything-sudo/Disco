@@ -78,27 +78,6 @@ const INITIAL_COLLECTION: CD[] = [
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/2/25/Oxygene_album_cover.jpg',
     created_at: new Date(Date.now() - 50000).toISOString(),
     format: 'cd'
-  },
-  {
-    id: 'v1',
-    artist: 'Dire Straits',
-    title: 'Alchemy Live',
-    genre: 'Rock',
-    year: 1984,
-    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Dire_Straits_-_Alchemy.jpg',
-    notes: 'Incredible live performance.',
-    created_at: new Date(Date.now() - 30000).toISOString(),
-    format: 'vinyl'
-  },
-  {
-    id: 'v2',
-    artist: 'Jean Michel Jarre',
-    title: 'Equinoxe',
-    genre: 'Electronic',
-    year: 1978,
-    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b2/Equinoxe_album_cover.jpg',
-    created_at: new Date(Date.now() - 40000).toISOString(),
-    format: 'vinyl'
   }
 ];
 
@@ -262,122 +241,136 @@ const AppContent: React.FC = () => {
         }
     }
 
-    let savedCd: CD | null = null;
-    try {
-        if (cdData.id) {
-          const updatedCd: CD = { 
-              ...cdData, 
-              id: cdData.id, 
-              created_at: cdData.created_at || new Date().toISOString(),
-              format: cdData.format || collectionMode,
-          };
-          
-          if (syncProvider === 'supabase') { 
-              if (!supabaseSync.user) { throw new Error("You must be signed in to save changes to the cloud."); }
-              const success = await supabaseSync.updateCD(updatedCd); 
-              if (!success) { throw new Error(supabaseSync.error || "Update failed."); }
-              // Find the updated object in state to ensure we have the authoritative version
-              savedCd = updatedCd;
-          } else { 
-              setCollection(prev => prev.map(cd => cd.id === cdData.id ? updatedCd : cd)); 
-              savedCd = updatedCd;
-          }
-        } else {
-          const newCdBase = { ...cdData, format: collectionMode, created_at: new Date().toISOString() };
-          if (syncProvider === 'supabase') { 
-              if (!supabaseSync.user) { throw new Error("You must be signed in to save to the cloud."); }
-              savedCd = await supabaseSync.addCD(newCdBase); 
-              if (!savedCd) { throw new Error(supabaseSync.error || "Save failed."); }
-          } else {
-             const newCd: CD = { ...newCdBase, id: generateId() };
-             setCollection(prev => [newCd, ...prev]);
-             savedCd = newCd;
-          }
-        }
-        
-        if (savedCd) {
-            fetchAndApplyAlbumDetails(savedCd);
-            setIsAddModalOpen(false);
-            setCdToEdit(null);
-            setPrefillData(null);
-            setDuplicateCheckResult(null);
+    const originalCollection = [...collection];
+    let finalCd: CD;
 
-            // If it was an edit, navigate to detail view to show changes
+    // Optimistic Update
+    if (cdData.id) {
+        finalCd = { 
+            ...cdData, 
+            id: cdData.id, 
+            created_at: cdData.created_at || new Date().toISOString(),
+            format: cdData.format || collectionMode 
+        } as CD;
+        setCollection(prev => prev.map(c => c.id === cdData.id ? finalCd : c));
+    } else {
+        finalCd = { 
+            ...cdData, 
+            id: generateId(), 
+            created_at: new Date().toISOString(),
+            format: collectionMode 
+        } as CD;
+        setCollection(prev => [finalCd, ...prev]);
+    }
+
+    setIsAddModalOpen(false);
+    setCdToEdit(null);
+    setPrefillData(null);
+    setDuplicateCheckResult(null);
+
+    // Sync to Cloud
+    try {
+        if (syncProvider === 'supabase') {
+            if (!supabaseSync.user) { throw new Error("You must be signed in to save changes to the cloud."); }
             if (cdData.id) {
-                navigate(`/cd/${savedCd.id}`);
+                const success = await supabaseSync.updateCD(finalCd);
+                if (!success) throw new Error(supabaseSync.error || "Update failed");
+            } else {
+                const savedFromServer = await supabaseSync.addCD(cdData);
+                if (!savedFromServer) throw new Error(supabaseSync.error || "Save failed");
+                // Replace optimistic ID with server ID
+                setCollection(prev => prev.map(c => c.id === finalCd.id ? savedFromServer : c));
+                finalCd = savedFromServer;
             }
         }
+        fetchAndApplyAlbumDetails(finalCd);
+        if (cdData.id) navigate(`/cd/${finalCd.id}`);
     } catch (e: any) {
-        console.error("Save CD handler error:", e);
+        console.error("Sync error:", e);
+        setCollection(originalCollection); // Revert on failure
         throw e;
     }
-  }, [currentCollection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult, navigate]);
+  }, [collection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult, navigate]);
 
   const handleDeleteCD = useCallback(async (id: string) => {
+    const originalCollection = [...collection];
+    setCollection(prev => prev.filter(cd => cd.id !== id));
+    
     if (syncProvider === 'supabase') {
-        if (!supabaseSync.user) return;
-        await supabaseSync.deleteCD(id);
-    } else {
-        setCollection(prev => prev.filter(cd => cd.id !== id));
+        try {
+            if (!supabaseSync.user) return;
+            await supabaseSync.deleteCD(id);
+        } catch (e) {
+            console.error("Delete sync error:", e);
+            setCollection(originalCollection);
+            alert("Could not delete from cloud. Reverting local change.");
+        }
     }
-  }, [syncProvider, supabaseSync]);
+  }, [collection, syncProvider, supabaseSync]);
   
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
-      try {
-          let savedItem: WantlistItem | null = null;
-          if (itemData.id) {
-               const updatedItem: WantlistItem = {
-                  ...itemData,
-                  id: itemData.id,
-                  created_at: itemData.created_at || new Date().toISOString(),
-                  format: itemData.format || collectionMode,
-              };
-              
-              if (syncProvider === 'supabase') {
-                  if (!supabaseSync.user) { throw new Error("Please sign in to update your wantlist."); }
-                  const success = await supabaseSync.updateWantlistItem(updatedItem);
-                  if (!success) { throw new Error(supabaseSync.error || "Update failed."); }
-                  savedItem = updatedItem;
-              } else {
-                  setWantlist(prev => prev.map(item => item.id === itemData.id ? updatedItem : item));
-                  savedItem = updatedItem;
-              }
-          } else {
-              const newItemBase = { ...itemData, format: collectionMode, created_at: new Date().toISOString() };
-              if (syncProvider === 'supabase') {
-                  if (!supabaseSync.user) { throw new Error("Please sign in to save to your wantlist."); }
-                  savedItem = await supabaseSync.addWantlistItem(newItemBase);
-                  if (!savedItem) { throw new Error(supabaseSync.error || "Save failed."); }
-              } else {
-                  const newItem: WantlistItem = { ...newItemBase, id: generateId() };
-                  setWantlist(prev => [newItem, ...prev]);
-                  savedItem = newItem;
-              }
-          }
-          
-          if (savedItem) {
-              setIsAddWantlistModalOpen(false);
-              setWantlistItemToEdit(null);
+      const originalWantlist = [...wantlist];
+      let finalItem: WantlistItem;
 
-              // If it was an edit, navigate to detail view to show changes
+      // Optimistic Update
+      if (itemData.id) {
+          finalItem = { 
+              ...itemData, 
+              id: itemData.id, 
+              created_at: itemData.created_at || new Date().toISOString(),
+              format: itemData.format || collectionMode 
+          } as WantlistItem;
+          setWantlist(prev => prev.map(i => i.id === itemData.id ? finalItem : i));
+      } else {
+          finalItem = { 
+              ...itemData, 
+              id: generateId(), 
+              created_at: new Date().toISOString(),
+              format: collectionMode 
+          } as WantlistItem;
+          setWantlist(prev => [finalItem, ...prev]);
+      }
+
+      setIsAddWantlistModalOpen(false);
+      setWantlistItemToEdit(null);
+
+      // Sync to Cloud
+      try {
+          if (syncProvider === 'supabase') {
+              if (!supabaseSync.user) { throw new Error("Please sign in to update your wantlist."); }
               if (itemData.id) {
-                navigate(`/wantlist/${savedItem.id}`);
+                  const success = await supabaseSync.updateWantlistItem(finalItem);
+                  if (!success) throw new Error(supabaseSync.error || "Update failed");
+              } else {
+                  const savedFromServer = await supabaseSync.addWantlistItem(itemData);
+                  if (!savedFromServer) throw new Error(supabaseSync.error || "Save failed");
+                  setWantlist(prev => prev.map(i => i.id === finalItem.id ? savedFromServer : i));
+                  finalItem = savedFromServer;
               }
           }
+          if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
       } catch (e: any) {
-          console.error("Save Wantlist handler error:", e);
+          console.error("Wantlist sync error:", e);
+          setWantlist(originalWantlist);
           throw e;
       }
-  }, [syncProvider, supabaseSync, collectionMode, navigate]);
+  }, [wantlist, syncProvider, supabaseSync, collectionMode, navigate]);
 
   const handleDeleteWantlistItem = useCallback(async (id: string) => {
+    const originalWantlist = [...wantlist];
+    setWantlist(prev => prev.filter(item => item.id !== id));
+
     if (syncProvider === 'supabase') {
-        if (!supabaseSync.user) return;
-        await supabaseSync.deleteWantlistItem(id);
-    } else {
-        setWantlist(prev => prev.filter(item => item.id !== id));
+        try {
+            if (!supabaseSync.user) return;
+            await supabaseSync.deleteWantlistItem(id);
+        } catch (e) {
+            console.error("Delete wantlist sync error:", e);
+            setWantlist(originalWantlist);
+            alert("Could not delete from cloud. Reverting local change.");
+        }
     }
-  }, [syncProvider, supabaseSync]);
+  }, [wantlist, syncProvider, supabaseSync]);
 
   const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
       const cdData: Omit<CD, 'id'> = { ...item, created_at: new Date().toISOString() };

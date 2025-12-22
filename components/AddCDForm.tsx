@@ -12,6 +12,8 @@ import { GlobeIcon } from './icons/GlobeIcon';
 import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
+// Added missing import for XCircleIcon
+import { XCircleIcon } from './icons/XCircleIcon';
 import { capitalizeWords } from '../utils';
 
 interface AddCDFormProps {
@@ -39,7 +41,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
-  const [formErrorTitle, setFormErrorTitle] = useState('Error Saving Album');
+  const [formErrorTitle, setFormErrorTitle] = useState('Error');
   
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
@@ -90,8 +92,8 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!artist || !title) {
-        setFormErrorTitle("Form Error");
-        setFormError("Artist and Title are required.");
+        setFormErrorTitle("Required Fields Missing");
+        setFormError("Artist and Title are required to save an album.");
         return;
     }
 
@@ -133,42 +135,33 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } catch (error: any) {
         console.error("Error during save process:", error);
         setFormErrorTitle("Error Saving Album");
-        const errorMsg = error.details || error.message || "An unexpected error occurred while saving. Please check your connection or database configuration.";
+        const errorMsg = error.details || error.message || "An unexpected error occurred while saving.";
         setFormError(errorMsg);
     } finally {
         setIsProcessing(false);
     }
   }, [artist, title, genre, year, version, cover_art_url, notes, cdToEdit, onSave, record_label, tags]);
-  
-  const handlePopulateFromData = (data: Partial<Omit<CD, 'id'>> | null) => {
-      if (data) {
-        setArtist(data.artist || '');
-        setTitle(data.title || '');
-        setGenre(data.genre || '');
-        setYear(data.year || '');
-        setVersion(data.version || '');
-        setRecordLabel(data.record_label || '');
-        setTags(data.tags || []);
-        setCoverArtUrl(data.cover_art_url);
-      } else {
-        setFormErrorTitle("Scan Error");
-        setFormError("Could not extract album information.");
-      }
-  };
 
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
       setIsProcessing(true);
       setProcessingStatus('Analyzing album cover...');
       setFormError(null);
+      setFormErrorTitle("Scan Error");
       try {
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
-              handlePopulateFromData(albumInfo);
+            setArtist(albumInfo.artist || '');
+            setTitle(albumInfo.title || '');
+            setGenre(albumInfo.genre || '');
+            setYear(albumInfo.year || '');
+            setVersion(albumInfo.version || '');
+            setRecordLabel(albumInfo.record_label || '');
+            setTags(albumInfo.tags || []);
+            setCoverArtUrl(albumInfo.cover_art_url);
           }
       } catch (error: any) {
           console.error("Error getting album info:", error);
-          setFormErrorTitle("Scan Error");
           setFormError(error.message || "An error occurred while scanning the album cover.");
       } finally {
           setIsProcessing(false);
@@ -182,21 +175,22 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setCoverArtUrl(url);
         setFormError(null);
       } else {
-        setFormErrorTitle("Invalid URL");
-        setFormError("Please enter a valid, direct image URL (e.g., ending in .jpg, .png).");
+        setFormErrorTitle("Invalid Image URL");
+        setFormError("Please enter a direct link to an image (e.g. ending in .jpg or .png).");
       }
     }
   }, [manualUrl]);
 
   const handleFindArt = useCallback(async () => {
     if (!artist || !title) {
-      setFormErrorTitle("Search Error");
-      setFormError("Please enter an Artist and Title before searching for art.");
+      setFormErrorTitle("Details Required");
+      setFormError("Enter an Artist and Title before searching for cover art.");
       return;
     }
     setIsProcessing(true);
     setProcessingStatus('Searching for cover art...');
     setFormError(null);
+    setFormErrorTitle("Search Error");
     try {
       const imageUrls = await findCoverArt(artist, title);
 
@@ -209,11 +203,10 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         }
       } else {
         setFormErrorTitle("Cover Art Not Found");
-        setFormError("Could not find cover art online for this specific Artist/Title combination.");
+        setFormError("We couldn't find an official cover for this specific album online.");
       }
     } catch (error: any) {
       console.error("Error finding art online:", error);
-      setFormErrorTitle("Search Error");
       setFormError(error.message || "An error occurred while searching for cover art.");
     } finally {
       setIsProcessing(false);
@@ -259,7 +252,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             created_at: cdToEdit?.created_at,
           });
       } catch (error: any) {
-        console.error("Error saving after closing art selector:", error);
         setFormErrorTitle("Error Saving Album");
         setFormError(error.message || "An error occurred while saving.");
       } finally {
@@ -321,7 +313,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         {formError && (
             <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg whitespace-pre-wrap shadow-sm">
                 <p className="font-bold mb-1 flex items-center gap-2">
-                    <XIcon className="h-4 w-4" />
+                    <XCircleIcon className="h-4 w-4" />
                     {formErrorTitle}
                 </p>
                 <p className="text-sm opacity-90">{formError}</p>
