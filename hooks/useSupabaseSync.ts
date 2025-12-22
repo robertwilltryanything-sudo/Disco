@@ -247,6 +247,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSyncStatus('error');
             throw new Error(finalMsg);
         }
+
+        // Explicitly update local state for immediate feedback
+        setCollection(prev => prev.map(item => item.id === cd.id ? cd : item));
         setSyncStatus('synced');
         return true;
     };
@@ -261,6 +264,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSyncStatus('error');
             throw dbError;
         }
+
+        // Explicitly update local state for immediate feedback
+        setCollection(prev => prev.filter(item => item.id !== id));
         setSyncStatus('synced');
         return true;
     };
@@ -282,7 +288,10 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             throw new Error(finalMsg);
         }
         const newItem = data?.[0] as WantlistItem ?? null;
-        if (newItem) setSyncStatus('synced');
+        if (newItem) {
+            setWantlist(prev => [newItem, ...prev.filter(i => i.id !== newItem.id)]);
+            setSyncStatus('synced');
+        }
         return newItem;
     };
 
@@ -302,6 +311,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSyncStatus('error');
             throw new Error(finalMsg);
         }
+
+        // Explicitly update local state for immediate feedback
+        setWantlist(prev => prev.map(i => i.id === item.id ? item : i));
         setSyncStatus('synced');
         return true;
     };
@@ -316,6 +328,9 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSyncStatus('error');
             throw dbError;
         }
+
+        // Explicitly update local state for immediate feedback
+        setWantlist(prev => prev.filter(item => item.id !== id));
         setSyncStatus('synced');
         return true;
     };
