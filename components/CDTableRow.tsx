@@ -27,7 +27,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
 
   return (
     <tr
-      className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border md:border-b border-zinc-200 rounded-lg md:rounded-none shadow-sm md:shadow-none hover:bg-zinc-50 cursor-pointer"
+      className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border md:border-b border-zinc-200 rounded-md md:rounded-none shadow-sm md:shadow-none hover:bg-zinc-50 cursor-pointer"
       onClick={handleRowClick}
       aria-label={`View details for ${cd.title}`}
     >

@@ -10,10 +10,12 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        'xl': '0.5rem',   // 8px - previously 12px
-        'lg': '0.375rem', // 6px - previously 8px
-        'md': '0.25rem',  // 4px - previously 6px
-        'DEFAULT': '0.125rem', // 2px - previously 4px
+        '2xl': '0.5rem',    // 8px
+        'xl': '0.375rem',   // 6px
+        'lg': '0.25rem',    // 4px
+        'md': '0.125rem',   // 2px
+        'sm': '0.0625rem',  // 1px
+        'DEFAULT': '0.125rem',
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],

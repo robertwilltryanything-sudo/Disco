@@ -36,7 +36,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
     <Link 
         ref={ref} 
         to={`/cd/${cd.id}`} 
-        className="block group relative bg-white rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-800"
+        className="block group relative bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-800 transition-colors"
     >
        <div className="relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center">
         {cd.cover_art_url ? (
