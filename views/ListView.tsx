@@ -213,7 +213,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
               </div>
             )}
           </div>
-          <div className="lg:w-1/3 mt-6 lg:mt-0">
+          <div className="hidden lg:block lg:w-1/3 mt-6 lg:mt-0">
             <QuickStats cds={cds} collectionMode={collectionMode} />
           </div>
         </div>
