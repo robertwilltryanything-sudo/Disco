@@ -2,10 +2,10 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { HomeIcon } from './icons/HomeIcon';
 import { DashboardIcon } from './icons/DashboardIcon';
-import { UserIcon } from './icons/UserIcon';
 import { TagIcon } from './icons/TagIcon';
 import { CompactDiscIcon } from './icons/CompactDiscIcon';
 import { VinylIcon } from './icons/VinylIcon';
+import { SearchIcon } from './icons/SearchIcon';
 import { CollectionMode } from '../types';
 
 interface NavItemProps {
@@ -56,19 +56,17 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ collectionMode, onToggleMod
         <NavItem to="/" label="Home">
             <HomeIcon className="w-6 h-6" />
         </NavItem>
-        <NavItem to="/artists" label="Artists">
-            <UserIcon className="w-6 h-6" />
+        <NavItem to="/stats" label="Stats">
+            <DashboardIcon className="w-6 h-6" />
         </NavItem>
         <NavItem onClick={onToggleMode} label={collectionMode === 'cd' ? 'CDs' : 'Vinyl'}>
-            <div className="p-1 rounded-full bg-zinc-100 text-zinc-800">
-                {collectionMode === 'cd' ? <CompactDiscIcon className="w-6 h-6" /> : <VinylIcon className="w-6 h-6" />}
-            </div>
+            {collectionMode === 'cd' ? <CompactDiscIcon className="w-6 h-6" /> : <VinylIcon className="w-6 h-6" />}
         </NavItem>
         <NavItem to="/wantlist" label="Wantlist">
             <TagIcon className="w-6 h-6" />
         </NavItem>
-        <NavItem to="/stats" label="Stats">
-            <DashboardIcon className="w-6 h-6" />
+        <NavItem to="/" label="Search">
+            <SearchIcon className="w-6 h-6" />
         </NavItem>
     </nav>
   );

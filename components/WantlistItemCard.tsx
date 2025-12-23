@@ -23,7 +23,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
   };
 
   return (
-    <Link to={`/wantlist/${item.id}`} className="block group relative bg-white rounded-lg border border-zinc-200 overflow-hidden">
+    <Link to={`/wantlist/${item.id}`} className="block group relative bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-400 transition-colors">
       <div className="relative">
         {item.cover_art_url ? (
           <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-full h-auto aspect-square object-cover" />
@@ -32,7 +32,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
             <MusicNoteIcon className="w-12 h-12 text-zinc-400" />
           </div>
         )}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100">
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="flex items-center gap-2">
                 <button
                     onClick={(e) => handleActionClick(e, () => onMoveToCollection(item))}

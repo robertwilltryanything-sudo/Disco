@@ -33,7 +33,7 @@ const CoverArtSelectorModal: React.FC<CoverArtSelectorModalProps> = ({ isOpen, o
             <button
               key={index}
               onClick={() => handleSelect(url)}
-              className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+              className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 transition-colors"
               aria-label={`Select cover art option ${index + 1}`}
             >
               <img src={url} alt={`Cover art option ${index + 1}`} className="w-full h-auto aspect-square object-cover" />
