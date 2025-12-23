@@ -12,6 +12,7 @@ import { GlobeIcon } from './icons/GlobeIcon';
 import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
+import { XCircleIcon } from './icons/XCircleIcon';
 import { capitalizeWords } from '../utils';
 
 interface AddWantlistItemFormProps {
@@ -68,7 +69,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
 
     setIsProcessing(true);
     setFormError(null);
-    setFormErrorTitle("Error Saving to Wantlist");
 
     try {
         const itemData: Omit<WantlistItem, 'id'> & { id?: string } = {
@@ -79,12 +79,14 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         };
 
         if (!itemData.cover_art_url && !itemToEdit) {
+            setFormErrorTitle("Search Error");
             setProcessingStatus('Searching for cover art...');
             const imageUrls = await findCoverArt(artist, title);
 
             if (imageUrls && imageUrls.length > 0) {
                 if (imageUrls.length === 1) {
                     itemData.cover_art_url = imageUrls[0];
+                    setFormErrorTitle("Error Saving to Wantlist");
                     setProcessingStatus('Saving item...');
                     await onSave(itemData);
                 } else {
@@ -94,16 +96,18 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                     return; 
                 }
             } else {
+                setFormErrorTitle("Error Saving to Wantlist");
                 setProcessingStatus('Saving item...');
                 await onSave(itemData);
             }
         } else {
+            setFormErrorTitle("Error Saving to Wantlist");
             setProcessingStatus(itemToEdit ? 'Saving changes...' : 'Saving item...');
             await onSave(itemData);
         }
     } catch (error: any) {
         console.error("Error during save process:", error);
-        setFormErrorTitle("Error Saving to Wantlist");
+        // Title is appropriately set in try paths
         const errorMsg = error.details || error.message || "An unexpected error occurred while saving to your wantlist. Please check your connection.";
         setFormError(errorMsg);
     } finally {
@@ -132,6 +136,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setIsProcessing(true);
       setProcessingStatus('Analyzing album cover...');
       setFormError(null);
+      setFormErrorTitle("Scan Error");
       try {
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
@@ -139,7 +144,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           }
       } catch (error: any) {
           console.error("Error getting album info:", error);
-          setFormErrorTitle("Scan Error");
           setFormError(error.message || "An error occurred while scanning the album cover.");
       } finally {
           setIsProcessing(false);
@@ -168,6 +172,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     setIsProcessing(true);
     setProcessingStatus('Searching for cover art...');
     setFormError(null);
+    setFormErrorTitle("Search Error");
     try {
       const imageUrls = await findCoverArt(artist, title);
 
@@ -198,6 +203,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     
     if (isSubmittingWithArtSelection) {
       try {
+        setFormErrorTitle("Error Saving to Wantlist");
         setProcessingStatus('Saving item...');
         await onSave({
           id: itemToEdit?.id, artist, title, genre,
@@ -207,7 +213,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         });
       } catch (error: any) {
         console.error("Error saving after art selection:", error);
-        setFormErrorTitle("Error Saving to Wantlist");
         setFormError(error.message || "An error occurred while saving.");
       } finally {
         setIsProcessing(false);
@@ -222,6 +227,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
 
     if (isSubmittingWithArtSelection) {
       try {
+          setFormErrorTitle("Error Saving to Wantlist");
           setProcessingStatus('Saving item...');
           await onSave({
             id: itemToEdit?.id, artist, title, genre,
@@ -231,7 +237,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           });
       } catch (error: any) {
         console.error("Error saving after closing art selector:", error);
-        setFormErrorTitle("Error Saving to Wantlist");
         setFormError(error.message || "An error occurred while saving.");
       } finally {
         setIsProcessing(false);
@@ -292,7 +297,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         {formError && (
             <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg whitespace-pre-wrap shadow-sm">
                 <p className="font-bold mb-1 flex items-center gap-2">
-                    <XIcon className="h-4 w-4" />
+                    <XCircleIcon className="h-4 w-4" />
                     {formErrorTitle}
                 </p>
                 <p className="text-sm opacity-90">{formError}</p>

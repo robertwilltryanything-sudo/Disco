@@ -12,7 +12,6 @@ import { GlobeIcon } from './icons/GlobeIcon';
 import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
-// Added missing import for XCircleIcon
 import { XCircleIcon } from './icons/XCircleIcon';
 import { capitalizeWords } from '../utils';
 
@@ -99,7 +98,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
 
     setIsProcessing(true);
     setFormError(null);
-    setFormErrorTitle("Error Saving Album");
 
     try {
         const cdData: Omit<CD, 'id'> & { id?: string } = {
@@ -110,12 +108,14 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         };
 
         if (!cdData.cover_art_url && !cdToEdit) {
+            setFormErrorTitle("Search Error");
             setProcessingStatus('Searching for cover art...');
             const imageUrls = await findCoverArt(artist, title);
 
             if (imageUrls && imageUrls.length > 0) {
                 if (imageUrls.length === 1) {
                     cdData.cover_art_url = imageUrls[0];
+                    setFormErrorTitle("Error Saving Album");
                     setProcessingStatus('Saving album...');
                     await onSave(cdData);
                 } else {
@@ -125,16 +125,18 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                     return; 
                 }
             } else {
+                setFormErrorTitle("Error Saving Album");
                 setProcessingStatus('Saving album...');
                 await onSave(cdData);
             }
         } else {
+            setFormErrorTitle("Error Saving Album");
             setProcessingStatus(cdToEdit ? 'Saving changes...' : 'Saving album...');
             await onSave(cdData);
         }
     } catch (error: any) {
         console.error("Error during save process:", error);
-        setFormErrorTitle("Error Saving Album");
+        // The error title is set appropriately within the try blocks above
         const errorMsg = error.details || error.message || "An unexpected error occurred while saving.";
         setFormError(errorMsg);
     } finally {
@@ -220,6 +222,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     
     if (isSubmittingWithArtSelection) {
       try {
+        setFormErrorTitle("Error Saving Album");
         setProcessingStatus('Saving album...');
         await onSave({
           id: cdToEdit?.id, artist, title, genre,
@@ -229,7 +232,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         });
       } catch (error: any) {
         console.error("Error saving after art selection:", error);
-        setFormErrorTitle("Error Saving Album");
         setFormError(error.message || "An error occurred while saving.");
       } finally {
         setIsProcessing(false);
@@ -244,6 +246,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
 
     if (isSubmittingWithArtSelection) {
       try {
+          setFormErrorTitle("Error Saving Album");
           setProcessingStatus('Saving album...');
           await onSave({
             id: cdToEdit?.id, artist, title, genre,
@@ -252,7 +255,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             created_at: cdToEdit?.created_at,
           });
       } catch (error: any) {
-        setFormErrorTitle("Error Saving Album");
         setFormError(error.message || "An error occurred while saving.");
       } finally {
         setIsProcessing(false);
