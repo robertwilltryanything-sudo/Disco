@@ -49,14 +49,11 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
       <button
         onClick={isClickable ? onManualSync : undefined}
         disabled={!isClickable}
-        className={`p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-zinc-800 ${isClickable ? 'cursor-pointer hover:bg-zinc-100' : 'cursor-default'}`}
+        className={`p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-zinc-800 ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
         aria-label={finalTooltip}
       >
         <Icon className={`h-6 w-6 ${color}`} />
       </button>
-      <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-max max-w-xs bg-zinc-800 text-white text-sm rounded-md py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none z-20">
-        {finalTooltip}
-      </div>
     </div>
   );
 };

@@ -96,7 +96,7 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
         <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 transition-all z-20"
+            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-20"
             aria-label="Close scanner"
         >
             <XIcon className="h-6 w-6" />
@@ -130,14 +130,14 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
           <button
             onClick={handleCapture}
             disabled={!!error || isLoading}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CameraIcon className="h-6 w-6" />
             Capture
           </button>
           <button
             onClick={onClose}
-            className="w-full sm:w-auto py-3 px-6 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-800"
+            className="w-full sm:w-auto py-3 px-6 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-800"
           >
             Cancel
           </button>

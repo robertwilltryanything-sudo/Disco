@@ -34,7 +34,7 @@ const VersionCard: React.FC<{
         </p>
         <button
             onClick={onSelect}
-            className="mt-4 w-full bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+            className="mt-4 w-full bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
         >
             Keep This Version
         </button>
@@ -84,7 +84,7 @@ const SyncConflictModal: React.FC<SyncConflictModalProps> = ({ isOpen, onClose, 
         <div className="mt-6 flex justify-center">
           <button
             onClick={onClose}
-            className="py-2 px-4 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+            className="py-2 px-4 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
           >
             Cancel
           </button>

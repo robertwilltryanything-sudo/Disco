@@ -27,7 +27,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
 
   return (
     <tr
-      className="border-b border-zinc-200 last:border-b-0 hover:bg-zinc-50 cursor-pointer"
+      className="border-b border-zinc-200 last:border-b-0 cursor-pointer"
       onClick={handleRowClick}
       aria-label={`View details for ${item.title}`}
     >
@@ -48,7 +48,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
         <div className="flex items-center justify-end gap-2">
             <button
                 onClick={() => onMoveToCollection(item)}
-                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                className="p-2 text-green-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                 title="Found It!"
                 aria-label={`Found ${item.title} and adding to collection`}
             >
@@ -56,7 +56,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
             </button>
             <button 
                 onClick={() => onRequestEdit(item)}
-                className="p-2 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                className="p-2 text-zinc-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
                 title="Edit Item"
                 aria-label={`Edit ${item.title}`}
             >
@@ -64,7 +64,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
             </button>
             <button 
                 onClick={() => onDelete(item.id)}
-                className="p-2 text-zinc-600 hover:text-red-600 hover:bg-red-50 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="p-2 text-zinc-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 title="Delete from Wantlist"
                 aria-label={`Delete ${item.title} from wantlist`}
             >

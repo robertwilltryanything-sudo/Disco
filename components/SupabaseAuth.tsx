@@ -48,7 +48,7 @@ const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, syncStatus, e
                 <button
                     type="submit"
                     disabled={syncStatus === 'authenticating'}
-                    className="bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black disabled:opacity-50 flex items-center justify-center"
+                    className="bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 flex items-center justify-center"
                 >
                     {syncStatus === 'authenticating' ? <SpinnerIcon className="w-5 h-5" /> : 'Send Link'}
                 </button>
@@ -62,7 +62,7 @@ const SupabaseAuth: React.FC<SupabaseAuthProps> = ({ user, signIn, syncStatus, e
                 </p>
                 <button
                     onClick={onOpenSyncSettings}
-                    className="mt-3 w-full flex items-center justify-center gap-2 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                    className="mt-3 w-full flex items-center justify-center gap-2 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
                 >
                     <SettingsIcon className="w-5 h-5" />
                     Change Sync Settings

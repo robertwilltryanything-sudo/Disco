@@ -76,7 +76,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '', collection
                     </div>
                     <Link
                         to={`/cd/${latestCD.id}`}
-                        className="font-medium text-zinc-900 text-right text-sm hover:underline truncate"
+                        className="font-medium text-zinc-900 text-right text-sm truncate"
                         title={`${latestCD.title} by ${latestCD.artist}`}
                     >
                         {latestCD.title}
@@ -91,7 +91,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '', collection
                     </div>
                     <Link
                         to={`/?q=${encodeURIComponent(mostProlificArtist.name)}`}
-                        className="font-medium text-zinc-900 text-right text-sm hover:underline truncate"
+                        className="font-medium text-zinc-900 text-right text-sm truncate"
                         title={`${mostProlificArtist.name} (${mostProlificArtist.count} albums)`}
                     >
                         {mostProlificArtist.name}
@@ -101,7 +101,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '', collection
         </div>
         <Link 
             to="/stats"
-            className="mt-4 block w-full text-center bg-zinc-100 text-zinc-800 font-bold py-2 px-4 rounded-lg hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+            className="mt-4 block w-full text-center bg-zinc-100 text-zinc-800 font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
         >
             View Full Stats
         </Link>

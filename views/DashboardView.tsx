@@ -44,7 +44,7 @@ const BarChart: React.FC<{ data: ChartDataItem[]; title: string; onFilter: (valu
                 <div key={item.label} className="grid grid-cols-[80px_1fr_40px] items-center gap-3" aria-label={`${item.label}: ${item.value} albums`}>
                     <button 
                         onClick={() => onFilter(item.label.slice(0, 4))}
-                        className="text-sm font-medium text-zinc-600 text-right truncate hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 rounded-sm" 
+                        className="text-sm font-medium text-zinc-600 text-right truncate focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 rounded-sm" 
                         title={`Filter by ${item.label}`}
                     >
                         {item.label}
@@ -86,7 +86,7 @@ const TopItemsList: React.FC<{ data: ChartDataItem[]; title: string; onFilter: (
                         <li key={item.label} className="py-2 flex justify-between items-center">
                             <button 
                                 onClick={() => onFilter(item.label)}
-                                className="text-zinc-700 hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 rounded-sm" 
+                                className="text-zinc-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 rounded-sm" 
                                 title={`Filter by ${capitalizeWords(item.label)}`}
                             >
                                 {capitalizeWords(item.label)}
@@ -157,7 +157,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
     <div>
         <div className="mb-6 flex justify-between items-center">
             <h1 className="text-3xl font-bold text-zinc-800">Stats</h1>
-            <Link to="/" className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium">
+            <Link to="/" className="inline-flex items-center gap-2 text-zinc-600 font-medium">
                 <ArrowLeftIcon className="h-5 w-5" />
                 Back to Collection
             </Link>

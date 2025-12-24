@@ -223,7 +223,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
                 <p className="text-zinc-600 mt-2">Your {collectionMode} collection is empty. Add your first {albumType} to get started.</p>
                 <button
                   onClick={() => onRequestAdd()}
-                  className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+                  className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
                 >
                   <PlusIcon className="h-5 w-5" />
                   Add a {albumType}
@@ -245,7 +245,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
                 <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
                     <button 
                       onClick={() => setView('grid')} 
-                      className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500'}`}
                       aria-label="Grid View"
                       title="Grid View"
                     >
@@ -253,7 +253,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
                     </button>
                     <button 
                       onClick={() => setView('list')}
-                      className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500'}`}
                       aria-label="List View"
                       title="List View"
                     >

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { WantlistItem } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -23,7 +23,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
   };
 
   return (
-    <Link to={`/wantlist/${item.id}`} className="block group relative bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-400 transition-colors">
+    <Link to={`/wantlist/${item.id}`} className="block relative bg-white rounded-lg border border-zinc-200 overflow-hidden">
       <div className="relative">
         {item.cover_art_url ? (
           <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-full h-auto aspect-square object-cover" />
@@ -32,11 +32,11 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
             <MusicNoteIcon className="w-12 h-12 text-zinc-400" />
           </div>
         )}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
             <div className="flex items-center gap-2">
                 <button
                     onClick={(e) => handleActionClick(e, () => onMoveToCollection(item))}
-                    className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    className="p-2 rounded-full bg-green-500 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                     aria-label="Found it!"
                     title="Found It!"
                 >
@@ -44,7 +44,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
                 </button>
                 <button 
                     onClick={(e) => handleActionClick(e, () => onRequestEdit(item))}
-                    className="p-2 rounded-full bg-zinc-100 text-zinc-800 hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                    className="p-2 rounded-full bg-zinc-100 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
                     title="Edit Item"
                     aria-label={`Edit ${item.title}`}
                 >
@@ -52,7 +52,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
                 </button>
                 <button 
                     onClick={(e) => handleActionClick(e, () => onDelete(item.id))}
-                    className="p-2 rounded-full bg-zinc-100 text-zinc-800 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    className="p-2 rounded-full bg-zinc-100 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                     title="Delete from Wantlist"
                     aria-label={`Delete ${item.title} from wantlist`}
                 >

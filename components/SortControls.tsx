@@ -1,4 +1,3 @@
-
 import React, { Dispatch, SetStateAction } from 'react';
 import { SortKey, SortOrder } from '../types';
 import { ArrowUpIcon } from './icons/ArrowUpIcon';
@@ -38,7 +37,7 @@ const SortControls: React.FC<SortControlsProps> = ({ sortBy, setSortBy, sortOrde
       </select>
       <button
         onClick={toggleSortOrder}
-        className="p-2 rounded-lg bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+        className="p-2 rounded-lg bg-white border border-zinc-300 text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-800"
         aria-label={`Sort in ${sortOrder === 'asc' ? 'descending' : 'ascending'} order`}
       >
         {sortOrder === 'asc' ? <ArrowUpIcon className="h-5 w-5" /> : <ArrowDownIcon className="h-5 w-5" />}

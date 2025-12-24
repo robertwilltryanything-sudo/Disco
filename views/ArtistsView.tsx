@@ -27,7 +27,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
         <h1 className="text-3xl font-bold text-zinc-800">All Artists ({artists.length})</h1>
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium"
+          className="inline-flex items-center gap-2 text-zinc-600 font-medium"
         >
           <ArrowLeftIcon className="h-5 w-5" />
           Back to Collection
@@ -46,7 +46,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
                 <Link
                 key={artist}
                 to={`/artist/${encodeURIComponent(artist)}`}
-                className="block text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 p-2 rounded-lg truncate"
+                className="block text-zinc-700 p-2 rounded-lg truncate"
                 title={artist}
                 >
                 {artist}

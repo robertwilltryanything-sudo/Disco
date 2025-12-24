@@ -46,7 +46,7 @@ const MissingAlbumItem: React.FC<MissingAlbumItemProps> = ({ album, artistName, 
           <button
             type="button"
             onClick={onAddToWantlist}
-            className="flex items-center gap-1.5 text-sm font-semibold py-1.5 px-3 rounded-md bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            className="flex items-center gap-1.5 text-sm font-semibold py-1.5 px-3 rounded-md bg-white text-zinc-700 border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
             <PlusIcon className="w-4 h-4" />
             Add to Wantlist

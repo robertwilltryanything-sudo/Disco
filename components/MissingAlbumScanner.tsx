@@ -71,7 +71,7 @@ const MissingAlbumScanner: React.FC<MissingAlbumScannerProps> = ({ artistName, u
                 <button
                     type="button"
                     onClick={handleCompare}
-                    className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-6 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 mx-auto"
+                    className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 mx-auto"
                 >
                     <SparklesIcon className="w-5 h-5" />
                     Check for Missing Albums
@@ -97,7 +97,7 @@ const MissingAlbumScanner: React.FC<MissingAlbumScannerProps> = ({ artistName, u
                  <button
                     type="button"
                     onClick={handleCompare}
-                    className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black mx-auto"
+                    className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg mx-auto"
                  >
                      Try Again
                  </button>
@@ -148,7 +148,7 @@ const MissingAlbumScanner: React.FC<MissingAlbumScannerProps> = ({ artistName, u
                     <button
                         type="button"
                         onClick={handleCompare}
-                        className="text-sm font-semibold text-zinc-600 hover:text-zinc-900"
+                        className="text-sm font-semibold text-zinc-600"
                     >
                         Run Scan Again
                     </button>

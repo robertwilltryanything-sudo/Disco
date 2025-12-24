@@ -23,7 +23,7 @@ const ProviderOption: React.FC<{
         className={`p-4 border rounded-lg cursor-pointer ${
             isSelected 
                 ? 'border-zinc-800 bg-zinc-50 ring-2 ring-zinc-800' 
-                : 'border-zinc-300 bg-white hover:border-zinc-500'
+                : 'border-zinc-300 bg-white'
         }`}
         onClick={onSelect}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
@@ -127,7 +127,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                 <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black"
+                        className="bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg"
                     >
                         Done
                     </button>
@@ -135,7 +135,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
 
                 <button
                     onClick={onClose}
-                    className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                    className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500"
                     aria-label="Close settings"
                 >
                     <XIcon className="w-6 h-6" />

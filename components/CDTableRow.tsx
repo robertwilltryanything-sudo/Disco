@@ -27,7 +27,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
 
   return (
     <tr
-      className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border md:border-b border-zinc-200 rounded-md md:rounded-none shadow-sm md:shadow-none hover:bg-zinc-50 cursor-pointer"
+      className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border md:border-b border-zinc-200 rounded-md md:rounded-none shadow-sm md:shadow-none cursor-pointer"
       onClick={handleRowClick}
       aria-label={`View details for ${cd.title}`}
     >
@@ -56,7 +56,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
            <div className="ml-auto md:hidden">
              <button
                 onClick={handleEditClick}
-                className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200 rounded-full"
+                className="p-2 text-zinc-500 rounded-full"
                 aria-label={`Edit ${cd.title}`}
               >
                 <EditIcon className="w-5 h-5" />
@@ -73,7 +73,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
       <td className="hidden md:table-cell p-3 text-right align-middle">
         <button
           onClick={handleEditClick}
-          className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200 rounded-full"
+          className="p-2 text-zinc-500 rounded-full"
           aria-label={`Edit ${cd.title}`}
         >
           <EditIcon className="w-5 h-5" />

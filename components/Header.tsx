@@ -40,7 +40,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
           isActive
             ? 'text-zinc-900 border-zinc-900'
             : 'text-zinc-600 border-transparent'
-        } hover:text-zinc-900`
+        }`
       }
     >
       {children}
@@ -99,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({
             href="/"
             onClick={handleLogoClick}
             aria-label="Home, clear search filter" 
-            className="text-2xl font-black text-zinc-900 hover:text-black uppercase tracking-wider"
+            className="text-2xl font-black text-zinc-900 uppercase tracking-wider"
             style={{ fontFamily: "'Montserrat', sans-serif" }}
           >
               disco
@@ -108,7 +108,7 @@ const Header: React.FC<HeaderProps> = ({
               <span className="text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full mr-2">{collectionCount}</span>
               <button 
                 onClick={onToggleMode}
-                className="p-1 rounded-full hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900"
+                className="p-1 rounded-full text-zinc-600"
                 title={`Switch to ${collectionMode === 'cd' ? 'Vinyl' : 'CD'} mode`}
               >
                 {collectionMode === 'cd' ? <CompactDiscIcon className="w-6 h-6" /> : <VinylIcon className="w-6 h-6" />}
@@ -124,7 +124,7 @@ const Header: React.FC<HeaderProps> = ({
                 <li>
                     <button
                         onClick={onAddClick}
-                        className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold text-sm py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+                        className="flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold text-sm py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
                         aria-label={isOnWantlistPage ? `Add a new item to ${collectionMode} wantlist` : `Add a new ${collectionMode}`}
                     >
                         <PlusIcon className="h-5 w-5" />
@@ -149,17 +149,13 @@ const Header: React.FC<HeaderProps> = ({
             <div ref={menuRef} className="relative group">
                 <button
                 onClick={() => setIsMenuOpen(prev => !prev)}
-                className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                className="p-2 rounded-full text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-800"
                 aria-haspopup="true"
                 aria-expanded={isMenuOpen}
                 aria-label="Open menu"
                 >
                 <MenuIcon className="h-6 w-6" />
                 </button>
-
-                <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-max bg-zinc-800 text-white text-sm rounded-lg py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none z-20">
-                  Menu
-                </div>
 
                 {isMenuOpen && (
                 <div 
@@ -172,7 +168,7 @@ const Header: React.FC<HeaderProps> = ({
                             <p className="text-sm font-semibold text-zinc-800 px-2 truncate">{user.email}</p>
                             <button 
                                 onClick={handleSignOutClick}
-                                className="w-full flex items-center gap-3 p-2 mt-2 rounded-md text-zinc-700 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:bg-red-50"
+                                className="w-full flex items-center gap-3 p-2 mt-2 rounded-md text-zinc-700 focus:outline-none focus:bg-red-50"
                             >
                                 <LogoutIcon className="w-5 h-5" />
                                 <span className="font-medium">Sign Out</span>
@@ -184,7 +180,7 @@ const Header: React.FC<HeaderProps> = ({
                         <NavLink
                             to="/duplicates"
                             onClick={() => setIsMenuOpen(false)}
-                            className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-md ${isActive ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900'} focus:outline-none focus:bg-zinc-100`}
+                            className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-md ${isActive ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-700'} focus:outline-none focus:bg-zinc-100`}
                         >
                             <SparklesIcon className="w-5 h-5" />
                             <span className="font-medium">Find Duplicates</span>
@@ -195,7 +191,7 @@ const Header: React.FC<HeaderProps> = ({
                          <div className="space-y-2">
                             <button 
                                 onClick={onOpenSyncSettings}
-                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"
+                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none focus:bg-zinc-100"
                             >
                                 <SettingsIcon className="w-5 h-5" />
                                 <span className="font-medium">Sync & Backup Settings...</span>
@@ -207,14 +203,14 @@ const Header: React.FC<HeaderProps> = ({
                          <div className="space-y-2">
                             <button 
                                 onClick={onImport}
-                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"
+                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none focus:bg-zinc-100"
                             >
                                 <UploadIcon className="w-5 h-5" />
                                 <span className="font-medium">Import Collection...</span>
                             </button>
                              <button
                                 onClick={onExport}
-                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:bg-zinc-100"
+                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none focus:bg-zinc-100"
                             >
                                 <DownloadIcon className="w-5 h-5" />
                                 <span className="font-medium">Export Collection</span>

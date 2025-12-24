@@ -36,7 +36,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
     <Link 
         ref={ref} 
         to={`/cd/${cd.id}`} 
-        className="block group relative bg-white rounded-lg border border-zinc-200 overflow-hidden hover:border-zinc-400 transition-colors"
+        className="block relative bg-white rounded-lg border border-zinc-200 overflow-hidden"
     >
        <div className="relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center">
         {cd.cover_art_url ? (
@@ -57,7 +57,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
         <h3 className="font-bold text-sm text-zinc-900 truncate mb-0.5" title={cd.title}>{cd.title}</h3>
         <button
           onClick={handleArtistClick}
-          className="text-left w-full text-xs text-zinc-400 font-bold uppercase tracking-tight truncate hover:text-zinc-900"
+          className="text-left w-full text-xs text-zinc-400 font-bold uppercase tracking-tight truncate"
         >
           {cd.artist}
         </button>

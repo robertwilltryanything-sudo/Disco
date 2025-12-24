@@ -298,7 +298,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         <button
             type="button"
             onClick={onCancel}
-            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 transition-all z-10"
+            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-10"
             aria-label="Close form"
         >
             <XIcon className="h-6 w-6" />
@@ -331,7 +331,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                         <button
                             type="button"
                             onClick={handleRemoveArt}
-                            className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-40 text-white opacity-0 group-hover:opacity-100 hover:bg-opacity-60 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+                            className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-40 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                             aria-label="Remove cover art"
                         >
                             <TrashIcon className="w-5 h-5" />
@@ -361,7 +361,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                         <button
                             type="button"
                             onClick={handleSetArtFromUrl}
-                            className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
+                            className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
                         >
                             Set
                         </button>
@@ -371,7 +371,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                         <button
                             type="button"
                             onClick={handleFindArt}
-                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={!artist || !title}
                         >
                             <GlobeIcon className="h-4 w-4" />
@@ -382,7 +382,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                                 type="button"
                                 onClick={() => setIsScannerOpen(true)}
                                 disabled={isProcessing}
-                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
+                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
                             >
                                 <CameraIcon className="h-4 w-4" />
                                 Scan Album
@@ -449,7 +449,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                   <button
                     type="button"
                     onClick={handleAddTag}
-                    className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                    className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
                   >
                     Add
                   </button>
@@ -462,7 +462,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag)}
-                          className="ml-2 rounded-full hover:bg-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                          className="ml-2 rounded-full focus:outline-none focus:ring-1 focus:ring-zinc-500"
                           aria-label={`Remove tag ${tag}`}
                         >
                           <XIcon className="h-4 w-4" />
@@ -485,7 +485,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             <button
               type="submit"
               disabled={isProcessing}
-              className="flex-1 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 disabled:bg-zinc-500 disabled:cursor-wait"
+              className="flex-1 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 disabled:bg-zinc-500 disabled:cursor-wait"
             >
               {isProcessing ? (
                 <>
@@ -502,7 +502,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+              className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
             >
               Cancel
             </button>

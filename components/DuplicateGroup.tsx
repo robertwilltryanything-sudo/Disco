@@ -42,7 +42,7 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
             </div>
             <button 
                 onClick={() => onRequestDelete(cd)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="p-2 text-red-500 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 aria-label={`Delete ${cd.title}`}
             >
                 <TrashIcon className="w-5 h-5" />

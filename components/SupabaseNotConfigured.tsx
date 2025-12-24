@@ -22,7 +22,7 @@ const SupabaseNotConfigured: React.FC<SupabaseNotConfiguredProps> = ({ onOpenSyn
             <div className="mt-6">
                 <button
                     onClick={onOpenSyncSettings}
-                    className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+                    className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
                 >
                     <SettingsIcon className="w-5 h-5" />
                     Change Sync Settings

@@ -68,7 +68,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
     return (
         <Link
           to={`/cd/${cd.id}`}
-          className="block group bg-white rounded-lg border border-zinc-200 overflow-hidden flex flex-col md:flex-row"
+          className="block bg-white rounded-lg border border-zinc-200 overflow-hidden flex flex-col md:flex-row"
           aria-label={`View details for featured album: ${cd.title} by ${cd.artist}`}
         >
             <div className="md:w-64 flex-shrink-0">
@@ -85,7 +85,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                 <h3 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h3>
                 <button
                     onClick={handleArtistClick}
-                    className="text-left text-base text-zinc-500 hover:text-zinc-900"
+                    className="text-left text-base text-zinc-500"
                     title={cd.artist}
                 >
                     {cd.artist}

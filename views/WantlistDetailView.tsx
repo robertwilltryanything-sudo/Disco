@@ -97,7 +97,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
         <h2 className="text-2xl font-bold text-red-600">{albumType} Wantlist Item Not Found</h2>
         <Link
           to="/wantlist"
-          className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black"
+          className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg"
         >
           <ArrowLeftIcon className="h-5 w-5" />
           Back to Wantlist
@@ -113,7 +113,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
       <div className="mb-6">
         <Link
           to="/wantlist"
-          className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 font-medium"
+          className="inline-flex items-center gap-2 text-zinc-600 font-medium"
         >
           <ArrowLeftIcon className="h-5 w-5" />
           Back to {albumType} Wantlist
@@ -171,7 +171,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                   href={wikipediaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                  className="inline-flex items-center gap-2 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-800"
                   aria-label={`View Wikipedia page for ${item.title}`}
                 >
                   <GlobeIcon className="h-5 w-5" />
@@ -182,7 +182,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
               <div className="absolute top-4 right-4 flex items-center gap-2">
                 <button
                   onClick={handleMoveToCollection}
-                  className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  className="p-2 rounded-full bg-green-500 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                   aria-label="Found it! Add to collection."
                   title="Found It!"
                 >
@@ -190,14 +190,14 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                 </button>
                 <button
                   onClick={handleEdit}
-                  className="p-2 rounded-full bg-white/70 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                  className="p-2 rounded-full bg-white/70 text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-800"
                   aria-label={`Edit ${item.title}`}
                   >
                   <EditIcon className="w-6 h-6" />
                 </button>
                 <button
                   onClick={handleRequestDelete}
-                  className="p-2 rounded-full bg-white/70 text-red-50 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="p-2 rounded-full bg-white/70 text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
                   aria-label={`Delete ${item.title}`}
                   >
                   <TrashIcon className="w-6 h-6" />
@@ -209,7 +209,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           {previousItem ? (
             <Link
               to={`/wantlist/${previousItem.id}`}
-              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200"
+              className="inline-flex items-center gap-2 text-zinc-700 font-semibold py-2 px-3 rounded-lg"
             >
               <ArrowLeftIcon className="h-5 w-5" />
               <span>Previous</span>
@@ -224,7 +224,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           {nextItem ? (
             <Link
               to={`/wantlist/${nextItem.id}`}
-              className="inline-flex items-center gap-2 text-zinc-700 hover:text-zinc-900 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200"
+              className="inline-flex items-center gap-2 text-zinc-700 font-semibold py-2 px-3 rounded-lg"
             >
               <span>Next</span>
               <ArrowRightIcon className="h-5 w-5" />
