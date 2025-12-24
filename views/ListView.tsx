@@ -35,6 +35,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
 
   const [searchParams, setSearchParams] = useSearchParams();
   const urlSearchQuery = searchParams.get('q') || '';
+  const focusSearchIntent = searchParams.get('focus') === 'search';
 
   const [, startTransition] = useTransition();
 
@@ -46,6 +47,8 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
       } else {
         newParams.delete('q');
       }
+      // Remove focus intent after it's handled via URL change
+      newParams.delete('focus');
       setSearchParams(newParams, { replace: true });
     });
   }, [searchParams, setSearchParams]);
@@ -56,6 +59,21 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
   useEffect(() => {
     localStorage.setItem(VIEW_MODE_KEY, view);
   }, [view]);
+
+  // Handle Focus Intent from Bottom Nav
+  useEffect(() => {
+    if (focusSearchIntent) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const input = document.getElementById('search-input');
+        if (input) {
+            input.focus();
+        }
+        // Cleanup the param from URL
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('focus');
+        setSearchParams(newParams, { replace: true });
+    }
+  }, [focusSearchIntent, searchParams, setSearchParams]);
 
   useEffect(() => {
     const { editCdId, addAlbumForArtist } = location.state || {};

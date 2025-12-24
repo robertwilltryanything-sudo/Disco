@@ -65,7 +65,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ collectionMode, onToggleMod
         <NavItem to="/wantlist" label="Wantlist">
             <TagIcon className="w-6 h-6" />
         </NavItem>
-        <NavItem to="/" label="Search">
+        <NavItem to="/?focus=search" label="Search">
             <SearchIcon className="w-6 h-6" />
         </NavItem>
     </nav>

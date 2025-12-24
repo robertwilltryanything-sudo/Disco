@@ -32,6 +32,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ initialQuery, onSearch, albumType
         <SearchIcon className="h-5 w-5 text-zinc-400" />
       </div>
       <input
+        id="search-input"
         type="search"
         placeholder={`Search your ${albumType.toLowerCase()}... (Press Enter)`}
         value={value}
