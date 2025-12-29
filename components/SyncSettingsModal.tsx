@@ -17,13 +17,13 @@ const ProviderOption: React.FC<{
     description: string;
     isSelected: boolean;
     onSelect: () => void;
-    children: React.ReactNode;
+    children?: React.ReactNode;
 }> = ({ title, description, isSelected, onSelect, children }) => (
     <div 
         className={`p-4 border rounded-lg cursor-pointer ${
             isSelected 
                 ? 'border-zinc-800 bg-zinc-50 ring-2 ring-zinc-800' 
-                : 'border-zinc-300 bg-white'
+                : 'border-zinc-300 bg-white hover:border-zinc-400'
         }`}
         onClick={onSelect}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect()}
@@ -56,6 +56,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     }
 
     const isSupabaseConfigured = !!process.env.VITE_SUPABASE_URL && !!process.env.VITE_SUPABASE_ANON_KEY;
+    const isGoogleConfigured = !!process.env.VITE_GOOGLE_CLIENT_ID;
 
     return (
         <div
@@ -74,7 +75,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                     {isSupabaseConfigured && (
                         <ProviderOption
                             title="Supabase Real-time Sync"
-                            description="Sync your collection across devices in real-time with a secure user account."
+                            description="Sync across devices in real-time with a secure account."
                             isSelected={currentProvider === 'supabase'}
                             onSelect={() => onProviderChange('supabase')}
                         >
@@ -84,60 +85,50 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                                 <div 
                                     onClick={() => onSyncModeChange('realtime')}
                                     className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${syncMode === 'realtime' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-300'}`}
-                                    role="radio"
-                                    aria-checked={syncMode === 'realtime'}
-                                    tabIndex={0}
                                 >
                                     <div className={`w-4 h-4 rounded-full border-2 ${syncMode === 'realtime' ? 'bg-zinc-800 border-zinc-800' : 'border-zinc-400'}`} />
                                     <div>
                                         <p className="font-medium text-zinc-800">Real-time</p>
-                                        <p className="text-xs text-zinc-600">Changes sync automatically and instantly.</p>
+                                        <p className="text-xs text-zinc-600">Changes sync instantly.</p>
                                     </div>
                                 </div>
-                                    <div 
+                                <div 
                                     onClick={() => onSyncModeChange('manual')}
                                     className={`p-3 border rounded-lg cursor-pointer flex items-center gap-3 ${syncMode === 'manual' ? 'border-zinc-500 bg-zinc-100' : 'border-zinc-300'}`}
-                                    role="radio"
-                                    aria-checked={syncMode === 'manual'}
-                                    tabIndex={0}
                                 >
                                     <div className={`w-4 h-4 rounded-full border-2 ${syncMode === 'manual' ? 'bg-zinc-800 border-zinc-800' : 'border-zinc-400'}`} />
-                                        <div>
+                                    <div>
                                         <p className="font-medium text-zinc-800">On Demand</p>
-                                        <p className="text-xs text-zinc-600">Click the sync button to get new updates.</p>
+                                        <p className="text-xs text-zinc-600">Sync when you click the button.</p>
                                     </div>
                                 </div>
                             </div>
                         )}
                         </ProviderOption>
                     )}
+
+                    {isGoogleConfigured && (
+                        <ProviderOption
+                            title="Google Drive Sync"
+                            description="Save your collection to a private file in your own Google Drive."
+                            isSelected={currentProvider === 'google_drive'}
+                            onSelect={() => onProviderChange('google_drive')}
+                        />
+                    )}
                     
                      <ProviderOption
                         title="No Sync (Local Only)"
-                        description="Your collection will only be saved on this device in this browser. Use manual import/export for backups."
+                        description="Only saved in this browser. Use manual export for backups."
                         isSelected={currentProvider === 'none'}
                         onSelect={() => onProviderChange('none')}
-                    >
-                         {currentProvider === 'none' && (
-                           <p className="text-sm text-center text-zinc-500 p-2 mt-2">Sync is disabled.</p>
-                         )}
-                    </ProviderOption>
+                    />
                 </div>
                 
                 <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end">
-                    <button
-                        onClick={onClose}
-                        className="bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg"
-                    >
-                        Done
-                    </button>
+                    <button onClick={onClose} className="bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg">Done</button>
                 </div>
 
-                <button
-                    onClick={onClose}
-                    className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500"
-                    aria-label="Close settings"
-                >
+                <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500" aria-label="Close settings">
                     <XIcon className="w-6 h-6" />
                 </button>
             </div>

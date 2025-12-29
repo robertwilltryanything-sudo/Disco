@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Dispatch, SetStateAction, useCallback } from 'react';
 import { createClient, SupabaseClient, Session, User, RealtimeChannel } from '@supabase/supabase-js';
 import { CD, SyncStatus, SyncMode, WantlistItem, SyncProvider } from '../types';
+import { areStringsSimilar } from '../utils';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
@@ -15,25 +16,17 @@ if (SUPABASE_URL && SUPABASE_URL !== 'undefined' && SUPABASE_ANON_KEY && SUPABAS
     }
 }
 
-/**
- * Migration helper to ensure data from Supabase (which might have legacy camelCase 
- * column names) is updated to the standardized snake_case format used by the app.
- */
 const normalizeIncomingData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
     const normalized = { ...item };
     if (item.coverArtUrl && !item.cover_art_url) normalized.cover_art_url = item.coverArtUrl;
     if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
-    // Clean up old keys to avoid confusion
     delete normalized.coverArtUrl;
     delete normalized.recordLabel;
     return normalized as T;
 };
 
-/**
- * Ensures only valid, snake_case columns are sent to Postgres.
- */
-const cleanPayload = (data: any, _isInsert = false) => {
+const cleanPayload = (data: any) => {
     const validKeys = [
         'artist', 'title', 'genre', 'year', 'cover_art_url', 
         'notes', 'version', 'record_label', 'tags', 'format'
@@ -43,7 +36,6 @@ const cleanPayload = (data: any, _isInsert = false) => {
     if (source.recordLabel && !source.record_label) source.record_label = source.recordLabel;
     if (source.coverArtUrl && !source.cover_art_url) source.cover_art_url = source.coverArtUrl;
 
-    // Always allow ID if provided so client-side IDs stay consistent with the server
     if (source.id) {
         validKeys.push('id');
     }
@@ -159,12 +151,27 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             if (syncMode === 'realtime') {
                 const collectionChannel = supabase.channel('collection-changes')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'collection' }, (payload) => {
+                        const newCd = normalizeIncomingData<CD>(payload.new);
                         if (payload.eventType === 'INSERT') {
-                            const newCd = normalizeIncomingData<CD>(payload.new);
-                            setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
+                            setCollection(prev => {
+                                // Double Entry Prevention: 
+                                // Check if we already have an item with this ID OR a matching Artist/Title 
+                                // that was added optimistically (no userId or matching temporary ID).
+                                const exists = prev.some(cd => 
+                                    cd.id === newCd.id || 
+                                    (areStringsSimilar(cd.artist, newCd.artist) && areStringsSimilar(cd.title, newCd.title))
+                                );
+                                if (exists) {
+                                    // Replace the optimistic one with the official one from the DB
+                                    return prev.map(cd => 
+                                        (cd.id === newCd.id || (areStringsSimilar(cd.artist, newCd.artist) && areStringsSimilar(cd.title, newCd.title))) 
+                                        ? newCd : cd
+                                    );
+                                }
+                                return [newCd, ...prev];
+                            });
                         } else if (payload.eventType === 'UPDATE') {
-                            const updatedCd = normalizeIncomingData<CD>(payload.new);
-                            setCollection(prev => prev.map(cd => cd.id === updatedCd.id ? updatedCd : cd));
+                            setCollection(prev => prev.map(cd => cd.id === newCd.id ? newCd : cd));
                         } else if (payload.eventType === 'DELETE') {
                             setCollection(prev => prev.filter(cd => cd.id !== payload.old.id));
                         }
@@ -174,12 +181,23 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
                 
                 const wantlistChannel = supabase.channel('wantlist-changes')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'wantlist' }, (payload) => {
+                         const newItem = normalizeIncomingData<WantlistItem>(payload.new);
                          if (payload.eventType === 'INSERT') {
-                            const newItem = normalizeIncomingData<WantlistItem>(payload.new);
-                            setWantlist(prev => [newItem, ...prev.filter(item => item.id !== newItem.id)]);
+                            setWantlist(prev => {
+                                const exists = prev.some(i => 
+                                    i.id === newItem.id || 
+                                    (areStringsSimilar(i.artist, newItem.artist) && areStringsSimilar(i.title, newItem.title))
+                                );
+                                if (exists) {
+                                    return prev.map(i => 
+                                        (i.id === newItem.id || (areStringsSimilar(i.artist, newItem.artist) && areStringsSimilar(i.title, newItem.title)))
+                                        ? newItem : i
+                                    );
+                                }
+                                return [newItem, ...prev];
+                            });
                         } else if (payload.eventType === 'UPDATE') {
-                            const updatedItem = normalizeIncomingData<WantlistItem>(payload.new);
-                            setWantlist(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+                            setWantlist(prev => prev.map(item => item.id === newItem.id ? newItem : item));
                         } else if (payload.eventType === 'DELETE') {
                             setWantlist(prev => prev.filter(item => item.id !== payload.old.id));
                         }
@@ -221,7 +239,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         if (!supabase || !user) throw new Error("Authentication required.");
         setSyncStatus('saving');
         setError(null);
-        const payload = { ...cleanPayload(cdData, true), user_id: user.id };
+        const payload = { ...cleanPayload(cdData), user_id: user.id };
         const { data, error: dbError } = await supabase.from('collection').insert(payload).select();
         if (dbError) {
             setError(dbError.message);
@@ -229,17 +247,15 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             throw new Error(dbError.message);
         }
         const newCd = normalizeIncomingData<CD>(data?.[0]) ?? null;
-        if (newCd) {
-            setSyncStatus('synced');
-        }
+        if (newCd) setSyncStatus('synced');
         return newCd;
     };
 
     const updateCD = async (cd: CD) => {
-        if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
+        if (!supabase || !user) throw new Error("Database connection required.");
         setSyncStatus('saving');
         setError(null);
-        const payload = cleanPayload(cd, false);
+        const payload = cleanPayload(cd);
         const { data, error: dbError } = await supabase.from('collection').update(payload).eq('id', cd.id).select();
         if (dbError) {
             setError(dbError.message);
@@ -247,15 +263,12 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             throw new Error(dbError.message);
         }
         const updatedCd = normalizeIncomingData<CD>(data?.[0]) ?? null;
-        if (updatedCd) {
-            setSyncStatus('synced');
-            return true;
-        }
-        return false;
+        if (updatedCd) setSyncStatus('synced');
+        return !!updatedCd;
     };
 
     const deleteCD = async (id: string) => {
-        if (!supabase) throw new Error("Database not connected.");
+        if (!supabase) throw new Error("Database connection required.");
         setSyncStatus('saving');
         setError(null);
         const { error: dbError } = await supabase.from('collection').delete().eq('id', id);
@@ -264,16 +277,15 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSyncStatus('error');
             throw dbError;
         }
-        setCollection(prev => prev.filter(item => item.id !== id));
         setSyncStatus('synced');
         return true;
     };
     
     const addWantlistItem = async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
-        if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
+        if (!supabase || !user) throw new Error("Authentication required.");
         setSyncStatus('saving');
         setError(null);
-        const payload = { ...cleanPayload(itemData, true), user_id: user.id };
+        const payload = { ...cleanPayload(itemData), user_id: user.id };
         const { data, error: dbError } = await supabase.from('wantlist').insert(payload).select();
         if (dbError) {
             setError(dbError.message);
@@ -281,17 +293,15 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             throw new Error(dbError.message);
         }
         const newItem = normalizeIncomingData<WantlistItem>(data?.[0]) ?? null;
-        if (newItem) {
-            setSyncStatus('synced');
-        }
+        if (newItem) setSyncStatus('synced');
         return newItem;
     };
 
     const updateWantlistItem = async (item: WantlistItem) => {
-        if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
+        if (!supabase || !user) throw new Error("Database connection required.");
         setSyncStatus('saving');
         setError(null);
-        const payload = cleanPayload(item, false);
+        const payload = cleanPayload(item);
         const { data, error: dbError } = await supabase.from('wantlist').update(payload).eq('id', item.id).select();
         if (dbError) {
             setError(dbError.message);
@@ -299,15 +309,12 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             throw new Error(dbError.message);
         }
         const updatedItem = normalizeIncomingData<WantlistItem>(data?.[0]) ?? null;
-        if (updatedItem) {
-            setSyncStatus('synced');
-            return true;
-        }
-        return false;
+        if (updatedItem) setSyncStatus('synced');
+        return !!updatedItem;
     };
 
     const deleteWantlistItem = async (id: string) => {
-        if (!supabase) throw new Error("Database not connected.");
+        if (!supabase) throw new Error("Database connection required.");
         setSyncStatus('saving');
         setError(null);
         const { error: dbError } = await supabase.from('wantlist').delete().eq('id', id);
@@ -316,7 +323,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
             setSyncStatus('error');
             throw dbError;
         }
-        setWantlist(prev => prev.filter(item => item.id !== id));
         setSyncStatus('synced');
         return true;
     };

@@ -24,16 +24,11 @@ import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import SupabaseAuth from './components/SupabaseAuth';
 
-/**
- * Migration helper to ensure old data with camelCase keys is updated
- * to the standardized snake_case format used by the database.
- */
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
     const normalized = { ...item };
     if (item.coverArtUrl && !item.cover_art_url) normalized.cover_art_url = item.coverArtUrl;
     if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
-    // Clean up old keys to avoid payload bloat
     delete normalized.coverArtUrl;
     delete normalized.recordLabel;
     return normalized as T;
@@ -57,26 +52,6 @@ const INITIAL_COLLECTION: CD[] = [
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
     notes: 'Classic.',
     created_at: new Date(Date.now() - 10000).toISOString(),
-    format: 'cd'
-  },
-  {
-    id: '2',
-    artist: 'U2',
-    title: 'The Joshua Tree',
-    genre: 'Rock',
-    year: 1987,
-    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/6/6b/The_Joshua_Tree.png',
-    created_at: new Date(Date.now() - 20000).toISOString(),
-    format: 'cd'
-  },
-  {
-    id: '5',
-    artist: 'Jean-Michel Jarre',
-    title: 'Oxygène',
-    genre: 'Electronic',
-    year: 1976,
-    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/2/25/Oxygene_album_cover.jpg',
-    created_at: new Date(Date.now() - 50000).toISOString(),
     format: 'cd'
   }
 ];
@@ -128,6 +103,32 @@ const AppContent: React.FC = () => {
   const supabaseSync = useSupabaseSync(setCollection, setWantlist, syncMode, syncProvider);
   const googleDriveSync = useGoogleDrive();
 
+  // Load from Google Drive on startup or provider change
+  useEffect(() => {
+      if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn) {
+          googleDriveSync.loadData().then(data => {
+              if (data) {
+                  setCollection(data.collection);
+                  setWantlist(data.wantlist);
+              }
+          });
+      }
+  }, [syncProvider, googleDriveSync.isSignedIn]);
+
+  // Sync to Google Drive when collection/wantlist changes
+  useEffect(() => {
+      if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn) {
+          const timeout = setTimeout(() => {
+              googleDriveSync.saveData({
+                  collection,
+                  wantlist,
+                  lastUpdated: new Date().toISOString()
+              });
+          }, 1000); // Debounce save
+          return () => clearTimeout(timeout);
+      }
+  }, [collection, wantlist, syncProvider, googleDriveSync.isSignedIn]);
+
   const handleToggleMode = useCallback(() => {
     setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');
   }, []);
@@ -159,7 +160,14 @@ const AppContent: React.FC = () => {
 
   const handleManualSync = useCallback(async () => {
     if (syncProvider === 'supabase') await supabaseSync.manualSync();
-  }, [syncProvider, supabaseSync]);
+    if (syncProvider === 'google_drive') {
+        const data = await googleDriveSync.loadData();
+        if (data) {
+            setCollection(data.collection);
+            setWantlist(data.wantlist);
+        }
+    }
+  }, [syncProvider, supabaseSync, googleDriveSync]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
@@ -175,7 +183,7 @@ const AppContent: React.FC = () => {
             const importedData = JSON.parse(content);
             const rawItems = Array.isArray(importedData) ? importedData : (importedData.collection || []);
             setPendingImport(rawItems.map(normalizeData<CD>));
-          } catch (error) { alert("Failed to parse the file."); }
+          } catch (error) { alert("Failed to parse file."); }
         };
         reader.readAsText(file);
       }
@@ -196,15 +204,15 @@ const AppContent: React.FC = () => {
   }, [pendingImport, collection]);
 
   const handleExport = useCallback(() => {
-    const dataStr = JSON.stringify({ collection: currentCollection, lastUpdated: new Date().toISOString() }, null, 2);
+    const dataStr = JSON.stringify({ collection, wantlist, lastUpdated: new Date().toISOString() }, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `disco_${collectionMode}_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `disco_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [currentCollection, collectionMode]);
+  }, [collection, wantlist]);
 
   const fetchAndApplyAlbumDetails = async (cd: CD) => {
     if (!cd.genre || !cd.year) {
@@ -242,24 +250,17 @@ const AppContent: React.FC = () => {
     }
 
     const originalCollection = [...collection];
-    let finalCd: CD;
+    const tempId = cdData.id || generateId();
+    let finalCd: CD = { 
+        ...cdData, 
+        id: tempId, 
+        created_at: cdData.created_at || new Date().toISOString(),
+        format: cdData.format || collectionMode 
+    } as CD;
 
-    // Optimistic Update
     if (cdData.id) {
-        finalCd = { 
-            ...cdData, 
-            id: cdData.id, 
-            created_at: cdData.created_at || new Date().toISOString(),
-            format: cdData.format || collectionMode 
-        } as CD;
         setCollection(prev => prev.map(c => c.id === cdData.id ? finalCd : c));
     } else {
-        finalCd = { 
-            ...cdData, 
-            id: generateId(), 
-            created_at: new Date().toISOString(),
-            format: collectionMode 
-        } as CD;
         setCollection(prev => [finalCd, ...prev]);
     }
 
@@ -268,84 +269,81 @@ const AppContent: React.FC = () => {
     setPrefillData(null);
     setDuplicateCheckResult(null);
 
-    // Sync to Cloud
     try {
-        if (syncProvider === 'supabase') {
-            if (!supabaseSync.user) { throw new Error("You must be signed in to save changes to the cloud."); }
+        if (syncProvider === 'supabase' && supabaseSync.user) {
             if (cdData.id) {
-                const success = await supabaseSync.updateCD(finalCd);
-                if (!success) throw new Error(supabaseSync.error || "Update failed");
+                await supabaseSync.updateCD(finalCd);
             } else {
                 const savedFromServer = await supabaseSync.addCD(finalCd);
-                if (!savedFromServer) throw new Error(supabaseSync.error || "Save failed");
-                // Replace optimistic item with server item to ensure synced metadata
-                setCollection(prev => prev.map(c => c.id === finalCd.id ? savedFromServer : c));
-                finalCd = savedFromServer;
+                if (savedFromServer) {
+                    setCollection(prev => {
+                        const filtered = prev.filter(c => 
+                            c.id !== tempId && 
+                            !(areStringsSimilar(c.artist, savedFromServer.artist) && areStringsSimilar(c.title, savedFromServer.title))
+                        );
+                        return [savedFromServer, ...filtered];
+                    });
+                    finalCd = savedFromServer;
+                }
             }
         }
         fetchAndApplyAlbumDetails(finalCd);
         if (cdData.id) navigate(`/cd/${finalCd.id}`);
     } catch (e: any) {
         console.error("Sync error:", e);
-        setCollection(originalCollection); // Revert on failure
+        setCollection(originalCollection);
         throw e;
     }
-  }, [collection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult, navigate]);
+  }, [collection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult, navigate, currentCollection]);
 
   const handleDeleteCD = useCallback(async (id: string) => {
     const originalCollection = [...collection];
     setCollection(prev => prev.filter(cd => cd.id !== id));
-    
-    if (syncProvider === 'supabase') {
+    if (syncProvider === 'supabase' && supabaseSync.user) {
         try {
-            if (!supabaseSync.user) return;
             await supabaseSync.deleteCD(id);
         } catch (e) {
-            console.error("Delete sync error:", e);
             setCollection(originalCollection);
-            alert("Could not delete from cloud. Reverting local change.");
+            alert("Could not delete from cloud.");
         }
     }
   }, [collection, syncProvider, supabaseSync]);
   
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
       const originalWantlist = [...wantlist];
-      let finalItem: WantlistItem;
+      const tempId = itemData.id || generateId();
+      let finalItem: WantlistItem = { 
+          ...itemData, 
+          id: tempId, 
+          created_at: itemData.created_at || new Date().toISOString(),
+          format: itemData.format || collectionMode 
+      } as WantlistItem;
 
-      // Optimistic Update
       if (itemData.id) {
-          finalItem = { 
-              ...itemData, 
-              id: itemData.id, 
-              created_at: itemData.created_at || new Date().toISOString(),
-              format: itemData.format || collectionMode 
-          } as WantlistItem;
           setWantlist(prev => prev.map(i => i.id === itemData.id ? finalItem : i));
       } else {
-          finalItem = { 
-              ...itemData, 
-              id: generateId(), 
-              created_at: new Date().toISOString(),
-              format: collectionMode 
-          } as WantlistItem;
           setWantlist(prev => [finalItem, ...prev]);
       }
 
       setIsAddWantlistModalOpen(false);
       setWantlistItemToEdit(null);
 
-      // Sync to Cloud
       try {
-          if (syncProvider === 'supabase') {
-              if (!supabaseSync.user) { throw new Error("Please sign in to update your wantlist."); }
+          if (syncProvider === 'supabase' && supabaseSync.user) {
               if (itemData.id) {
-                  const success = await supabaseSync.updateWantlistItem(finalItem);
-                  if (!success) throw new Error(supabaseSync.error || "Update failed");
+                  await supabaseSync.updateWantlistItem(finalItem);
               } else {
                   const savedFromServer = await supabaseSync.addWantlistItem(finalItem);
-                  if (!savedFromServer) throw new Error(supabaseSync.error || "Save failed");
-                  setWantlist(prev => prev.map(i => i.id === finalItem.id ? savedFromServer : i));
-                  finalItem = savedFromServer;
+                  if (savedFromServer) {
+                      setWantlist(prev => {
+                          const filtered = prev.filter(i => 
+                              i.id !== tempId && 
+                              !(areStringsSimilar(i.artist, savedFromServer.artist) && areStringsSimilar(i.title, savedFromServer.title))
+                          );
+                          return [savedFromServer, ...filtered];
+                      });
+                      finalItem = savedFromServer;
+                  }
               }
           }
           if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
@@ -359,15 +357,11 @@ const AppContent: React.FC = () => {
   const handleDeleteWantlistItem = useCallback(async (id: string) => {
     const originalWantlist = [...wantlist];
     setWantlist(prev => prev.filter(item => item.id !== id));
-
-    if (syncProvider === 'supabase') {
+    if (syncProvider === 'supabase' && supabaseSync.user) {
         try {
-            if (!supabaseSync.user) return;
             await supabaseSync.deleteWantlistItem(id);
         } catch (e) {
-            console.error("Delete wantlist sync error:", e);
             setWantlist(originalWantlist);
-            alert("Could not delete from cloud. Reverting local change.");
         }
     }
   }, [wantlist, syncProvider, supabaseSync]);
@@ -381,6 +375,7 @@ const AppContent: React.FC = () => {
   const location = useLocation();
   const isOnWantlistPage = location.pathname.startsWith('/wantlist');
   const isSupabaseSelectedButLoggedOut = syncProvider === 'supabase' && !supabaseSync.user;
+  const isGoogleDriveSelectedButLoggedOut = syncProvider === 'google_drive' && !googleDriveSync.isSignedIn;
 
   return (
     <div className="min-h-screen pb-20 md:pb-0 font-sans selection:bg-zinc-200">
@@ -399,7 +394,7 @@ const AppContent: React.FC = () => {
         syncMode={syncMode}
         onManualSync={handleManualSync}
         user={supabaseSync.user}
-        onSignOut={supabaseSync.signOut}
+        onSignOut={syncProvider === 'supabase' ? supabaseSync.signOut : googleDriveSync.signOut}
         isOnWantlistPage={isOnWantlistPage}
         collectionMode={collectionMode}
         onToggleMode={handleToggleMode}
@@ -407,14 +402,15 @@ const AppContent: React.FC = () => {
       <main className="container mx-auto p-4 md:p-6">
         {isSupabaseSelectedButLoggedOut && (
             <div className="mb-8">
-                <SupabaseAuth 
-                    user={null} 
-                    signIn={supabaseSync.signIn} 
-                    syncStatus={supabaseSync.syncStatus} 
-                    error={supabaseSync.error} 
-                    onOpenSyncSettings={() => setIsSyncSettingsOpen(true)} 
-                />
+                <SupabaseAuth user={null} signIn={supabaseSync.signIn} syncStatus={supabaseSync.syncStatus} error={supabaseSync.error} onOpenSyncSettings={() => setIsSyncSettingsOpen(true)} />
             </div>
+        )}
+        {isGoogleDriveSelectedButLoggedOut && (
+             <div className="p-6 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center">
+                <h2 className="text-xl font-bold text-zinc-800">Google Drive Sync</h2>
+                <p className="text-zinc-600 mt-2">Sign in to your Google account to keep your collection and wantlist synced across devices.</p>
+                <button onClick={googleDriveSync.signIn} className="mt-4 bg-zinc-900 text-white font-bold py-2 px-6 rounded-lg">Sign in with Google</button>
+             </div>
         )}
 
         <Routes>
