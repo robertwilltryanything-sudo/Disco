@@ -33,7 +33,7 @@ const normalizeIncomingData = <T extends CD | WantlistItem>(item: any): T => {
 /**
  * Ensures only valid, snake_case columns are sent to Postgres.
  */
-const cleanPayload = (data: any, isInsert = false) => {
+const cleanPayload = (data: any, _isInsert = false) => {
     const validKeys = [
         'artist', 'title', 'genre', 'year', 'cover_art_url', 
         'notes', 'version', 'record_label', 'tags', 'format'
@@ -43,7 +43,8 @@ const cleanPayload = (data: any, isInsert = false) => {
     if (source.recordLabel && !source.record_label) source.record_label = source.recordLabel;
     if (source.coverArtUrl && !source.cover_art_url) source.cover_art_url = source.coverArtUrl;
 
-    if (!isInsert && source.id) {
+    // Always allow ID if provided so client-side IDs stay consistent with the server
+    if (source.id) {
         validKeys.push('id');
     }
 
@@ -216,7 +217,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         setSyncStatus('idle');
     };
 
-    const addCD = async (cdData: Omit<CD, 'id'>) => {
+    const addCD = async (cdData: Omit<CD, 'id'> & { id?: string }) => {
         if (!supabase || !user) throw new Error("Authentication required.");
         setSyncStatus('saving');
         setError(null);
@@ -229,7 +230,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         const newCd = normalizeIncomingData<CD>(data?.[0]) ?? null;
         if (newCd) {
-            setCollection(prev => [newCd, ...prev.filter(cd => cd.id !== newCd.id)]);
             setSyncStatus('synced');
         }
         return newCd;
@@ -248,7 +248,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         const updatedCd = normalizeIncomingData<CD>(data?.[0]) ?? null;
         if (updatedCd) {
-            setCollection(prev => prev.map(item => item.id === updatedCd.id ? updatedCd : item));
             setSyncStatus('synced');
             return true;
         }
@@ -270,7 +269,7 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         return true;
     };
     
-    const addWantlistItem = async (itemData: Omit<WantlistItem, 'id' | 'created_at'>) => {
+    const addWantlistItem = async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
         if (!supabase || !user) throw new Error("Database not connected or user not signed in.");
         setSyncStatus('saving');
         setError(null);
@@ -283,7 +282,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         const newItem = normalizeIncomingData<WantlistItem>(data?.[0]) ?? null;
         if (newItem) {
-            setWantlist(prev => [newItem, ...prev.filter(i => i.id !== newItem.id)]);
             setSyncStatus('synced');
         }
         return newItem;
@@ -302,7 +300,6 @@ export const useSupabaseSync = (setCollection: Dispatch<SetStateAction<CD[]>>, s
         }
         const updatedItem = normalizeIncomingData<WantlistItem>(data?.[0]) ?? null;
         if (updatedItem) {
-            setWantlist(prev => prev.map(i => i.id === updatedItem.id ? updatedItem : i));
             setSyncStatus('synced');
             return true;
         }

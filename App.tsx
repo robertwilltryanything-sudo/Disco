@@ -276,9 +276,9 @@ const AppContent: React.FC = () => {
                 const success = await supabaseSync.updateCD(finalCd);
                 if (!success) throw new Error(supabaseSync.error || "Update failed");
             } else {
-                const savedFromServer = await supabaseSync.addCD(cdData);
+                const savedFromServer = await supabaseSync.addCD(finalCd);
                 if (!savedFromServer) throw new Error(supabaseSync.error || "Save failed");
-                // Replace optimistic ID with server ID
+                // Replace optimistic item with server item to ensure synced metadata
                 setCollection(prev => prev.map(c => c.id === finalCd.id ? savedFromServer : c));
                 finalCd = savedFromServer;
             }
@@ -342,7 +342,7 @@ const AppContent: React.FC = () => {
                   const success = await supabaseSync.updateWantlistItem(finalItem);
                   if (!success) throw new Error(supabaseSync.error || "Update failed");
               } else {
-                  const savedFromServer = await supabaseSync.addWantlistItem(itemData);
+                  const savedFromServer = await supabaseSync.addWantlistItem(finalItem);
                   if (!savedFromServer) throw new Error(supabaseSync.error || "Save failed");
                   setWantlist(prev => prev.map(i => i.id === finalItem.id ? savedFromServer : i));
                   finalItem = savedFromServer;
