@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD, WantlistItem } from '../types';
 
-export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled';
+export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
 
 export interface UnifiedStorage {
     collection: CD[];
@@ -34,12 +34,14 @@ export const useGoogleDrive = () => {
     if (!GOOGLE_CLIENT_ID) {
       setSyncStatus('disabled');
       setError('Google Sync is not configured. Add VITE_GOOGLE_CLIENT_ID to your environment.');
-      setIsApiReady(true);
+      setIsApiReady(false); // Can't be ready without an ID
     }
   }, []);
 
   const clearAuthState = useCallback(() => {
-    window.gapi?.client?.setToken(null);
+    if (window.gapi?.client) {
+      window.gapi.client.setToken(null);
+    }
     setIsSignedIn(false);
     fileIdRef.current = null;
     setSyncStatus('idle');
@@ -47,10 +49,12 @@ export const useGoogleDrive = () => {
   }, []);
 
   const handleApiError = useCallback((e: any, context: string) => {
-    const errorDetails = e?.result?.error;
+    const errorDetails = e?.result?.error || e?.error;
     const errorCode = errorDetails?.code;
-    const errorReason = errorDetails?.errors?.[0]?.reason;
+    const errorReason = errorDetails?.errors?.[0]?.reason || errorDetails;
     
+    console.error(`Google Drive API Error (${context}):`, e);
+
     if (errorReason === 'accessNotConfigured') {
         setError("Drive API is not enabled in your Google Cloud Project.");
         setSyncStatus('error');
@@ -66,14 +70,21 @@ export const useGoogleDrive = () => {
     setSyncStatus('error');
   }, [clearAuthState]);
 
-  const handleGapiLoad = useCallback(async () => {
-    window.gapi.load('client', async () => {
+  const initializeGapiClient = useCallback(async () => {
+    try {
         await window.gapi.client.init({
             discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
         });
         setGapiLoaded(true);
-    });
+    } catch (e) {
+        console.error("GAPI Init Error:", e);
+        setError("Failed to initialize Google API client.");
+    }
   }, []);
+
+  const handleGapiLoad = useCallback(() => {
+    window.gapi.load('client', initializeGapiClient);
+  }, [initializeGapiClient]);
 
   const handleGisLoad = useCallback(() => {
     if (!GOOGLE_CLIENT_ID) {
@@ -81,56 +92,68 @@ export const useGoogleDrive = () => {
       return;
     }
       
-    window.tokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: GOOGLE_DRIVE_SCOPES,
-        callback: async (tokenResponse: any) => {
-            if (tokenResponse && tokenResponse.access_token) {
-                window.gapi.client.setToken(tokenResponse);
-                setIsSignedIn(true);
-            } else if (tokenResponse.error) {
-                setError(`Sign-In Error: ${tokenResponse.error}`);
-            }
-        },
-    });
-    setGisLoaded(true);
+    try {
+        window.tokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: GOOGLE_DRIVE_SCOPES,
+            callback: async (tokenResponse: any) => {
+                if (tokenResponse && tokenResponse.access_token) {
+                    window.gapi.client.setToken(tokenResponse);
+                    setIsSignedIn(true);
+                    setSyncStatus('idle');
+                } else if (tokenResponse.error) {
+                    setError(`Sign-In Error: ${tokenResponse.error}`);
+                    setSyncStatus('error');
+                }
+            },
+        });
+        setGisLoaded(true);
+    } catch (e) {
+        console.error("GIS Init Error:", e);
+        setError("Failed to initialize Google Sign-In components.");
+    }
   }, []);
 
   useEffect(() => {
-    if (gapiLoaded && gisLoaded) setIsApiReady(true);
+    if (gapiLoaded && gisLoaded) {
+        setIsApiReady(true);
+    }
   }, [gapiLoaded, gisLoaded]);
 
   useEffect(() => {
-    if (scriptsInitiatedRef.current) return;
-    if (GOOGLE_CLIENT_ID) {
-      scriptsInitiatedRef.current = true;
-      (window as any).onGapiLoad = handleGapiLoad;
-      (window as any).onGisLoad = handleGisLoad;
-      const gapiScript = document.createElement('script');
-      gapiScript.src = 'https://apis.google.com/js/api.js?onload=onGapiLoad';
-      gapiScript.async = true;
-      gapiScript.defer = true;
-      document.body.appendChild(gapiScript);
-      const gisScript = document.createElement('script');
-      gisScript.src = 'https://accounts.google.com/gsi/client?onload=onGisLoad';
-      gisScript.async = true;
-      gisScript.defer = true;
-      document.body.appendChild(gisScript);
-    }
+    if (scriptsInitiatedRef.current || !GOOGLE_CLIENT_ID) return;
+    
+    scriptsInitiatedRef.current = true;
+    
+    // Load GAPI
+    const gapiScript = document.createElement('script');
+    gapiScript.src = 'https://apis.google.com/js/api.js';
+    gapiScript.async = true;
+    gapiScript.defer = true;
+    gapiScript.onload = handleGapiLoad;
+    document.body.appendChild(gapiScript);
+
+    // Load GIS
+    const gisScript = document.createElement('script');
+    gisScript.src = 'https://accounts.google.com/gsi/client';
+    gisScript.async = true;
+    gisScript.defer = true;
+    gisScript.onload = handleGisLoad;
+    document.body.appendChild(gisScript);
+    
   }, [handleGapiLoad, handleGisLoad]);
 
   const signIn = useCallback(() => {
-      if (!isApiReady || !GOOGLE_CLIENT_ID) return;
-      if (window.tokenClient) window.tokenClient.requestAccessToken();
+      if (!isApiReady || !GOOGLE_CLIENT_ID) {
+          console.warn("Sign-in attempted before Google APIs were ready.");
+          return;
+      }
+      setSyncStatus('authenticating');
+      if (window.tokenClient) {
+          window.tokenClient.requestAccessToken({ prompt: 'consent' });
+      }
   }, [isApiReady]);
 
-  useEffect(() => {
-    if (isApiReady && !isSignedIn && !initialSignInAttempted.current && GOOGLE_CLIENT_ID) {
-      initialSignInAttempted.current = true;
-      signIn();
-    }
-  }, [isApiReady, isSignedIn, signIn]);
-  
   const getOrCreateFileId = useCallback(async () => {
     if (fileIdRef.current) return fileIdRef.current;
     setError(null);
@@ -171,7 +194,6 @@ export const useGoogleDrive = () => {
         setSyncStatus('synced');
         if (content && content.length > 0) {
             const data = JSON.parse(content);
-            // Migration: handle if the file only contains an array (legacy format)
             if (Array.isArray(data)) {
                 return { collection: data, wantlist: [], lastUpdated: new Date().toISOString() };
             }
@@ -203,7 +225,7 @@ export const useGoogleDrive = () => {
   }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
   const signOut = useCallback(() => {
-    const token = window.gapi.client.getToken();
+    const token = window.gapi?.client?.getToken();
     if (token !== null && window.google?.accounts?.oauth2) {
       window.google.accounts.oauth2.revoke(token.access_token, () => clearAuthState());
     } else {

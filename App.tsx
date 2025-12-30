@@ -23,6 +23,7 @@ import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import SupabaseAuth from './components/SupabaseAuth';
+import { SpinnerIcon } from './components/icons/SpinnerIcon';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
@@ -124,7 +125,7 @@ const AppContent: React.FC = () => {
                   wantlist,
                   lastUpdated: new Date().toISOString()
               });
-          }, 1000); // Debounce save
+          }, 2000); // Debounce save
           return () => clearTimeout(timeout);
       }
   }, [collection, wantlist, syncProvider, googleDriveSync.isSignedIn]);
@@ -137,7 +138,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem('disco_mode', collectionMode);
   }, [collectionMode]);
 
-  // Persistent Local Cache: Always save to localStorage so the app loads instantly on next visit
+  // Persistent Local Cache
   useEffect(() => {
     localStorage.setItem('disco_collection', JSON.stringify(collection));
     localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
@@ -405,10 +406,36 @@ const AppContent: React.FC = () => {
             </div>
         )}
         {isGoogleDriveSelectedButLoggedOut && (
-             <div className="p-6 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-sm">
-                <h2 className="text-xl font-bold text-zinc-800">Google Drive Sync</h2>
+             <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
+                <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
                 <p className="text-zinc-600 mt-2">Sign in to your Google account to keep your collection and wantlist synced across devices.</p>
-                <button onClick={googleDriveSync.signIn} className="mt-4 bg-zinc-900 text-white font-bold py-2 px-6 rounded-lg hover:bg-black transition-colors">Sign in with Google</button>
+                
+                {googleDriveSync.error && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                        {googleDriveSync.error}
+                    </div>
+                )}
+
+                {!googleDriveSync.isApiReady ? (
+                    <div className="mt-6 flex flex-col items-center gap-2">
+                        <SpinnerIcon className="w-8 h-8 text-zinc-400" />
+                        <p className="text-xs text-zinc-400">Initializing Google Identity Services...</p>
+                        <button disabled className="w-full bg-zinc-200 text-zinc-400 font-bold py-3 px-6 rounded-lg cursor-not-allowed">Initializing...</button>
+                    </div>
+                ) : (
+                    <button 
+                        onClick={googleDriveSync.signIn} 
+                        disabled={googleDriveSync.syncStatus === 'authenticating'}
+                        className="mt-6 w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {googleDriveSync.syncStatus === 'authenticating' && <SpinnerIcon className="w-5 h-5" />}
+                        {googleDriveSync.syncStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
+                    </button>
+                )}
+                
+                <p className="mt-4 text-[10px] text-zinc-400">
+                    DiscO only requests access to files it creates in your Drive.
+                </p>
              </div>
         )}
 
