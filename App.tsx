@@ -137,12 +137,11 @@ const AppContent: React.FC = () => {
     localStorage.setItem('disco_mode', collectionMode);
   }, [collectionMode]);
 
+  // Persistent Local Cache: Always save to localStorage so the app loads instantly on next visit
   useEffect(() => {
-    if (syncProvider === 'none' || (syncProvider === 'supabase' && syncMode === 'manual')) {
-        localStorage.setItem('disco_collection', JSON.stringify(collection));
-        localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
-    }
-  }, [collection, wantlist, syncProvider, syncMode]);
+    localStorage.setItem('disco_collection', JSON.stringify(collection));
+    localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
+  }, [collection, wantlist]);
   
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
   useEffect(() => { localStorage.setItem('disco_sync_mode', syncMode); }, [syncMode]);
@@ -406,10 +405,10 @@ const AppContent: React.FC = () => {
             </div>
         )}
         {isGoogleDriveSelectedButLoggedOut && (
-             <div className="p-6 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center">
+             <div className="p-6 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-sm">
                 <h2 className="text-xl font-bold text-zinc-800">Google Drive Sync</h2>
                 <p className="text-zinc-600 mt-2">Sign in to your Google account to keep your collection and wantlist synced across devices.</p>
-                <button onClick={googleDriveSync.signIn} className="mt-4 bg-zinc-900 text-white font-bold py-2 px-6 rounded-lg">Sign in with Google</button>
+                <button onClick={googleDriveSync.signIn} className="mt-4 bg-zinc-900 text-white font-bold py-2 px-6 rounded-lg hover:bg-black transition-colors">Sign in with Google</button>
              </div>
         )}
 
