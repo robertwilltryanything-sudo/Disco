@@ -143,9 +143,9 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                                     {showDriveHelp && (
                                         <div className="mt-3 p-3 bg-white border border-zinc-200 rounded text-[11px] text-zinc-700 space-y-3 leading-tight shadow-inner">
                                             <p><span className="font-bold">1. Select Project:</span> Ensure your project name is in the top-left dropdown.</p>
-                                            <p><span className="font-bold">2. Consent Screen:</span> Go to "APIs & Services" > "OAuth consent screen". Click <span className="italic">Edit App</span> or scroll down.</p>
+                                            <p><span className="font-bold">2. Consent Screen:</span> Go to "APIs & Services" &gt; "OAuth consent screen". Click <span className="italic">Edit App</span> or scroll down.</p>
                                             <p><span className="font-bold">3. Test Users:</span> Scroll to the <span className="font-bold text-zinc-900">Test users</span> section (usually at the bottom) and click <span className="font-bold text-blue-600">+ ADD USERS</span>. Enter your email address.</p>
-                                            <p><span className="font-bold">4. Credentials:</span> In the sidebar, click <span className="font-bold">Credentials</span> > <span className="font-bold">+ Create</span> > <span className="italic">OAuth client ID</span> > <span className="italic">Web Application</span>.</p>
+                                            <p><span className="font-bold">4. Credentials:</span> In the sidebar, click <span className="font-bold">Credentials</span> &gt; <span className="font-bold">+ Create</span> &gt; <span className="italic">OAuth client ID</span> &gt; <span className="italic">Web Application</span>.</p>
                                             <p className="text-orange-600 text-[10px] mt-2 italic font-medium">Tip: If you are in a wizard, "Test Users" is Step 3 of the 4-step process.</p>
                                         </div>
                                     )}
