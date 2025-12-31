@@ -57,18 +57,17 @@ export const useGoogleDrive = () => {
     console.error(`Google Drive API Error (${context}):`, e);
 
     if (errorReason === 'accessNotConfigured' || errorMessage.includes('not enabled')) {
-        setError("Drive API is not enabled. Go to Google Cloud Console > Library and search for 'Google Drive API' to enable it.");
+        setError("Drive API is not enabled. In Google Console, go to 'Enabled APIs & Services', search for 'Google Drive API' and click Enable.");
         setSyncStatus('error');
         return;
     }
 
     if (errorCode === 403) {
-      setError("Access Denied (403). Make sure you have enabled the 'Google Drive API' in your Google Cloud project AND added your email as a 'Test User' in the OAuth Consent Screen.");
+      setError("Access Denied (403). Check that you have: 1. Enabled 'Google Drive API'. 2. Added your email as a 'Test User'. 3. Configured the correct 'Authorized JavaScript Origins'.");
       setSyncStatus('error');
-      // We don't necessarily clear auth on 403 as the user is "signed in" but just lacks permission
     } else if (errorCode === 401) {
       clearAuthState();
-      setError("Session expired or unauthorized. Please sign in again.");
+      setError("Unauthorized (401). Please check your Client ID and try signing in again. Ensure the current URL is in your 'Authorized JavaScript Origins'.");
       setSyncStatus('error');
     } else {
       setError(`Could not ${context}. ${errorMessage || 'Try again later.'}`);
@@ -165,7 +164,7 @@ export const useGoogleDrive = () => {
     try {
         const response = await window.gapi.client.drive.files.list({
             q: `name='${COLLECTION_FILENAME}' and trashed=false`,
-            spaces: 'appDataFolder',
+            spaces: 'drive',
             fields: 'files(id, name)',
         });
         if (response.result.files.length > 0) {
@@ -175,7 +174,6 @@ export const useGoogleDrive = () => {
                 resource: {
                     name: COLLECTION_FILENAME,
                     mimeType: 'application/json',
-                    parents: ['appDataFolder'],
                 },
                 fields: 'id',
             });

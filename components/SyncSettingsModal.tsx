@@ -142,12 +142,11 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
 
                                     {showDriveHelp && (
                                         <div className="mt-3 p-3 bg-white border border-zinc-200 rounded text-[11px] text-zinc-700 space-y-3 leading-tight shadow-inner">
-                                            <p><span className="font-bold text-red-600">0. Enable API:</span> In the console sidebar, go to "Enabled APIs & Services" > "+ ENABLE APIS AND SERVICES". Search for <span className="font-bold italic">Google Drive API</span> and click <span className="font-bold">Enable</span>. <span className="italic">(Crucial step!)</span></p>
-                                            <p><span className="font-bold">1. Select Project:</span> Ensure your project name is in the top-left dropdown.</p>
-                                            <p><span className="font-bold">2. Consent Screen:</span> Go to "APIs & Services" &gt; "OAuth consent screen". Click <span className="italic">Edit App</span> or scroll down.</p>
-                                            <p><span className="font-bold">3. Test Users:</span> Scroll to the <span className="font-bold text-zinc-900">Test users</span> section and click <span className="font-bold text-blue-600">+ ADD USERS</span>. Enter your email address.</p>
-                                            <p><span className="font-bold">4. Credentials:</span> In the sidebar, click <span className="font-bold">Credentials</span> &gt; <span className="font-bold">+ Create</span> &gt; <span className="italic">OAuth client ID</span> &gt; <span className="italic">Web Application</span>.</p>
-                                            <p className="text-orange-600 text-[10px] mt-2 italic font-medium">Tip: If you get a 403 error, double-check Step 0 and Step 3!</p>
+                                            <p><span className="font-bold text-red-600">0. Enable API:</span> In the sidebar, go to "APIs & Services" > "Library". Search for <span className="font-bold">Google Drive API</span> and click <span className="font-bold">Enable</span>.</p>
+                                            <p><span className="font-bold">1. Origins (IMPORTANT):</span> In your OAuth Client settings, add <span className="italic font-medium">{window.location.origin}</span> to the <span className="font-bold">Authorized JavaScript origins</span> list.</p>
+                                            <p><span className="font-bold">2. Test Users:</span> In "OAuth consent screen", scroll to <span className="font-bold">Test users</span> and add your email. Your app must be in "Testing" mode or "Published".</p>
+                                            <p><span className="font-bold">3. Credentials:</span> In the sidebar, click <span className="font-bold">Credentials</span> &gt; <span className="font-bold">+ Create</span> &gt; <span className="italic">OAuth client ID</span> &gt; <span className="italic">Web Application</span>.</p>
+                                            <p className="text-orange-600 text-[10px] mt-2 italic font-medium">Tip: If you get a 401 error, it's almost always a missing "Origin" (Step 1) or wrong Client ID.</p>
                                         </div>
                                     )}
                                 </div>
