@@ -34,7 +34,7 @@ export const useGoogleDrive = () => {
     if (!GOOGLE_CLIENT_ID) {
       setSyncStatus('disabled');
       setError('Google Sync is not configured. Add VITE_GOOGLE_CLIENT_ID to your environment.');
-      setIsApiReady(false); // Can't be ready without an ID
+      setIsApiReady(false);
     }
   }, []);
 
@@ -51,23 +51,29 @@ export const useGoogleDrive = () => {
   const handleApiError = useCallback((e: any, context: string) => {
     const errorDetails = e?.result?.error || e?.error;
     const errorCode = errorDetails?.code;
-    const errorReason = errorDetails?.errors?.[0]?.reason || errorDetails;
+    const errorMessage = errorDetails?.message || '';
+    const errorReason = errorDetails?.errors?.[0]?.reason || '';
     
     console.error(`Google Drive API Error (${context}):`, e);
 
-    if (errorReason === 'accessNotConfigured') {
-        setError("Drive API is not enabled in your Google Cloud Project.");
+    if (errorReason === 'accessNotConfigured' || errorMessage.includes('not enabled')) {
+        setError("Drive API is not enabled. Go to Google Cloud Console > Library and search for 'Google Drive API' to enable it.");
         setSyncStatus('error');
         return;
     }
 
-    if (errorCode === 401 || errorCode === 403) {
+    if (errorCode === 403) {
+      setError("Access Denied (403). Make sure you have enabled the 'Google Drive API' in your Google Cloud project AND added your email as a 'Test User' in the OAuth Consent Screen.");
+      setSyncStatus('error');
+      // We don't necessarily clear auth on 403 as the user is "signed in" but just lacks permission
+    } else if (errorCode === 401) {
       clearAuthState();
-      setError("Authentication issue. Please sign in again.");
+      setError("Session expired or unauthorized. Please sign in again.");
+      setSyncStatus('error');
     } else {
-      setError(`Could not ${context}. ${errorDetails?.message || 'Try again later.'}`);
+      setError(`Could not ${context}. ${errorMessage || 'Try again later.'}`);
+      setSyncStatus('error');
     }
-    setSyncStatus('error');
   }, [clearAuthState]);
 
   const initializeGapiClient = useCallback(async () => {
@@ -101,8 +107,9 @@ export const useGoogleDrive = () => {
                     window.gapi.client.setToken(tokenResponse);
                     setIsSignedIn(true);
                     setSyncStatus('idle');
+                    setError(null);
                 } else if (tokenResponse.error) {
-                    setError(`Sign-In Error: ${tokenResponse.error}`);
+                    setError(`Sign-In Error: ${tokenResponse.error_description || tokenResponse.error}`);
                     setSyncStatus('error');
                 }
             },
@@ -125,7 +132,6 @@ export const useGoogleDrive = () => {
     
     scriptsInitiatedRef.current = true;
     
-    // Load GAPI
     const gapiScript = document.createElement('script');
     gapiScript.src = 'https://apis.google.com/js/api.js';
     gapiScript.async = true;
@@ -133,7 +139,6 @@ export const useGoogleDrive = () => {
     gapiScript.onload = handleGapiLoad;
     document.body.appendChild(gapiScript);
 
-    // Load GIS
     const gisScript = document.createElement('script');
     gisScript.src = 'https://accounts.google.com/gsi/client';
     gisScript.async = true;
