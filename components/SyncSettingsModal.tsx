@@ -142,7 +142,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
 
                                     {showDriveHelp && (
                                         <div className="mt-3 p-3 bg-white border border-zinc-200 rounded text-[11px] text-zinc-700 space-y-3 leading-tight shadow-inner">
-                                            <p><span className="font-bold text-red-600">0. Enable API:</span> In the sidebar, go to "APIs & Services" > "Library". Search for <span className="font-bold">Google Drive API</span> and click <span className="font-bold">Enable</span>.</p>
+                                            <p><span className="font-bold text-red-600">0. Enable API:</span> In the sidebar, go to "APIs & Services" &gt; "Library". Search for <span className="font-bold">Google Drive API</span> and click <span className="font-bold">Enable</span>.</p>
                                             <p><span className="font-bold">1. Origins (IMPORTANT):</span> In your OAuth Client settings, add <span className="italic font-medium">{window.location.origin}</span> to the <span className="font-bold">Authorized JavaScript origins</span> list.</p>
                                             <p><span className="font-bold">2. Test Users:</span> In "OAuth consent screen", scroll to <span className="font-bold">Test users</span> and add your email. Your app must be in "Testing" mode or "Published".</p>
                                             <p><span className="font-bold">3. Credentials:</span> In the sidebar, click <span className="font-bold">Credentials</span> &gt; <span className="font-bold">+ Create</span> &gt; <span className="italic">OAuth client ID</span> &gt; <span className="italic">Web Application</span>.</p>
