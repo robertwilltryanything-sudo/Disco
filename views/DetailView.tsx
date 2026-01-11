@@ -11,7 +11,6 @@ import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { getAlbumDetails } from '../gemini';
-import { capitalizeWords } from '../utils';
 
 interface DetailViewProps {
   cds: CD[];
