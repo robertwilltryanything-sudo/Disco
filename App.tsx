@@ -112,21 +112,29 @@ const AppContent: React.FC = () => {
               }
           });
       }
-  }, [syncProvider, googleDriveSync.isSignedIn, googleDriveSync]);
+  }, [syncProvider, googleDriveSync.isSignedIn]);
 
-  // Sync to Google Drive when collection/wantlist changes
+  // Handle explicit manual save to Google Drive to avoid flickering
+  const handleSaveToDrive = useCallback(async () => {
+    if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn) {
+        await googleDriveSync.saveData({
+            collection,
+            wantlist,
+            lastUpdated: new Date().toISOString()
+        });
+    }
+  }, [collection, wantlist, syncProvider, googleDriveSync]);
+
+  // Periodic auto-save (much longer interval) or save on unmount/significant changes
+  // to prevent flickering while still maintaining some safety.
   useEffect(() => {
       if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn) {
           const timeout = setTimeout(() => {
-              googleDriveSync.saveData({
-                  collection,
-                  wantlist,
-                  lastUpdated: new Date().toISOString()
-              });
-          }, 2000); // Debounce save
+              handleSaveToDrive();
+          }, 30000); // 30 seconds interval instead of 2 seconds
           return () => clearTimeout(timeout);
       }
-  }, [collection, wantlist, syncProvider, googleDriveSync.isSignedIn, googleDriveSync]);
+  }, [collection.length, wantlist.length, syncProvider, googleDriveSync.isSignedIn, handleSaveToDrive]);
 
   const handleToggleMode = useCallback(() => {
     setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');
@@ -150,13 +158,16 @@ const AppContent: React.FC = () => {
 
   const handleManualSync = useCallback(async () => {
     if (syncProvider === 'google_drive') {
+        // First save current state to Drive
+        await handleSaveToDrive();
+        // Then reload to ensure consistency
         const data = await googleDriveSync.loadData();
         if (data) {
             setCollection(data.collection);
             setWantlist(data.wantlist);
         }
     }
-  }, [syncProvider, googleDriveSync]);
+  }, [syncProvider, googleDriveSync, handleSaveToDrive]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');

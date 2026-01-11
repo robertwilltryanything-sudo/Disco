@@ -27,7 +27,7 @@ export const useGoogleDrive = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fileIdRef = useRef<string | null>(null);
-  const initialSignInAttempted = useRef(false);
+  const lastSyncHashRef = useRef<string | null>(null);
   const scriptsInitiatedRef = useRef(false);
   
   useEffect(() => {
@@ -44,8 +44,8 @@ export const useGoogleDrive = () => {
     }
     setIsSignedIn(false);
     fileIdRef.current = null;
+    lastSyncHashRef.current = null;
     setSyncStatus('idle');
-    initialSignInAttempted.current = false; 
   }, []);
 
   const handleApiError = useCallback((e: any, context: string) => {
@@ -67,7 +67,7 @@ export const useGoogleDrive = () => {
       setSyncStatus('error');
     } else if (errorCode === 401) {
       clearAuthState();
-      setError("Unauthorized (401). Please check your Client ID and try signing in again. Ensure the current URL is in your 'Authorized JavaScript Origins'.");
+      setError("Unauthorized (401). Please check your Client ID and try signing in again.");
       setSyncStatus('error');
     } else {
       setError(`Could not ${context}. ${errorMessage || 'Try again later.'}`);
@@ -187,7 +187,7 @@ export const useGoogleDrive = () => {
   }, [handleApiError]);
   
   const loadData = useCallback(async (): Promise<UnifiedStorage | null> => {
-    if (!isSignedIn) return null;
+    if (!isSignedIn || syncStatus === 'loading') return null;
     setSyncStatus('loading');
     setError(null);
     try {
@@ -196,6 +196,7 @@ export const useGoogleDrive = () => {
         const content = response.body;
         setSyncStatus('synced');
         if (content && content.length > 0) {
+            lastSyncHashRef.current = JSON.stringify(content);
             const data = JSON.parse(content);
             if (Array.isArray(data)) {
                 return { collection: data, wantlist: [], lastUpdated: new Date().toISOString() };
@@ -207,10 +208,18 @@ export const useGoogleDrive = () => {
         handleApiError(e, 'load data');
         return null;
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus]);
 
   const saveData = useCallback(async (data: UnifiedStorage) => {
-    if (!isSignedIn) return;
+    if (!isSignedIn || syncStatus === 'saving') return;
+    
+    // Quick check to see if content actually changed to avoid flickering/wasteful writes
+    const currentHash = JSON.stringify(data);
+    if (currentHash === lastSyncHashRef.current) {
+        setSyncStatus('synced');
+        return;
+    }
+
     setSyncStatus('saving');
     setError(null);
     try {
@@ -219,13 +228,14 @@ export const useGoogleDrive = () => {
             path: `/upload/drive/v3/files/${id}`,
             method: 'PATCH',
             params: { uploadType: 'media' },
-            body: JSON.stringify(data, null, 2),
+            body: currentHash,
         });
+        lastSyncHashRef.current = currentHash;
         setSyncStatus('synced');
     } catch (e: any) {
         handleApiError(e, 'save data');
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus]);
 
   const signOut = useCallback(() => {
     const token = window.gapi?.client?.getToken();
