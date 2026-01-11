@@ -194,15 +194,17 @@ export const useGoogleDrive = () => {
         const id = await getOrCreateFileId();
         const response = await window.gapi.client.drive.files.get({ fileId: id, alt: 'media' });
         const content = response.body;
-        setSyncStatus('synced');
+        
         if (content && content.length > 0) {
-            lastSyncHashRef.current = JSON.stringify(content);
+            lastSyncHashRef.current = JSON.stringify(JSON.parse(content));
+            setSyncStatus('synced');
             const data = JSON.parse(content);
             if (Array.isArray(data)) {
                 return { collection: data, wantlist: [], lastUpdated: new Date().toISOString() };
             }
             return data;
         }
+        setSyncStatus('synced');
         return { collection: [], wantlist: [], lastUpdated: new Date().toISOString() };
     } catch (e: any) {
         handleApiError(e, 'load data');
@@ -213,7 +215,6 @@ export const useGoogleDrive = () => {
   const saveData = useCallback(async (data: UnifiedStorage) => {
     if (!isSignedIn || syncStatus === 'saving') return;
     
-    // Quick check to see if content actually changed to avoid flickering/wasteful writes
     const currentHash = JSON.stringify(data);
     if (currentHash === lastSyncHashRef.current) {
         setSyncStatus('synced');
