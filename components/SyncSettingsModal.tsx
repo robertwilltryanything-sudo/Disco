@@ -54,8 +54,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     onClose,
     currentProvider,
     onProviderChange,
-    syncMode,
-    onSyncModeChange,
 }) => {
     const [showDriveHelp, setShowDriveHelp] = useState(false);
 
@@ -63,7 +61,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
         return null;
     }
 
-    const isSupabaseConfigured = !!process.env.VITE_SUPABASE_URL && !!process.env.VITE_SUPABASE_ANON_KEY;
     const isGoogleConfigured = !!process.env.VITE_GOOGLE_CLIENT_ID;
 
     return (
@@ -80,37 +77,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                 </div>
                 
                 <div className="p-6 space-y-4">
-                    {/* Supabase Option */}
-                    <ProviderOption
-                        title="Supabase Real-time Sync"
-                        description={isSupabaseConfigured ? "Sync across devices in real-time with a secure account." : "Setup required: VITE_SUPABASE_URL and KEY must be provided by the admin."}
-                        isSelected={currentProvider === 'supabase'}
-                        isDisabled={!isSupabaseConfigured}
-                        onSelect={() => onProviderChange('supabase')}
-                    >
-                        {currentProvider === 'supabase' && isSupabaseConfigured && (
-                            <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
-                                <h4 className="text-sm font-bold text-zinc-800 uppercase tracking-wider">Sync Mode</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); onSyncModeChange('realtime'); }}
-                                        className={`p-3 border rounded-lg text-left transition-colors ${syncMode === 'realtime' ? 'border-zinc-800 bg-zinc-100' : 'border-zinc-300 bg-white hover:border-zinc-400'}`}
-                                    >
-                                        <p className="font-bold text-sm">Real-time</p>
-                                        <p className="text-[10px] text-zinc-500">Instant updates</p>
-                                    </button>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); onSyncModeChange('manual'); }}
-                                        className={`p-3 border rounded-lg text-left transition-colors ${syncMode === 'manual' ? 'border-zinc-800 bg-zinc-100' : 'border-zinc-300 bg-white hover:border-zinc-400'}`}
-                                    >
-                                        <p className="font-bold text-sm">Manual</p>
-                                        <p className="text-[10px] text-zinc-500">Sync on click</p>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </ProviderOption>
-
                     {/* Google Drive Option */}
                     <ProviderOption
                         title="Google Drive Sync"

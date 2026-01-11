@@ -1,3 +1,4 @@
+
 export interface CD {
   id: string;
   artist: string;
@@ -40,7 +41,8 @@ export type SortOrder = 'asc' | 'desc';
 
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
 
-export type SyncProvider = 'supabase' | 'google_drive' | 'none';
+// Added 'supabase' to SyncProvider to allow comparison in useSupabaseSync hook
+export type SyncProvider = 'google_drive' | 'supabase' | 'none';
 
 export type SyncMode = 'realtime' | 'manual';
 

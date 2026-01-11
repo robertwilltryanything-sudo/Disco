@@ -6,7 +6,6 @@ import StatusIndicator from './StatusIndicator';
 import { UploadIcon } from './icons/UploadIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
-import { User } from '@supabase/supabase-js';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { PlusIcon } from './icons/PlusIcon';
@@ -24,7 +23,6 @@ interface HeaderProps {
     syncProvider: SyncProvider;
     syncMode: SyncMode;
     onManualSync: () => void;
-    user: User | null;
     onSignOut: () => void;
     isOnWantlistPage?: boolean;
     collectionMode: CollectionMode;
@@ -59,7 +57,6 @@ const Header: React.FC<HeaderProps> = ({
     syncProvider,
     syncMode,
     onManualSync,
-    user,
     onSignOut,
     isOnWantlistPage,
     collectionMode,
@@ -162,16 +159,14 @@ const Header: React.FC<HeaderProps> = ({
                     className="absolute top-full right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-zinc-200 p-2 z-30 divide-y divide-zinc-200"
                     role="menu"
                 >
-                    {user?.email && syncProvider === 'supabase' && (
+                    {syncProvider === 'google_drive' && (
                          <div className="p-2">
-                            <p className="text-sm font-medium text-zinc-500 px-2">Signed in as</p>
-                            <p className="text-sm font-semibold text-zinc-800 px-2 truncate">{user.email}</p>
                             <button 
                                 onClick={handleSignOutClick}
-                                className="w-full flex items-center gap-3 p-2 mt-2 rounded-md text-zinc-700 focus:outline-none focus:bg-red-50"
+                                className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none focus:bg-red-50"
                             >
                                 <LogoutIcon className="w-5 h-5" />
-                                <span className="font-medium">Sign Out</span>
+                                <span className="font-medium">Sign Out from Drive</span>
                             </button>
                         </div>
                     )}

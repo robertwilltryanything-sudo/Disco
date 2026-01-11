@@ -1,20 +1,11 @@
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD, DiscographyAlbum } from './types';
 
-// The API key is sourced from the environment variables via Vite's `define` config.
+// The API key is obtained exclusively from the environment variable process.env.API_KEY.
 const apiKey = process.env.API_KEY;
-let ai: GoogleGenAI | null = null;
-
-if (apiKey) {
-  try {
-    ai = new GoogleGenAI({ apiKey });
-  } catch (error) {
-    console.error("Failed to initialize GoogleGenAI, AI features will be disabled.", error);
-    ai = null;
-  }
-} else {
-  console.warn("API_KEY is not configured. AI-powered features will be disabled.");
-}
+// Initialize with a named parameter as per guidelines.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const albumInfoSchema = {
     type: Type.OBJECT,
@@ -53,7 +44,6 @@ const discographySchema = {
 };
 
 export async function getArtistDiscography(artistName: string): Promise<DiscographyAlbum[] | null> {
-    if (!ai) return null;
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -63,6 +53,7 @@ export async function getArtistDiscography(artistName: string): Promise<Discogra
                 responseSchema: discographySchema,
             },
         });
+        // Accessing .text property directly (not as a method).
         return JSON.parse(response.text || '[]');
     } catch (error) {
         console.error("Discography fetch error:", error);
@@ -71,12 +62,12 @@ export async function getArtistDiscography(artistName: string): Promise<Discogra
 }
 
 export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
-    if (!ai) return null;
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: `Provide one interesting brief piece of trivia about the album "${title}" by "${artist}". One concise sentence.`,
         });
+        // Accessing .text property directly.
         return response.text?.trim() || null;
     } catch (error) {
         console.error("Trivia error:", error);
@@ -85,7 +76,6 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
 }
 
 export async function getAlbumDetails(artist: string, title: string): Promise<any | null> {
-    if (!ai) return null;
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -95,6 +85,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 responseSchema: albumDetailsSchema,
             },
         });
+        // Accessing .text property directly.
         return JSON.parse(response.text || '{}');
     } catch (error) {
         console.error("Album details error:", error);
@@ -103,7 +94,6 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 }
 
 export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | null> {
-    if (!ai) return null;
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -118,6 +108,7 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
                 responseSchema: albumInfoSchema,
             },
         });
+        // Accessing .text property directly.
         const data = JSON.parse(response.text || '{}');
         return Object.keys(data).length === 0 ? null : data;
     } catch (error) {

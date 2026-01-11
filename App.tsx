@@ -7,7 +7,6 @@ import DetailView from './views/DetailView';
 import ArtistsView from './views/ArtistsView';
 import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
-import { useSupabaseSync } from './hooks/useSupabaseSync';
 import AddCDForm from './components/AddCDForm';
 import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
 import { areStringsSimilar } from './utils';
@@ -22,7 +21,6 @@ import ArtistDetailView from './views/ArtistDetailView';
 import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
-import SupabaseAuth from './components/SupabaseAuth';
 import { SpinnerIcon } from './components/icons/SpinnerIcon';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
@@ -95,13 +93,13 @@ const AppContent: React.FC = () => {
   
   const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
-      return (localStorage.getItem('disco_sync_provider') as SyncProvider) || 'none';
+      const saved = localStorage.getItem('disco_sync_provider');
+      return (saved === 'google_drive' ? 'google_drive' : 'none');
   });
   const [syncMode, setSyncMode] = useState<SyncMode>(() => {
        return (localStorage.getItem('disco_sync_mode') as SyncMode) || 'manual';
   });
 
-  const supabaseSync = useSupabaseSync(setCollection, setWantlist, syncMode, syncProvider);
   const googleDriveSync = useGoogleDrive();
 
   // Load from Google Drive on startup or provider change
@@ -114,7 +112,7 @@ const AppContent: React.FC = () => {
               }
           });
       }
-  }, [syncProvider, googleDriveSync.isSignedIn]);
+  }, [syncProvider, googleDriveSync.isSignedIn, googleDriveSync]);
 
   // Sync to Google Drive when collection/wantlist changes
   useEffect(() => {
@@ -128,7 +126,7 @@ const AppContent: React.FC = () => {
           }, 2000); // Debounce save
           return () => clearTimeout(timeout);
       }
-  }, [collection, wantlist, syncProvider, googleDriveSync.isSignedIn]);
+  }, [collection, wantlist, syncProvider, googleDriveSync.isSignedIn, googleDriveSync]);
 
   const handleToggleMode = useCallback(() => {
     setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');
@@ -147,19 +145,10 @@ const AppContent: React.FC = () => {
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
   useEffect(() => { localStorage.setItem('disco_sync_mode', syncMode); }, [syncMode]);
 
-  let currentSyncStatus: SyncStatus = 'idle';
-  let currentSyncError: string | null = null;
-  
-  if (syncProvider === 'supabase') {
-      currentSyncStatus = supabaseSync.syncStatus;
-      currentSyncError = supabaseSync.error;
-  } else if (syncProvider === 'google_drive') {
-       currentSyncStatus = googleDriveSync.syncStatus;
-       currentSyncError = googleDriveSync.error;
-  }
+  const currentSyncStatus: SyncStatus = syncProvider === 'google_drive' ? googleDriveSync.syncStatus : 'idle';
+  const currentSyncError: string | null = syncProvider === 'google_drive' ? googleDriveSync.error : null;
 
   const handleManualSync = useCallback(async () => {
-    if (syncProvider === 'supabase') await supabaseSync.manualSync();
     if (syncProvider === 'google_drive') {
         const data = await googleDriveSync.loadData();
         if (data) {
@@ -167,7 +156,7 @@ const AppContent: React.FC = () => {
             setWantlist(data.wantlist);
         }
     }
-  }, [syncProvider, supabaseSync, googleDriveSync]);
+  }, [syncProvider, googleDriveSync]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
@@ -227,11 +216,7 @@ const AppContent: React.FC = () => {
                     record_label: cd.record_label || normalizedDetails.record_label,
                     tags: [...new Set([...(cd.tags || []), ...(normalizedDetails.tags || [])])],
                 };
-                if (syncProvider === 'supabase' && supabaseSync.user) {
-                    await supabaseSync.updateCD(updatedCd);
-                } else {
-                    setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
-                }
+                setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
             }
         } catch (e) { console.error("Detail fetch error:", e); }
     }
@@ -249,7 +234,6 @@ const AppContent: React.FC = () => {
         }
     }
 
-    const originalCollection = [...collection];
     const tempId = cdData.id || generateId();
     let finalCd: CD = { 
         ...cdData, 
@@ -269,48 +253,15 @@ const AppContent: React.FC = () => {
     setPrefillData(null);
     setDuplicateCheckResult(null);
 
-    try {
-        if (syncProvider === 'supabase' && supabaseSync.user) {
-            if (cdData.id) {
-                await supabaseSync.updateCD(finalCd);
-            } else {
-                const savedFromServer = await supabaseSync.addCD(finalCd);
-                if (savedFromServer) {
-                    setCollection(prev => {
-                        const filtered = prev.filter(c => 
-                            c.id !== tempId && 
-                            !(areStringsSimilar(c.artist, savedFromServer.artist) && areStringsSimilar(c.title, savedFromServer.title))
-                        );
-                        return [savedFromServer, ...filtered];
-                    });
-                    finalCd = savedFromServer;
-                }
-            }
-        }
-        fetchAndApplyAlbumDetails(finalCd);
-        if (cdData.id) navigate(`/cd/${finalCd.id}`);
-    } catch (e: any) {
-        console.error("Sync error:", e);
-        setCollection(originalCollection);
-        throw e;
-    }
-  }, [collection, collectionMode, syncProvider, supabaseSync, duplicateCheckResult, navigate, currentCollection]);
+    fetchAndApplyAlbumDetails(finalCd);
+    if (cdData.id) navigate(`/cd/${finalCd.id}`);
+  }, [collectionMode, duplicateCheckResult, navigate, currentCollection]);
 
   const handleDeleteCD = useCallback(async (id: string) => {
-    const originalCollection = [...collection];
     setCollection(prev => prev.filter(cd => cd.id !== id));
-    if (syncProvider === 'supabase' && supabaseSync.user) {
-        try {
-            await supabaseSync.deleteCD(id);
-        } catch (e) {
-            setCollection(originalCollection);
-            alert("Could not delete from cloud.");
-        }
-    }
-  }, [collection, syncProvider, supabaseSync]);
+  }, []);
   
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
-      const originalWantlist = [...wantlist];
       const tempId = itemData.id || generateId();
       let finalItem: WantlistItem = { 
           ...itemData, 
@@ -328,43 +279,12 @@ const AppContent: React.FC = () => {
       setIsAddWantlistModalOpen(false);
       setWantlistItemToEdit(null);
 
-      try {
-          if (syncProvider === 'supabase' && supabaseSync.user) {
-              if (itemData.id) {
-                  await supabaseSync.updateWantlistItem(finalItem);
-              } else {
-                  const savedFromServer = await supabaseSync.addWantlistItem(finalItem);
-                  if (savedFromServer) {
-                      setWantlist(prev => {
-                          const filtered = prev.filter(i => 
-                              i.id !== tempId && 
-                              !(areStringsSimilar(i.artist, savedFromServer.artist) && areStringsSimilar(i.title, savedFromServer.title))
-                          );
-                          return [savedFromServer, ...filtered];
-                      });
-                      finalItem = savedFromServer;
-                  }
-              }
-          }
-          if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
-      } catch (e: any) {
-          console.error("Wantlist sync error:", e);
-          setWantlist(originalWantlist);
-          throw e;
-      }
-  }, [wantlist, syncProvider, supabaseSync, collectionMode, navigate]);
+      if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
+  }, [collectionMode, navigate]);
 
   const handleDeleteWantlistItem = useCallback(async (id: string) => {
-    const originalWantlist = [...wantlist];
     setWantlist(prev => prev.filter(item => item.id !== id));
-    if (syncProvider === 'supabase' && supabaseSync.user) {
-        try {
-            await supabaseSync.deleteWantlistItem(id);
-        } catch (e) {
-            setWantlist(originalWantlist);
-        }
-    }
-  }, [wantlist, syncProvider, supabaseSync]);
+  }, []);
 
   const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
       const cdData: Omit<CD, 'id'> = { ...item, created_at: new Date().toISOString() };
@@ -374,7 +294,6 @@ const AppContent: React.FC = () => {
 
   const location = useLocation();
   const isOnWantlistPage = location.pathname.startsWith('/wantlist');
-  const isSupabaseSelectedButLoggedOut = syncProvider === 'supabase' && !supabaseSync.user;
   const isGoogleDriveSelectedButLoggedOut = syncProvider === 'google_drive' && !googleDriveSync.isSignedIn;
 
   return (
@@ -393,18 +312,12 @@ const AppContent: React.FC = () => {
         syncProvider={syncProvider}
         syncMode={syncMode}
         onManualSync={handleManualSync}
-        user={supabaseSync.user}
-        onSignOut={syncProvider === 'supabase' ? supabaseSync.signOut : googleDriveSync.signOut}
+        onSignOut={googleDriveSync.signOut}
         isOnWantlistPage={isOnWantlistPage}
         collectionMode={collectionMode}
         onToggleMode={handleToggleMode}
       />
       <main className="container mx-auto p-4 md:p-6">
-        {isSupabaseSelectedButLoggedOut && (
-            <div className="mb-8">
-                <SupabaseAuth user={null} signIn={supabaseSync.signIn} syncStatus={supabaseSync.syncStatus} error={supabaseSync.error} onOpenSyncSettings={() => setIsSyncSettingsOpen(true)} />
-            </div>
-        )}
         {isGoogleDriveSelectedButLoggedOut && (
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
