@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD, WantlistItem } from '../types';
@@ -63,11 +64,11 @@ export const useGoogleDrive = () => {
     }
 
     if (errorCode === 403) {
-      setError("Access Denied (403). Check that you have: 1. Enabled 'Google Drive API'. 2. Added your email as a 'Test User'. 3. Configured the correct 'Authorized JavaScript Origins'.");
+      setError("Access Denied (403). Check origins and Drive API status.");
       setSyncStatus('error');
     } else if (errorCode === 401) {
       clearAuthState();
-      setError("Unauthorized (401). Please check your Client ID and try signing in again.");
+      setError("Unauthorized. Please sign in again.");
       setSyncStatus('error');
     } else {
       setError(`Could not ${context}. ${errorMessage || 'Try again later.'}`);
@@ -149,7 +150,6 @@ export const useGoogleDrive = () => {
 
   const signIn = useCallback(() => {
       if (!isApiReady || !GOOGLE_CLIENT_ID) {
-          console.warn("Sign-in attempted before Google APIs were ready.");
           return;
       }
       setSyncStatus('authenticating');
@@ -196,9 +196,12 @@ export const useGoogleDrive = () => {
         const content = response.body;
         
         if (content && content.length > 0) {
-            lastSyncHashRef.current = JSON.stringify(JSON.parse(content));
-            setSyncStatus('synced');
             const data = JSON.parse(content);
+            lastSyncHashRef.current = JSON.stringify({ 
+                collection: data.collection || (Array.isArray(data) ? data : []), 
+                wantlist: data.wantlist || [] 
+            });
+            setSyncStatus('synced');
             if (Array.isArray(data)) {
                 return { collection: data, wantlist: [], lastUpdated: new Date().toISOString() };
             }
@@ -215,7 +218,8 @@ export const useGoogleDrive = () => {
   const saveData = useCallback(async (data: UnifiedStorage) => {
     if (!isSignedIn || syncStatus === 'saving') return;
     
-    const currentHash = JSON.stringify(data);
+    // Hash based comparison to prevent redundant API calls
+    const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
     if (currentHash === lastSyncHashRef.current) {
         setSyncStatus('synced');
         return;
@@ -225,11 +229,12 @@ export const useGoogleDrive = () => {
     setError(null);
     try {
         const id = await getOrCreateFileId();
+        const payload = JSON.stringify(data);
         await window.gapi.client.request({
             path: `/upload/drive/v3/files/${id}`,
             method: 'PATCH',
             params: { uploadType: 'media' },
-            body: currentHash,
+            body: payload,
         });
         lastSyncHashRef.current = currentHash;
         setSyncStatus('synced');

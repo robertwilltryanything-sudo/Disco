@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UploadIcon } from './icons/UploadIcon';
@@ -17,7 +18,7 @@ interface StatusIndicatorProps {
 const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; tooltip: string; driveTooltip: string } } = {
   idle: { icon: UploadIcon, color: 'text-zinc-500', tooltip: 'Sync idle.', driveTooltip: 'Signed out.' },
   loading: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Loading...', driveTooltip: 'Downloading from Drive...' },
-  saving: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Saving...', driveTooltip: 'Uploading to Drive...' },
+  saving: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Saving...', driveTooltip: 'Syncing changes to Drive...' },
   synced: { icon: CheckIcon, color: 'text-green-500', tooltip: 'Synced.', driveTooltip: 'Cloud backup is up to date.' },
   error: { icon: XCircleIcon, color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error.' },
   disabled: { icon: XCircleIcon, color: 'text-zinc-400', tooltip: 'Not configured.', driveTooltip: 'Not configured.' },
@@ -26,14 +27,27 @@ const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; to
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, syncMode, onManualSync }) => {
   const isGoogleDrive = syncProvider === 'google_drive';
+  const isRealtime = syncMode === 'realtime';
   
-  const currentStatusInfo = statusMap[status];
+  // Local state to prevent "saving" flicker on every minor change
+  const [displayStatus, setDisplayStatus] = useState<SyncStatus>(status);
+
+  useEffect(() => {
+    // If it's a real-time save and we were already synced, don't show the spinner unless it takes > 800ms
+    if (status === 'saving' && displayStatus === 'synced' && isRealtime) {
+      const timer = setTimeout(() => setDisplayStatus('saving'), 800);
+      return () => clearTimeout(timer);
+    }
+    
+    // Otherwise update immediately
+    setDisplayStatus(status);
+  }, [status, displayStatus, isRealtime]);
+
+  const currentStatusInfo = statusMap[displayStatus];
   
-  // Use a stable checkmark for synced state. Only show SyncIcon for errors or as a fallback.
-  // We avoid using SyncIcon for 'synced' to prevent flickering.
-  const Icon = status === 'synced' ? CheckIcon : 
-               (status === 'loading' || status === 'saving' || status === 'authenticating') ? SpinnerIcon :
-               (status === 'error' && isGoogleDrive) ? SyncIcon : 
+  const Icon = displayStatus === 'synced' ? CheckIcon : 
+               (displayStatus === 'loading' || displayStatus === 'saving' || displayStatus === 'authenticating') ? SpinnerIcon :
+               (displayStatus === 'error' && isGoogleDrive) ? SyncIcon : 
                currentStatusInfo.icon;
 
   const color = currentStatusInfo.color;
@@ -43,10 +57,6 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   if ((status === 'error' || status === 'disabled') && error) {
     finalTooltip = error;
   }
-
-  // Visual indicator for manual vs realtime if synced
-  const modeLabel = syncMode === 'manual' ? ' (Manual)' : '';
-  if (status === 'synced') finalTooltip += modeLabel;
 
   const isClickable = isGoogleDrive && status !== 'loading' && status !== 'saving' && status !== 'authenticating';
 
@@ -59,9 +69,9 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
         aria-label={finalTooltip}
         title={finalTooltip}
       >
-        <Icon className={`h-5 w-5 ${color} ${status === 'loading' || status === 'saving' ? 'animate-spin' : ''}`} />
+        <Icon className={`h-5 w-5 ${color} ${displayStatus === 'loading' || displayStatus === 'saving' ? 'animate-spin' : ''}`} />
       </button>
-      {status === 'synced' && (
+      {displayStatus === 'synced' && (
         <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter">Synced</span>
       )}
     </div>

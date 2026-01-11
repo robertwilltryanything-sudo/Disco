@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
@@ -97,7 +98,7 @@ const AppContent: React.FC = () => {
       return (saved === 'google_drive' ? 'google_drive' : 'none');
   });
   const [syncMode, setSyncMode] = useState<SyncMode>(() => {
-       return (localStorage.getItem('disco_sync_mode') as SyncMode) || 'manual';
+       return (localStorage.getItem('disco_sync_mode') as SyncMode) || 'realtime';
   });
 
   const googleDriveSync = useGoogleDrive();
@@ -114,27 +115,19 @@ const AppContent: React.FC = () => {
       }
   }, [syncProvider, googleDriveSync.isSignedIn]);
 
-  // Handle explicit manual save to Google Drive to avoid flickering
-  const handleSaveToDrive = useCallback(async () => {
-    if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn) {
-        await googleDriveSync.saveData({
-            collection,
-            wantlist,
-            lastUpdated: new Date().toISOString()
-        });
-    }
-  }, [collection, wantlist, syncProvider, googleDriveSync]);
-
-  // Periodic auto-save (much longer interval) or save on unmount/significant changes
-  // to prevent flickering while still maintaining some safety.
+  // Real-time Sync logic
   useEffect(() => {
-      if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn) {
+      if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn && syncMode === 'realtime') {
           const timeout = setTimeout(() => {
-              handleSaveToDrive();
-          }, 30000); // 30 seconds interval instead of 2 seconds
+              googleDriveSync.saveData({
+                  collection,
+                  wantlist,
+                  lastUpdated: new Date().toISOString()
+              });
+          }, 2000); // 2 second debounce for real-time feel
           return () => clearTimeout(timeout);
       }
-  }, [collection.length, wantlist.length, syncProvider, googleDriveSync.isSignedIn, handleSaveToDrive]);
+  }, [collection, wantlist, syncProvider, googleDriveSync.isSignedIn, syncMode]);
 
   const handleToggleMode = useCallback(() => {
     setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');
@@ -158,16 +151,18 @@ const AppContent: React.FC = () => {
 
   const handleManualSync = useCallback(async () => {
     if (syncProvider === 'google_drive') {
-        // First save current state to Drive
-        await handleSaveToDrive();
-        // Then reload to ensure consistency
+        await googleDriveSync.saveData({
+            collection,
+            wantlist,
+            lastUpdated: new Date().toISOString()
+        });
         const data = await googleDriveSync.loadData();
         if (data) {
             setCollection(data.collection);
             setWantlist(data.wantlist);
         }
     }
-  }, [syncProvider, googleDriveSync, handleSaveToDrive]);
+  }, [syncProvider, googleDriveSync, collection, wantlist]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
