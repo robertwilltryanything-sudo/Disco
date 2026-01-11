@@ -1,5 +1,5 @@
 import React from 'react';
-import { SyncStatus, SyncProvider } from '../types';
+import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UploadIcon } from './icons/UploadIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -10,6 +10,7 @@ interface StatusIndicatorProps {
   status: SyncStatus;
   error: string | null;
   syncProvider: SyncProvider;
+  syncMode?: SyncMode;
   onManualSync: () => void;
 }
 
@@ -23,7 +24,7 @@ const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; to
   authenticating: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in to Google...' },
 };
 
-const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, onManualSync }) => {
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, syncMode, onManualSync }) => {
   const isGoogleDrive = syncProvider === 'google_drive';
   
   const currentStatusInfo = statusMap[status];
@@ -35,6 +36,10 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   if ((status === 'error' || status === 'disabled') && error) {
     finalTooltip = error;
   }
+
+  // Visual indicator for manual vs realtime if synced
+  const modeLabel = syncMode === 'manual' ? ' (Manual)' : '';
+  if (status === 'synced') finalTooltip += modeLabel;
 
   const isClickable = isGoogleDrive && status !== 'loading' && status !== 'saving' && status !== 'authenticating';
 

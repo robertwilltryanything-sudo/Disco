@@ -1,10 +1,7 @@
-
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD, DiscographyAlbum } from './types';
 
-// The API key is obtained exclusively from the environment variable process.env.API_KEY.
-const apiKey = process.env.API_KEY;
-// Initialize with a named parameter as per guidelines.
+// Initialize with a named parameter as per guidelines using process.env.API_KEY directly.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const albumInfoSchema = {
