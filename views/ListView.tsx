@@ -47,7 +47,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
       } else {
         newParams.delete('q');
       }
-      // Remove focus intent after it's handled via URL change
       newParams.delete('focus');
       setSearchParams(newParams, { replace: true });
     });
@@ -60,7 +59,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     localStorage.setItem(VIEW_MODE_KEY, view);
   }, [view]);
 
-  // Handle Focus Intent from Bottom Nav
   useEffect(() => {
     if (focusSearchIntent) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -68,7 +66,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
         if (input) {
             input.focus();
         }
-        // Cleanup the param from URL
         const newParams = new URLSearchParams(searchParams);
         newParams.delete('focus');
         setSearchParams(newParams, { replace: true });
@@ -95,7 +92,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     }
   }, [location.state, cds, navigate, onRequestEdit, onRequestAdd]);
 
-  // Handle Featured Album Selection (Stable daily rotation)
   useEffect(() => {
     if (cds.length === 0) {
         if (featuredCd !== null) setFeaturedCd(null);
@@ -103,7 +99,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     }
 
     const storageKey = `disco_featured_album_${collectionMode}`;
-    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
 
     const storedDataRaw = localStorage.getItem(storageKey);
     let storedData: { cdId: string; date: string } | null = null;
@@ -117,18 +113,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     }
     
     const currentFeaturedInCollection = storedData ? cds.find(cd => cd.id === storedData.cdId) : null;
-    
-    // Rotate if: No data, data is from a previous day, or the saved album was deleted
     const needsRotation = !storedData || storedData.date !== today || !currentFeaturedInCollection;
 
     if (needsRotation) {
-        // Selection pool
         let pool = cds;
-        // If we're rotating due to a new day, try to pick something different than the last featured if possible
         if (storedData && cds.length > 1) {
             pool = cds.filter(cd => cd.id !== storedData?.cdId);
         }
-
         const randomIndex = Math.floor(Math.random() * pool.length);
         const newSelection = pool[randomIndex];
         
@@ -142,7 +133,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
             }
         }
     } else if (currentFeaturedInCollection && featuredCd?.id !== currentFeaturedInCollection.id) {
-        // Keep existing daily selection but update the reference from the current collection array
         setFeaturedCd(currentFeaturedInCollection);
     }
   }, [cds, collectionMode, featuredCd?.id]);
@@ -155,18 +145,14 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     const filtered = [...cds]
       .filter(cd => {
         if (!cd) return false;
-
         const lowerCaseQuery = urlSearchQuery.toLowerCase();
-        
         const isNumericQuery = !isNaN(Number(lowerCaseQuery)) && lowerCaseQuery.length > 0;
         const isDecadeSearch = isNumericQuery && lowerCaseQuery.length === 4 && lowerCaseQuery.endsWith('0');
-
         const yearMatches = cd.year != null && (
           isDecadeSearch
             ? (cd.year >= Number(lowerCaseQuery) && cd.year <= Number(lowerCaseQuery) + 9)
             : cd.year.toString().includes(lowerCaseQuery)
         );
-
         return (
           (cd.artist && cd.artist.toLowerCase().includes(lowerCaseQuery)) ||
           (cd.title && cd.title.toLowerCase().includes(lowerCaseQuery)) ||
@@ -181,17 +167,14 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
       .sort((a, b) => {
         const valA = a[sortBy];
         const valB = b[sortBy];
-        
         if (valA === undefined || valA === null) return 1;
         if (valB === undefined || valB === null) return -1;
-
         let comparison = 0;
         if (typeof valA === 'string' && typeof valB === 'string') {
           comparison = valA.localeCompare(valB);
         } else if (typeof valA === 'number' && typeof valB === 'number') {
           comparison = valA - valB;
         }
-
         return sortOrder === 'asc' ? comparison : -comparison;
       });
 
@@ -200,7 +183,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
       const firstArtist = sorted[0].artist;
       const allSameArtist = sorted.every(cd => areStringsSimilar(cd.artist, firstArtist, 0.95));
       const queryMatchesArtist = areStringsSimilar(urlSearchQuery, firstArtist, 0.85);
-
       if (allSameArtist && queryMatchesArtist) {
         artistForScan = firstArtist;
       }
@@ -236,45 +218,46 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
           </div>
         </div>
       )}
-      <div className="sticky top-[89px] md:top-[93px] bg-zinc-100/80 backdrop-blur-sm z-10 py-3 mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+      
+      <div className="py-4 mb-6 space-y-4">
+        {/* Row 1: Search */}
+        <div className="w-full">
           <SearchBar initialQuery={urlSearchQuery} onSearch={handleSearch} albumType={albumType} />
-          <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+        </div>
+        
+        {/* Row 2: Sort & View Options */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="w-full sm:w-auto">
             <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
-            <div className="hidden sm:flex items-center gap-2">
-                <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
-                    <button 
-                      onClick={() => setView('grid')} 
-                      className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500'}`}
-                      aria-label="Grid View"
-                      title="Grid View"
-                    >
-                        <Squares2x2Icon className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => setView('list')}
-                      className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500'}`}
-                      aria-label="List View"
-                      title="List View"
-                    >
-                        <QueueListIcon className="w-5 h-5" />
-                    </button>
-                </div>
-                {urlSearchQuery && (
-                    <span className="flex items-center justify-center text-sm font-semibold text-zinc-500 bg-zinc-200 w-7 h-7 rounded-full">
-                        {filteredAndSortedCds.length}
-                    </span>
-                )}
+          </div>
+          
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            {urlSearchQuery && (
+              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                {filteredAndSortedCds.length} match{filteredAndSortedCds.length !== 1 ? 'es' : ''}
+              </span>
+            )}
+            
+            <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
+                <button 
+                  onClick={() => setView('grid')} 
+                  className={`p-1.5 rounded-md transition-all ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  aria-label="Grid View"
+                  title="Grid View"
+                >
+                    <Squares2x2Icon className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => setView('list')}
+                  className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  aria-label="List View"
+                  title="List View"
+                >
+                    <QueueListIcon className="w-5 h-5" />
+                </button>
             </div>
           </div>
         </div>
-        {urlSearchQuery && (
-          <div className="mt-3 text-center sm:text-left">
-            <p className="text-sm font-medium text-zinc-700">
-                Found {filteredAndSortedCds.length} result{filteredAndSortedCds.length !== 1 ? 's' : ''}.
-            </p>
-          </div>
-        )}
       </div>
       
       {view === 'grid' ? (
