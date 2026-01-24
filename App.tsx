@@ -126,24 +126,25 @@ const AppContent: React.FC = () => {
 
   // Initial load when signing in
   useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad) {
+      if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad && driveStatus !== 'loading') {
           handlePullLatest();
       }
-  }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad]);
+  }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad, driveStatus]);
 
   // Robust visibility sync (better for mobile backgrounding)
   useEffect(() => {
     const checkSync = async () => {
-        if (syncProvider === 'google_drive' && driveSignedIn && driveStatus !== 'loading' && driveStatus !== 'saving') {
+        if (syncProvider === 'google_drive' && driveSignedIn && driveStatus !== 'loading' && driveStatus !== 'saving' && hasAttemptedInitialLoad) {
             const hasUpdate = await driveCheckUpdate();
             if (hasUpdate) {
                 const currentLocalHash = JSON.stringify({ collection, wantlist });
-                const noLocalChanges = currentLocalHash === driveLastSyncHash || !driveLastSyncHash;
+                // If local matches cloud's last known state, pull silently
+                const noLocalChanges = currentLocalHash === driveLastSyncHash;
 
                 if (noLocalChanges) {
                     handlePullLatest();
                 } else {
-                    if (window.confirm("Remote changes detected. Update your collection? Your local unsaved changes will be lost.")) {
+                    if (window.confirm("Cloud updates detected! Would you like to refresh your collection? Unsaved local changes will be lost.")) {
                         handlePullLatest();
                     }
                 }
@@ -163,31 +164,36 @@ const AppContent: React.FC = () => {
         window.removeEventListener('visibilitychange', handleVisibility);
         window.removeEventListener('focus', checkSync);
     };
-  }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus]);
+  }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus, hasAttemptedInitialLoad]);
 
-  // Auto-Save Effect with Safety Gate
+  // Auto-Save Effect with strict Safety Gate
   useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad) {
+      if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad && driveStatus === 'synced') {
           const timeout = setTimeout(() => {
               driveSaveData({
                   collection,
                   wantlist,
                   lastUpdated: new Date().toISOString()
               });
-          }, 3000); 
+          }, 4000); // Slightly longer delay to ensure initial pull finishes completely
           return () => clearTimeout(timeout);
       }
-  }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad]);
+  }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad, driveStatus]);
 
   const handleToggleMode = useCallback(() => {
     setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');
   }, []);
 
   useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
+  
+  // Only persist collection to local storage if we have successfully engaged with the sync provider OR we aren't using one
   useEffect(() => {
-    localStorage.setItem('disco_collection', JSON.stringify(collection));
-    localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
-  }, [collection, wantlist]);
+    if (syncProvider === 'none' || hasAttemptedInitialLoad) {
+        localStorage.setItem('disco_collection', JSON.stringify(collection));
+        localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
+    }
+  }, [collection, wantlist, syncProvider, hasAttemptedInitialLoad]);
+
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
   useEffect(() => { localStorage.setItem('disco_sync_mode', syncMode); }, [syncMode]);
 

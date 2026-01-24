@@ -11,14 +11,14 @@ interface StatusIndicatorProps {
   status: SyncStatus;
   error: string | null;
   syncProvider: SyncProvider;
-  syncMode?: SyncMode; // Added to fix build error
+  syncMode?: SyncMode;
   onManualSync: () => void;
 }
 
 const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; tooltip: string; driveTooltip: string } } = {
   idle: { icon: UploadIcon, color: 'text-zinc-500', tooltip: 'Sync idle.', driveTooltip: 'Signed out.' },
-  loading: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Loading...', driveTooltip: 'Downloading from Drive...' },
-  saving: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Saving...', driveTooltip: 'Syncing changes to Drive...' },
+  loading: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Downloading...', driveTooltip: 'Downloading from Drive...' },
+  saving: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Uploading...', driveTooltip: 'Syncing changes to Drive...' },
   synced: { icon: CheckIcon, color: 'text-green-500', tooltip: 'Synced.', driveTooltip: 'Cloud backup is up to date.' },
   error: { icon: XCircleIcon, color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error.' },
   disabled: { icon: XCircleIcon, color: 'text-zinc-400', tooltip: 'Not configured.', driveTooltip: 'Not configured.' },
