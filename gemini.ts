@@ -1,7 +1,7 @@
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD, DiscographyAlbum } from './types';
 
-// Initialize with a named parameter as per guidelines using process.env.API_KEY directly.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const albumInfoSchema = {
@@ -13,7 +13,8 @@ const albumInfoSchema = {
         year: { type: Type.INTEGER, description: "Original release year." },
         version: { type: Type.STRING, description: "Edition details (e.g., 'Remastered')." },
         record_label: { type: Type.STRING, description: "Record label name." },
-        tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Descriptive tags." }
+        tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Descriptive tags." },
+        cover_art_url: { type: Type.STRING, description: "A URL if identifiable, but usually leave empty for frontend to find." }
     },
     required: ["artist", "title"],
 };
@@ -50,7 +51,6 @@ export async function getArtistDiscography(artistName: string): Promise<Discogra
                 responseSchema: discographySchema,
             },
         });
-        // Accessing .text property directly (not as a method).
         return JSON.parse(response.text || '[]');
     } catch (error) {
         console.error("Discography fetch error:", error);
@@ -64,7 +64,6 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
             model: 'gemini-3-flash-preview',
             contents: `Provide one interesting brief piece of trivia about the album "${title}" by "${artist}". One concise sentence.`,
         });
-        // Accessing .text property directly.
         return response.text?.trim() || null;
     } catch (error) {
         console.error("Trivia error:", error);
@@ -82,7 +81,6 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 responseSchema: albumDetailsSchema,
             },
         });
-        // Accessing .text property directly.
         return JSON.parse(response.text || '{}');
     } catch (error) {
         console.error("Album details error:", error);
@@ -105,7 +103,6 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
                 responseSchema: albumInfoSchema,
             },
         });
-        // Accessing .text property directly.
         const data = JSON.parse(response.text || '{}');
         return Object.keys(data).length === 0 ? null : data;
     } catch (error) {
