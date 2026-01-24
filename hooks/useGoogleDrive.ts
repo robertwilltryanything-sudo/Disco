@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
@@ -32,9 +31,12 @@ export const useGoogleDrive = () => {
   const fileIdRef = useRef<string | null>(null);
   const scriptsInitiatedRef = useRef(false);
   const authTimeoutRef = useRef<number | null>(null);
+  const lastSyncHashRef = useRef<string | null>(localStorage.getItem(LAST_SYNC_HASH_KEY));
   
   const syncStatusRef = useRef<SyncStatus>('idle');
-  useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
+  useEffect(() => { 
+    syncStatusRef.current = syncStatus; 
+  }, [syncStatus]);
 
   const clearAuthState = useCallback(() => {
     if (window.gapi?.client) {
@@ -48,6 +50,7 @@ export const useGoogleDrive = () => {
     setSyncStatus('idle');
     setLastSyncTime(null);
     setLastSyncHash(null);
+    lastSyncHashRef.current = null;
   }, []);
 
   const handleApiError = useCallback((e: any, context: string) => {
@@ -187,7 +190,6 @@ export const useGoogleDrive = () => {
     try {
       const id = await getOrCreateFileId();
       
-      // Use low-level request for metadata with aggressive cache busting
       const response = await window.gapi.client.request({
         path: `/drive/v3/files/${id}`,
         method: 'GET',
@@ -199,13 +201,13 @@ export const useGoogleDrive = () => {
       });
       
       const remoteTime = new Date(response.result.modifiedTime).getTime();
-      const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
+      const localTime = localStorage.getItem(LAST_SYNC_TIME_KEY) ? new Date(localStorage.getItem(LAST_SYNC_TIME_KEY)!).getTime() : 0;
       
       return remoteTime > (localTime + 1000);
     } catch (e) {
       return false;
     }
-  }, [isSignedIn, getOrCreateFileId, lastSyncTime]);
+  }, [isSignedIn, getOrCreateFileId]);
 
   const loadData = useCallback(async (): Promise<UnifiedStorage | null> => {
     if (!isSignedIn) return null;
@@ -239,6 +241,7 @@ export const useGoogleDrive = () => {
       
       setLastSyncTime(time);
       setLastSyncHash(hash);
+      lastSyncHashRef.current = hash;
       localStorage.setItem(LAST_SYNC_TIME_KEY, time);
       localStorage.setItem(LAST_SYNC_HASH_KEY, hash);
       
@@ -251,10 +254,10 @@ export const useGoogleDrive = () => {
   }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
   const saveData = useCallback(async (data: UnifiedStorage) => {
-    if (!isSignedIn || syncStatus === 'loading' || syncStatus === 'saving') return;
+    if (!isSignedIn || syncStatusRef.current === 'loading' || syncStatusRef.current === 'saving') return;
     
     const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
-    if (currentHash === lastSyncHash) {
+    if (currentHash === lastSyncHashRef.current) {
         setSyncStatus('synced');
         return;
     }
@@ -282,6 +285,7 @@ export const useGoogleDrive = () => {
       
       setLastSyncTime(time);
       setLastSyncHash(currentHash);
+      lastSyncHashRef.current = currentHash;
       localStorage.setItem(LAST_SYNC_TIME_KEY, time);
       localStorage.setItem(LAST_SYNC_HASH_KEY, currentHash);
       
@@ -289,7 +293,7 @@ export const useGoogleDrive = () => {
     } catch (e: any) {
       handleApiError(e, 'save data');
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus, lastSyncHash, checkRemoteUpdate]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, checkRemoteUpdate]);
 
   const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {
     if (!isSignedIn) return [];
