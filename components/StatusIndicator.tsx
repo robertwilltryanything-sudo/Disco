@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UploadIcon } from './icons/UploadIcon';
@@ -27,30 +27,14 @@ const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; to
   conflict: { icon: CloudIcon, color: 'text-red-600', tooltip: 'Conflict.', driveTooltip: 'Version conflict detected.' },
 };
 
-const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, syncMode, onManualSync }) => {
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, onManualSync }) => {
   const isGoogleDrive = syncProvider === 'google_drive';
-  const isRealtime = syncMode === 'realtime';
   
-  // Local state to prevent "saving" flicker on every minor change
-  const [displayStatus, setDisplayStatus] = useState<SyncStatus>(status);
-
-  useEffect(() => {
-    // If it's a real-time save and we were already synced, don't show the spinner unless it takes > 800ms
-    if (status === 'saving' && displayStatus === 'synced' && isRealtime) {
-      const timer = setTimeout(() => setDisplayStatus('saving'), 800);
-      return () => clearTimeout(timer);
-    }
-    
-    // Otherwise update immediately
-    setDisplayStatus(status);
-  }, [status, displayStatus, isRealtime]);
-
-  const currentStatusInfo = statusMap[displayStatus];
+  const currentStatusInfo = statusMap[status];
   
-  const Icon = displayStatus === 'synced' ? CheckIcon : 
-               (displayStatus === 'loading' || displayStatus === 'saving' || displayStatus === 'authenticating') ? SpinnerIcon :
-               (displayStatus === 'error' && isGoogleDrive) ? SyncIcon : 
-               (displayStatus === 'conflict') ? CloudIcon :
+  const Icon = (status === 'loading' || status === 'saving' || status === 'authenticating') ? SpinnerIcon :
+               (status === 'error' && isGoogleDrive) ? SyncIcon : 
+               (status === 'conflict') ? CloudIcon :
                currentStatusInfo.icon;
 
   const color = currentStatusInfo.color;
@@ -61,7 +45,8 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
     finalTooltip = error;
   }
 
-  const isClickable = isGoogleDrive && status !== 'loading' && status !== 'saving' && status !== 'authenticating';
+  const isBusy = status === 'loading' || status === 'saving' || status === 'authenticating';
+  const isClickable = isGoogleDrive && !isBusy;
 
   return (
     <div className="relative group flex items-center">
@@ -72,9 +57,9 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
         aria-label={finalTooltip}
         title={finalTooltip}
       >
-        <Icon className={`h-5 w-5 ${color} ${displayStatus === 'loading' || displayStatus === 'saving' ? 'animate-spin' : ''}`} />
+        <Icon className={`h-5 w-5 ${color} ${isBusy ? 'animate-spin' : ''}`} />
       </button>
-      {displayStatus === 'synced' && (
+      {status === 'synced' && (
         <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter">Synced</span>
       )}
     </div>

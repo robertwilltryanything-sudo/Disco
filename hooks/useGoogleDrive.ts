@@ -30,6 +30,7 @@ export const useGoogleDrive = () => {
 
   const fileIdRef = useRef<string | null>(null);
   const lastSyncHashRef = useRef<string | null>(null);
+  const isOperationInProgress = useRef(false);
   const scriptsInitiatedRef = useRef(false);
   const refreshTimerRef = useRef<number | null>(null);
   
@@ -53,6 +54,7 @@ export const useGoogleDrive = () => {
     setIsSignedIn(false);
     fileIdRef.current = null;
     lastSyncHashRef.current = null;
+    isOperationInProgress.current = false;
     setSyncStatus('idle');
     setLastSyncTime(null);
   }, []);
@@ -72,6 +74,7 @@ export const useGoogleDrive = () => {
       setError(`Could not ${context}. ${errorMessage || 'Try again later.'}`);
       setSyncStatus('error');
     }
+    isOperationInProgress.current = false;
   }, [clearAuthState]);
 
   const initializeGapiClient = useCallback(async () => {
@@ -182,56 +185,80 @@ export const useGoogleDrive = () => {
   }, [handleApiError]);
 
   const checkRemoteUpdate = useCallback(async (): Promise<boolean> => {
-    if (!isSignedIn) return false;
+    if (!isSignedIn || isOperationInProgress.current) return false;
     try {
         const id = await getOrCreateFileId();
         const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
         const remoteTime = new Date(metadata.result.modifiedTime).getTime();
         const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
-        return remoteTime > localTime + 1000; // 1s buffer
+        // Check for updates with a 5s buffer to avoid jitter from minor clock skews
+        return remoteTime > (localTime + 5000);
     } catch (e) {
         return false;
     }
   }, [isSignedIn, getOrCreateFileId, lastSyncTime]);
 
   const loadData = useCallback(async (): Promise<UnifiedStorage | null> => {
-    if (!isSignedIn || syncStatus === 'loading') return null;
+    if (!isSignedIn || isOperationInProgress.current) return null;
+    isOperationInProgress.current = true;
     setSyncStatus('loading');
     try {
         const id = await getOrCreateFileId();
         const response = await window.gapi.client.drive.files.get({ fileId: id, alt: 'media' });
         const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
+        
         setLastSyncTime(metadata.result.modifiedTime);
         const data = JSON.parse(response.body);
-        lastSyncHashRef.current = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
+        
+        // Ensure data has the correct structure
+        const normalizedData = Array.isArray(data) 
+            ? { collection: data, wantlist: [], lastUpdated: metadata.result.modifiedTime } 
+            : data;
+
+        lastSyncHashRef.current = JSON.stringify({ 
+            collection: normalizedData.collection || [], 
+            wantlist: normalizedData.wantlist || [] 
+        });
+        
         setSyncStatus('synced');
-        return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: metadata.result.modifiedTime } : data;
+        isOperationInProgress.current = false;
+        return normalizedData;
     } catch (e: any) {
         handleApiError(e, 'load data');
+        isOperationInProgress.current = false;
         return null;
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
   const saveData = useCallback(async (data: UnifiedStorage, force: boolean = false) => {
-    if (!isSignedIn || syncStatus === 'saving' || syncStatus === 'conflict') return;
+    if (!isSignedIn || isOperationInProgress.current || syncStatus === 'conflict') return;
     
-    const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
+    const currentHash = JSON.stringify({ 
+        collection: data.collection || [], 
+        wantlist: data.wantlist || [] 
+    });
+
     if (!force && currentHash === lastSyncHashRef.current) {
         setSyncStatus('synced');
         return;
     }
 
+    isOperationInProgress.current = true;
     setSyncStatus('saving');
+    
     try {
         const id = await getOrCreateFileId();
         
-        // Conflict Check
-        if (!force) {
+        // Conflict Check - only if not forced and we have a previous sync time
+        if (!force && lastSyncTime) {
             const metadataBefore = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
             const remoteTime = new Date(metadataBefore.result.modifiedTime).getTime();
-            const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
-            if (remoteTime > localTime + 2000) {
+            const localTime = new Date(lastSyncTime).getTime();
+            
+            // If the cloud version is significantly newer (> 5s), it's a conflict
+            if (remoteTime > (localTime + 5000)) {
                 setSyncStatus('conflict');
+                isOperationInProgress.current = false;
                 return;
             }
         }
@@ -249,6 +276,8 @@ export const useGoogleDrive = () => {
         setSyncStatus('synced');
     } catch (e: any) {
         handleApiError(e, 'save data');
+    } finally {
+        isOperationInProgress.current = false;
     }
   }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus, lastSyncTime]);
 
@@ -264,16 +293,19 @@ export const useGoogleDrive = () => {
   }, [isSignedIn, getOrCreateFileId]);
 
   const loadRevision = useCallback(async (revisionId: string): Promise<UnifiedStorage | null> => {
-    if (!isSignedIn) return null;
+    if (!isSignedIn || isOperationInProgress.current) return null;
+    isOperationInProgress.current = true;
     setSyncStatus('loading');
     try {
         const id = await getOrCreateFileId();
         const response = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId: revisionId, alt: 'media' });
         const data = JSON.parse(response.body);
         setSyncStatus('synced');
+        isOperationInProgress.current = false;
         return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : data;
     } catch (e) {
         handleApiError(e, 'load revision');
+        isOperationInProgress.current = false;
         return null;
     }
   }, [isSignedIn, getOrCreateFileId, handleApiError]);
