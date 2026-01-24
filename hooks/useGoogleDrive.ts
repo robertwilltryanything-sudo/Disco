@@ -31,6 +31,7 @@ export const useGoogleDrive = () => {
 
   const fileIdRef = useRef<string | null>(null);
   const scriptsInitiatedRef = useRef(false);
+  const authTimeoutRef = useRef<number | null>(null);
 
   const clearAuthState = useCallback(() => {
     if (window.gapi?.client) {
@@ -44,6 +45,7 @@ export const useGoogleDrive = () => {
     setSyncStatus('idle');
     setLastSyncTime(null);
     setLastSyncHash(null);
+    if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
   }, []);
 
   const handleApiError = useCallback((e: any, context: string) => {
@@ -69,14 +71,23 @@ export const useGoogleDrive = () => {
         client_id: GOOGLE_CLIENT_ID,
         scope: GOOGLE_DRIVE_SCOPES,
         callback: (tokenResponse: any) => {
+          // Clear watchdog
+          if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+          
           if (tokenResponse && tokenResponse.access_token) {
             setIsSignedIn(true);
             setSyncStatus('idle');
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
           } else if (tokenResponse && tokenResponse.error) {
-            setError(`Login failed: ${tokenResponse.error_description || tokenResponse.error}`);
-            setSyncStatus('error');
+            // If the silent request failed, don't show an error, just wait for manual sign in
+            if (tokenResponse.error === 'immediate_failed') {
+               localStorage.removeItem(SIGNED_IN_KEY);
+               setSyncStatus('idle');
+            } else {
+               setError(`Login failed: ${tokenResponse.error_description || tokenResponse.error}`);
+               setSyncStatus('error');
+            }
           } else {
             setSyncStatus('idle');
           }
@@ -87,6 +98,7 @@ export const useGoogleDrive = () => {
       // Attempt silent reconnect if previously signed in
       if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
         try {
+          // prompt: '' is the silent flow
           window.tokenClient.requestAccessToken({ prompt: '' });
         } catch (e) {
           console.warn("Silent re-auth failed, waiting for user gesture.");
@@ -125,21 +137,35 @@ export const useGoogleDrive = () => {
     };
 
     loadScripts();
+    
+    return () => {
+        if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+    };
   }, [initializeGapi]);
 
   const signIn = useCallback(() => {
     if (!window.tokenClient) {
-      setError("Sync system not ready. Please refresh.");
+      setError("Sync system not ready. Please refresh the page.");
       return;
     }
+    
     setSyncStatus('authenticating');
     setError(null);
+
+    // Watchdog for mobile popup blockers
+    if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+    authTimeoutRef.current = window.setTimeout(() => {
+        setSyncStatus('idle');
+        setError("Sign-in timed out. Please ensure pop-ups are allowed and try again.");
+    }, 45000); // 45 seconds is usually enough even for slow mobile networks
+
     window.tokenClient.requestAccessToken({ prompt: 'select_account' });
   }, []);
 
   const resetSyncStatus = useCallback(() => {
     setSyncStatus('idle');
     setError(null);
+    if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
   }, []);
 
   const getOrCreateFileId = useCallback(async () => {
@@ -175,8 +201,7 @@ export const useGoogleDrive = () => {
       });
       const remoteTime = new Date(metadata.result.modifiedTime).getTime();
       const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
-      // Use a larger tolerance for mobile devices with potential clock drift
-      return remoteTime > (localTime + 5000);
+      return remoteTime > (localTime + 2000);
     } catch (e) {
       return false;
     }
@@ -188,11 +213,10 @@ export const useGoogleDrive = () => {
     try {
       const id = await getOrCreateFileId();
       
-      // Use standard request for the body to ensure we can add cache-busters
       const response = await window.gapi.client.request({
         path: `/drive/v3/files/${id}`,
         method: 'GET',
-        params: { alt: 'media', t: Date.now() } // Cache buster
+        params: { alt: 'media', t: Date.now() } 
       });
       
       const metadata = await window.gapi.client.drive.files.get({ 
