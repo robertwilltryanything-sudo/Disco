@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
 
@@ -170,7 +170,7 @@ export const useGoogleDrive = () => {
         const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
         const remoteTime = new Date(metadata.result.modifiedTime).getTime();
         const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
-        return remoteTime > (localTime + 5000);
+        return remoteTime > (localTime + 10000); // 10s buffer for safety
     } catch (e) {
         return false;
     }
@@ -197,22 +197,22 @@ export const useGoogleDrive = () => {
         });
         
         setSyncStatus('synced');
-        return normalizedData;
+        return normalizedData as UnifiedStorage;
     } catch (e: any) {
         handleApiError(e, 'load data');
         return null;
     }
   }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
-  const saveData = useCallback(async (data: UnifiedStorage, force: boolean = false) => {
-    if (!isSignedIn || syncStatus === 'conflict' || syncStatus === 'loading' || syncStatus === 'saving') return;
+  const saveData = useCallback(async (data: UnifiedStorage) => {
+    if (!isSignedIn || syncStatus === 'loading' || syncStatus === 'saving') return;
     
     const currentHash = JSON.stringify({ 
         collection: data.collection || [], 
         wantlist: data.wantlist || [] 
     });
 
-    if (!force && currentHash === lastSyncHashRef.current) {
+    if (currentHash === lastSyncHashRef.current) {
         setSyncStatus('synced');
         return;
     }
@@ -221,18 +221,6 @@ export const useGoogleDrive = () => {
     
     try {
         const id = await getOrCreateFileId();
-        
-        if (!force && lastSyncTime) {
-            const metadataBefore = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
-            const remoteTime = new Date(metadataBefore.result.modifiedTime).getTime();
-            const localTime = new Date(lastSyncTime).getTime();
-            
-            if (remoteTime > (localTime + 5000)) {
-                setSyncStatus('conflict');
-                return;
-            }
-        }
-
         await window.gapi.client.request({
             path: `/upload/drive/v3/files/${id}`,
             method: 'PATCH',
@@ -247,7 +235,7 @@ export const useGoogleDrive = () => {
     } catch (e: any) {
         handleApiError(e, 'save data');
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus, lastSyncTime]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus]);
 
   const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {
     if (!isSignedIn) return [];
@@ -268,7 +256,7 @@ export const useGoogleDrive = () => {
         const response = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId: revisionId, alt: 'media' });
         const data = JSON.parse(response.body);
         setSyncStatus('synced');
-        return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : data;
+        return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : (data as UnifiedStorage);
     } catch (e) {
         handleApiError(e, 'load revision');
         return null;
@@ -284,8 +272,9 @@ export const useGoogleDrive = () => {
     }
   }, [clearAuthState]);
 
-  return { 
+  // VERY IMPORTANT: Memoize the return value to prevent re-render loops in App.tsx
+  return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate,
     getRevisions, loadRevision, syncStatus, error, lastSyncTime
-  };
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate, getRevisions, loadRevision, syncStatus, error, lastSyncTime]);
 };

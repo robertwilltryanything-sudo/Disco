@@ -1,17 +1,17 @@
 
 import React from 'react';
-import { SyncStatus, SyncProvider } from '../types';
+import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UploadIcon } from './icons/UploadIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { SyncIcon } from './icons/SyncIcon';
-import { CloudIcon } from './icons/CloudIcon';
 
 interface StatusIndicatorProps {
   status: SyncStatus;
   error: string | null;
   syncProvider: SyncProvider;
+  syncMode?: SyncMode; // Added to fix build error
   onManualSync: () => void;
 }
 
@@ -23,16 +23,14 @@ const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; to
   error: { icon: XCircleIcon, color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error.' },
   disabled: { icon: XCircleIcon, color: 'text-zinc-400', tooltip: 'Not configured.', driveTooltip: 'Not configured.' },
   authenticating: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in to Google...' },
-  conflict: { icon: CloudIcon, color: 'text-red-600', tooltip: 'Conflict.', driveTooltip: 'Version conflict detected.' },
 };
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, onManualSync }) => {
   const isGoogleDrive = syncProvider === 'google_drive';
-  const currentStatusInfo = statusMap[status];
+  const currentStatusInfo = statusMap[status] || statusMap.idle;
   
   const Icon = (status === 'loading' || status === 'saving' || status === 'authenticating') ? SpinnerIcon :
                (status === 'error' && isGoogleDrive) ? SyncIcon : 
-               (status === 'conflict') ? CloudIcon :
                currentStatusInfo.icon;
 
   const color = currentStatusInfo.color;
