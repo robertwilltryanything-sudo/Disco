@@ -40,10 +40,14 @@ const discographySchema = {
     },
 };
 
+/**
+ * Uses 'gemini-flash-lite-latest' for the highest free-tier availability.
+ * Provides a massive daily quota (1500+ requests) compared to Gemini 3 (20 requests).
+ */
 export async function getArtistDiscography(artistName: string): Promise<DiscographyAlbum[] | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-flash-lite-latest',
             contents: `Provide a list of official studio albums for "${artistName}". Include title and original release year. Respond in JSON.`,
             config: {
                 responseMimeType: "application/json",
@@ -61,7 +65,7 @@ export async function getArtistDiscography(artistName: string): Promise<Discogra
 export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-flash-lite-latest',
             contents: `Provide one interesting brief piece of trivia about the album "${title}" by "${artist}". One concise sentence.`,
             config: {
                 thinkingConfig: { thinkingBudget: 0 }
@@ -77,7 +81,7 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
 export async function getAlbumDetails(artist: string, title: string): Promise<any | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-flash-lite-latest',
             contents: `Details for album "${title}" by "${artist}": year, genre, label, and 2-3 tags. JSON format.`,
             config: {
                 responseMimeType: "application/json",
@@ -94,10 +98,8 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 
 export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | null> {
     try {
-        // Switched to Flash for better rate limits and stability on Vercel deployments.
-        // Pro models often encounter "Resource Exhausted" on high-traffic or shared keys.
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-flash-lite-latest',
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
