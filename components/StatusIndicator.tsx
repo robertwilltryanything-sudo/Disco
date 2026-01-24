@@ -6,6 +6,7 @@ import { UploadIcon } from './icons/UploadIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { SyncIcon } from './icons/SyncIcon';
+import { CloudIcon } from './icons/CloudIcon';
 
 interface StatusIndicatorProps {
   status: SyncStatus;
@@ -23,6 +24,7 @@ const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; to
   error: { icon: XCircleIcon, color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error.' },
   disabled: { icon: XCircleIcon, color: 'text-zinc-400', tooltip: 'Not configured.', driveTooltip: 'Not configured.' },
   authenticating: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in to Google...' },
+  conflict: { icon: CloudIcon, color: 'text-red-600', tooltip: 'Conflict.', driveTooltip: 'Version conflict detected.' },
 };
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, syncMode, onManualSync }) => {
@@ -48,6 +50,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const Icon = displayStatus === 'synced' ? CheckIcon : 
                (displayStatus === 'loading' || displayStatus === 'saving' || displayStatus === 'authenticating') ? SpinnerIcon :
                (displayStatus === 'error' && isGoogleDrive) ? SyncIcon : 
+               (displayStatus === 'conflict') ? CloudIcon :
                currentStatusInfo.icon;
 
   const color = currentStatusInfo.color;
