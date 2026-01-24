@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
 import Header from './components/Header';
