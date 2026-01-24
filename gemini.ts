@@ -94,29 +94,39 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 
 export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | null> {
     try {
+        // Using Pro for visual recognition tasks as it handles complex images much better than Flash.
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3-pro-preview',
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: "Examine this album cover and extract the Artist and Album Title. Return structured metadata in JSON format." }
+                    { text: "Identify the album from this cover art. Return the artist, title, year, genre, and record label in JSON format. Be precise." }
                 ]
             },
             config: {
-                systemInstruction: "You are a specialized music cataloger. Identify album covers accurately. If you identify the album, provide Artist, Title, Year, Genre, and Record Label as JSON.",
+                systemInstruction: "You are a highly accurate music metadata assistant. Identify albums from cover art images. Always return valid JSON matching the requested schema. If an album cannot be identified with high confidence, return a reasonable guess or leave fields blank if completely unknown, but the JSON structure must always be valid.",
                 responseMimeType: "application/json",
                 responseSchema: albumInfoSchema,
-                thinkingConfig: { thinkingBudget: 0 }
+                // Thinking is helpful for image reasoning, but we cap it to keep it snappy.
+                thinkingConfig: { thinkingBudget: 1024 }
             },
         });
         
         const text = response.text;
-        if (!text) return null;
+        if (!text) {
+            console.error("Empty response from Gemini API for getAlbumInfo");
+            return null;
+        }
         
         const data = JSON.parse(text);
-        return data.artist && data.title ? data : null;
+        if (!data.artist || !data.title) {
+            console.warn("Gemini returned partial JSON missing required fields:", data);
+            return data.artist || data.title ? data : null;
+        }
+        
+        return data;
     } catch (error) {
         console.error("Album scan error:", error);
-        return null;
+        throw error;
     }
 }

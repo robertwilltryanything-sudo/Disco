@@ -34,9 +34,14 @@ export const useGoogleDrive = () => {
   const lastSyncHashRef = useRef<string | null>(localStorage.getItem(LAST_SYNC_HASH_KEY));
   
   const syncStatusRef = useRef<SyncStatus>('idle');
-  useEffect(() => { 
-    syncStatusRef.current = syncStatus; 
-  }, [syncStatus]);
+  
+  // Custom setter that prevents redundant updates
+  const updateSyncStatus = useCallback((newStatus: SyncStatus) => {
+    if (syncStatusRef.current !== newStatus) {
+      syncStatusRef.current = newStatus;
+      setSyncStatus(newStatus);
+    }
+  }, []);
 
   const clearAuthState = useCallback(() => {
     if (window.gapi?.client) {
@@ -47,11 +52,11 @@ export const useGoogleDrive = () => {
     localStorage.removeItem(LAST_SYNC_HASH_KEY);
     setIsSignedIn(false);
     fileIdRef.current = null;
-    setSyncStatus('idle');
+    updateSyncStatus('idle');
     setLastSyncTime(null);
     setLastSyncHash(null);
     lastSyncHashRef.current = null;
-  }, []);
+  }, [updateSyncStatus]);
 
   const handleApiError = useCallback((e: any, context: string) => {
     const errorDetails = e?.result?.error || e?.error;
@@ -62,12 +67,12 @@ export const useGoogleDrive = () => {
     if (errorCode === 401) {
       clearAuthState();
       setError("Session expired. Please sign in again.");
-      setSyncStatus('error');
+      updateSyncStatus('error');
     } else {
       setError(`Sync error: ${errorDetails?.message || 'Check your connection'}`);
-      setSyncStatus('error');
+      updateSyncStatus('error');
     }
-  }, [clearAuthState]);
+  }, [clearAuthState, updateSyncStatus]);
 
   const initializeGis = useCallback(() => {
     if (!GOOGLE_CLIENT_ID) return;
@@ -80,14 +85,14 @@ export const useGoogleDrive = () => {
           
           if (tokenResponse && tokenResponse.access_token) {
             setIsSignedIn(true);
-            setSyncStatus('idle');
+            updateSyncStatus('idle');
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
           } else if (tokenResponse && tokenResponse.error) {
             setError(`Login failed: ${tokenResponse.error_description || tokenResponse.error}`);
-            setSyncStatus('error');
+            updateSyncStatus('error');
           } else {
-            setSyncStatus('idle');
+            updateSyncStatus('idle');
           }
         },
       });
@@ -103,7 +108,7 @@ export const useGoogleDrive = () => {
     } catch (e) {
       console.error("GIS Init Error:", e);
     }
-  }, []);
+  }, [updateSyncStatus]);
 
   const initializeGapi = useCallback(async () => {
     try {
@@ -142,25 +147,25 @@ export const useGoogleDrive = () => {
       setError("Sync system not ready. Please refresh.");
       return;
     }
-    setSyncStatus('authenticating');
+    updateSyncStatus('authenticating');
     setError(null);
     
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
         if (syncStatusRef.current === 'authenticating') {
-            setSyncStatus('idle');
+            updateSyncStatus('idle');
             setError('Sign-in timed out. Please ensure pop-ups are allowed and try again.');
         }
-    }, 60000); // Increased to 60s for mobile users
+    }, 45000);
 
     window.tokenClient.requestAccessToken({ prompt: 'select_account' });
-  }, []);
+  }, [updateSyncStatus]);
 
   const resetSyncStatus = useCallback(() => {
-    setSyncStatus('idle');
+    updateSyncStatus('idle');
     setError(null);
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
-  }, []);
+  }, [updateSyncStatus]);
 
   const getOrCreateFileId = useCallback(async () => {
     if (fileIdRef.current) return fileIdRef.current;
@@ -211,7 +216,7 @@ export const useGoogleDrive = () => {
 
   const loadData = useCallback(async (): Promise<UnifiedStorage | null> => {
     if (!isSignedIn) return null;
-    setSyncStatus('loading');
+    updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
       
@@ -245,30 +250,30 @@ export const useGoogleDrive = () => {
       localStorage.setItem(LAST_SYNC_TIME_KEY, time);
       localStorage.setItem(LAST_SYNC_HASH_KEY, hash);
       
-      setSyncStatus('synced');
+      updateSyncStatus('synced');
       return normalizedData as UnifiedStorage;
     } catch (e: any) {
       handleApiError(e, 'load data');
       return null;
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus]);
 
   const saveData = useCallback(async (data: UnifiedStorage) => {
     if (!isSignedIn || syncStatusRef.current === 'loading' || syncStatusRef.current === 'saving') return;
     
     const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
     if (currentHash === lastSyncHashRef.current) {
-        if (syncStatusRef.current !== 'synced') setSyncStatus('synced');
+        updateSyncStatus('synced');
         return;
     }
 
-    setSyncStatus('saving');
+    updateSyncStatus('saving');
     try {
       const id = await getOrCreateFileId();
       
       const remoteChanged = await checkRemoteUpdate();
       if (remoteChanged) {
-          setSyncStatus('error');
+          updateSyncStatus('error');
           setError("Cloud updates detected. Please refresh to avoid overwriting changes.");
           return;
       }
@@ -289,11 +294,11 @@ export const useGoogleDrive = () => {
       localStorage.setItem(LAST_SYNC_TIME_KEY, time);
       localStorage.setItem(LAST_SYNC_HASH_KEY, currentHash);
       
-      setSyncStatus('synced');
+      updateSyncStatus('synced');
     } catch (e: any) {
       handleApiError(e, 'save data');
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError, checkRemoteUpdate]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, checkRemoteUpdate, updateSyncStatus]);
 
   const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {
     if (!isSignedIn) return [];
@@ -308,18 +313,18 @@ export const useGoogleDrive = () => {
 
   const loadRevision = useCallback(async (revisionId: string): Promise<UnifiedStorage | null> => {
     if (!isSignedIn) return null;
-    setSyncStatus('loading');
+    updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
       const response = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId, alt: 'media' });
       const data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
-      setSyncStatus('synced');
+      updateSyncStatus('synced');
       return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : (data as UnifiedStorage);
     } catch (e) {
       handleApiError(e, 'load revision');
       return null;
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus]);
 
   const signOut = useCallback(() => {
     const token = window.gapi?.client?.getToken();

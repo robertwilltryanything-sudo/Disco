@@ -1,4 +1,5 @@
-import React from 'react';
+// Add missing React import
+import React, { useMemo } from 'react';
 import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -31,8 +32,14 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const isError = status === 'error';
   const isSynced = status === 'synced';
 
-  // Use a stable size for all icons to prevent "jumping"
-  const Icon = isError ? XCircleIcon : isSynced ? CheckIcon : isBusy ? SpinnerIcon : SyncIcon;
+  // Memoize icon selection to prevent flickering during rapid state transitions
+  const Icon = useMemo(() => {
+    if (isError) return XCircleIcon;
+    if (isSynced) return CheckIcon;
+    if (isBusy) return SpinnerIcon;
+    return SyncIcon;
+  }, [isError, isSynced, isBusy]);
+
   const color = currentStatusInfo.color;
 
   let finalTooltip = isGoogleDrive ? currentStatusInfo.driveTooltip : currentStatusInfo.tooltip;
@@ -43,7 +50,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const isClickable = isGoogleDrive && !isBusy;
 
   return (
-    <div className="relative group flex items-center h-8">
+    <div className="relative group flex items-center">
       <button
         onClick={isClickable ? onManualSync : undefined}
         disabled={!isClickable}
@@ -51,12 +58,10 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
         aria-label={finalTooltip}
         title={finalTooltip}
       >
-        <Icon className={`h-5 w-5 ${color} ${isBusy ? 'animate-spin' : ''} transition-colors duration-500`} />
+        <Icon className={`h-5 w-5 ${color} ${isBusy ? 'animate-spin' : ''} transition-all duration-500 ease-in-out`} />
       </button>
-      {isSynced && (
-        <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter animate-pulse transition-opacity duration-700">
-          Synced
-        </span>
+      {status === 'synced' && (
+        <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter transition-opacity duration-300 opacity-100">Synced</span>
       )}
     </div>
   );
