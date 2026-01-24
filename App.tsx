@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
 import Header from './components/Header';
@@ -8,21 +8,17 @@ import DetailView from './views/DetailView';
 import ArtistsView from './views/ArtistsView';
 import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
-import AddCDForm from './components/AddCDForm';
-import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
 import { areStringsSimilar } from './utils';
 import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
 import DuplicatesView from './views/DuplicatesView';
 import WantlistView from './views/WantlistView';
-import { PlusIcon } from './components/icons/PlusIcon';
-import AddWantlistItemForm from './components/AddWantlistItemForm';
 import WantlistDetailView from './views/WantlistDetailView';
 import ArtistDetailView from './views/ArtistDetailView';
 import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
-import { SpinnerIcon } from './components/icons/SpinnerIcon';
+import SyncConflictModal from './components/SyncConflictModal';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
@@ -75,32 +71,9 @@ const AppContent: React.FC = () => {
   });
 
   const [hasAttemptedInitialLoad, setHasAttemptedInitialLoad] = useState(false);
-
-  const currentCollection = useMemo(() => 
-    collection.filter(item => (item.format || 'cd') === collectionMode), 
-  [collection, collectionMode]);
-
-  const currentWantlist = useMemo(() => 
-    wantlist.filter(item => (item.format || 'cd') === collectionMode), 
-  [wantlist, collectionMode]);
+  const [conflictCloudTime, setConflictCloudTime] = useState<string | null>(null);
   
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
-  const [prefillData, setPrefillData] = useState<Partial<CD> | null>(null);
-  const [isAddWantlistModalOpen, setIsAddWantlistModalOpen] = useState(false);
-  const [wantlistItemToEdit, setWantlistItemToEdit] = useState<WantlistItem | null>(null);
-  const [duplicateCheckResult, setDuplicateCheckResult] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
-  const [pendingImport, setPendingImport] = useState<CD[] | null>(null);
-  const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
-
-  const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
-      const saved = localStorage.getItem('disco_sync_provider');
-      return (saved === 'google_drive' ? 'google_drive' : 'none');
-  });
-
-  const [syncMode, setSyncMode] = useState<SyncMode>(() => {
-       return (localStorage.getItem('disco_sync_mode') as SyncMode) || 'realtime';
-  });
+  const autoSaveTimeoutRef = useRef<number | null>(null);
 
   const { 
     isSignedIn: driveSignedIn, 
@@ -112,9 +85,20 @@ const AppContent: React.FC = () => {
     syncStatus: driveStatus,
     error: driveError,
     lastSyncHash: driveLastSyncHash,
-    isApiReady: driveReady,
+    lastSyncTime: driveLastSyncTime,
     resetSyncStatus: driveResetStatus
   } = useGoogleDrive();
+
+  const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
+      const saved = localStorage.getItem('disco_sync_provider');
+      return (saved === 'google_drive' ? 'google_drive' : 'none');
+  });
+
+  // Persist local state
+  useEffect(() => {
+    localStorage.setItem('disco_collection', JSON.stringify(collection));
+    localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
+  }, [collection, wantlist]);
 
   const handlePullLatest = useCallback(async () => {
     const data = await driveLoadData();
@@ -125,314 +109,198 @@ const AppContent: React.FC = () => {
     setHasAttemptedInitialLoad(true);
   }, [driveLoadData]);
 
-  // Initial load when signing in
+  const handlePushLatest = useCallback(() => {
+    if (driveSignedIn && (driveStatus === 'idle' || driveStatus === 'synced' || driveStatus === 'error')) {
+        driveSaveData({ collection, wantlist, lastUpdated: new Date().toISOString() });
+    }
+  }, [driveSignedIn, driveStatus, driveSaveData, collection, wantlist]);
+
+  // Initial Load Trigger
   useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad && driveStatus !== 'loading') {
+      if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad) {
           handlePullLatest();
       }
-  }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad, driveStatus]);
+  }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad]);
 
-  // Robust background & visibility sync
+  // Smart Auto-Save
   useEffect(() => {
-    const checkSync = async () => {
-        if (syncProvider === 'google_drive' && driveSignedIn && driveStatus !== 'loading' && driveStatus !== 'saving' && hasAttemptedInitialLoad) {
+    if (syncProvider !== 'google_drive' || !driveSignedIn || !hasAttemptedInitialLoad) return;
+    
+    const currentHash = JSON.stringify({ collection, wantlist });
+    if (currentHash === driveLastSyncHash) return;
+
+    if (autoSaveTimeoutRef.current) window.clearTimeout(autoSaveTimeoutRef.current);
+    autoSaveTimeoutRef.current = window.setTimeout(() => {
+        handlePushLatest();
+    }, 2000); // Wait for 2 seconds of inactivity before pushing
+
+    return () => {
+        if (autoSaveTimeoutRef.current) window.clearTimeout(autoSaveTimeoutRef.current);
+    };
+  }, [collection, wantlist, syncProvider, driveSignedIn, driveLastSyncHash, handlePushLatest, hasAttemptedInitialLoad]);
+
+  // Cloud Check on Focus
+  useEffect(() => {
+    const performCloudCheck = async () => {
+        if (syncProvider === 'google_drive' && driveSignedIn && hasAttemptedInitialLoad && driveStatus !== 'saving' && driveStatus !== 'loading') {
             const hasUpdate = await driveCheckUpdate();
             if (hasUpdate) {
                 const currentLocalHash = JSON.stringify({ collection, wantlist });
-                // If local matches cloud's last known state, pull silently
-                const noLocalChanges = currentLocalHash === driveLastSyncHash;
-
-                if (noLocalChanges) {
+                if (currentLocalHash === driveLastSyncHash) {
                     handlePullLatest();
                 } else {
-                    if (window.confirm("Cloud updates detected! Would you like to refresh your collection? Unsaved local changes will be lost.")) {
-                        handlePullLatest();
-                    }
+                    // Conflict scenario
+                    setConflictCloudTime(new Date().toISOString()); 
                 }
             }
         }
     };
 
     const handleVisibility = () => {
-        if (document.visibilityState === 'visible') {
-            checkSync();
-        }
+        if (document.visibilityState === 'visible') performCloudCheck();
     };
-
-    // Polling interval for users who keep the app open (e.g. tablet on a shelf)
-    const interval = setInterval(checkSync, 30000); 
 
     window.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('focus', checkSync);
+    window.addEventListener('focus', handleVisibility);
+    const interval = setInterval(performCloudCheck, 60000); // Periodic check every minute
+
     return () => {
-        clearInterval(interval);
         window.removeEventListener('visibilitychange', handleVisibility);
-        window.removeEventListener('focus', checkSync);
+        window.removeEventListener('focus', handleVisibility);
+        clearInterval(interval);
     };
-  }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus, hasAttemptedInitialLoad]);
+  }, [syncProvider, driveSignedIn, hasAttemptedInitialLoad, driveStatus, driveCheckUpdate, driveLastSyncHash, collection, wantlist, handlePullLatest]);
 
-  // Auto-Save Effect with strict Safety Gate
-  useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad && driveStatus === 'synced') {
-          const timeout = setTimeout(() => {
-              driveSaveData({
-                  collection,
-                  wantlist,
-                  lastUpdated: new Date().toISOString()
-              });
-          }, 4000); 
-          return () => clearTimeout(timeout);
-      }
-  }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad, driveStatus]);
-
-  const handleToggleMode = useCallback(() => {
-    setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');
-  }, []);
-
-  useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
-  
-  // Only persist collection to local storage if we have successfully engaged with the sync provider OR we aren't using one
-  useEffect(() => {
-    if (syncProvider === 'none' || hasAttemptedInitialLoad) {
-        localStorage.setItem('disco_collection', JSON.stringify(collection));
-        localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
-    }
-  }, [collection, wantlist, syncProvider, hasAttemptedInitialLoad]);
-
-  useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
-  useEffect(() => { localStorage.setItem('disco_sync_mode', syncMode); }, [syncMode]);
-
-  const currentSyncStatus: SyncStatus = syncProvider === 'google_drive' ? driveStatus : 'idle';
-  const currentSyncError: string | null = syncProvider === 'google_drive' ? driveError : null;
-
-  const handleManualSync = useCallback(async () => {
-    if (syncProvider === 'google_drive') {
-        // Force pull instead of conditional check
-        await handlePullLatest();
-    }
-  }, [syncProvider, handlePullLatest]);
-
-  const handleImport = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const content = event.target?.result as string;
-            const importedData = JSON.parse(content);
-            const rawItems = Array.isArray(importedData) ? importedData : (importedData.collection || []);
-            setPendingImport(rawItems.map(normalizeData<CD>));
-          } catch (error) { alert("Failed to parse file."); }
-        };
-        reader.readAsText(file);
-      }
-    };
-    input.click();
-  }, []);
-
-  const confirmImport = useCallback((strategy: 'merge' | 'replace') => {
-      if (!pendingImport) return;
-      if (strategy === 'replace') {
-          setCollection(pendingImport);
+  const handleResolveConflict = (strategy: 'cloud' | 'local') => {
+      setConflictCloudTime(null);
+      if (strategy === 'cloud') {
+          handlePullLatest();
       } else {
-          const existingIds = new Set(collection.map(c => c.id));
-          const newItems = pendingImport.filter(c => !existingIds.has(c.id));
-          setCollection([...collection, ...newItems]);
+          handlePushLatest();
       }
-      setPendingImport(null);
-  }, [pendingImport, collection]);
-
-  const handleExport = useCallback(() => {
-    const dataStr = JSON.stringify({ collection, wantlist, lastUpdated: new Date().toISOString() }, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `disco_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [collection, wantlist]);
-
-  const fetchAndApplyAlbumDetails = async (cd: CD) => {
-    if (!cd.genre || !cd.year) {
-        try {
-            const details = await getAlbumDetails(cd.artist, cd.title);
-            if (details) {
-                const normalizedDetails = normalizeData<CD>(details);
-                const updatedCd: CD = {
-                    ...cd,
-                    genre: cd.genre || normalizedDetails.genre,
-                    year: cd.year || normalizedDetails.year,
-                    record_label: cd.record_label || normalizedDetails.record_label,
-                    tags: [...new Set([...(cd.tags || []), ...(normalizedDetails.tags || [])])],
-                };
-                setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
-            }
-        } catch (e) { console.error("Detail fetch error:", e); }
-    }
   };
 
-  const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
-    if (!cdData.id && !duplicateCheckResult) {
-        const potentialDuplicate = currentCollection.find(c => 
-            areStringsSimilar(c.artist, cdData.artist) && 
-            areStringsSimilar(c.title, cdData.title)
-        );
-        if (potentialDuplicate) {
-            setDuplicateCheckResult({ newCd: cdData, existingCd: potentialDuplicate });
-            return;
-        }
-    }
-
-    const tempId = cdData.id || generateId();
-    let finalCd: CD = { 
-        ...cdData, 
-        id: tempId, 
-        created_at: cdData.created_at || new Date().toISOString(),
-        format: cdData.format || collectionMode 
-    } as CD;
+  const onAddCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
+    const newCD: CD = {
+      ...cdData,
+      id: cdData.id || generateId(),
+      created_at: cdData.created_at || new Date().toISOString(),
+      format: collectionMode
+    };
 
     if (cdData.id) {
-        setCollection(prev => prev.map(c => c.id === cdData.id ? finalCd : c));
+      setCollection(prev => prev.map(c => c.id === cdData.id ? newCD : c));
     } else {
-        setCollection(prev => [finalCd, ...prev]);
+      setCollection(prev => [newCD, ...prev]);
     }
-
-    setIsAddModalOpen(false);
-    setCdToEdit(null);
-    setPrefillData(null);
-    setDuplicateCheckResult(null);
-    fetchAndApplyAlbumDetails(finalCd);
-    if (cdData.id) navigate(`/cd/${finalCd.id}`);
-  }, [collectionMode, duplicateCheckResult, navigate, currentCollection]);
-
-  const handleDeleteCD = useCallback(async (id: string) => { setCollection(prev => prev.filter(cd => cd.id !== id)); }, []);
-  
-  const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
-      const tempId = itemData.id || generateId();
-      let finalItem: WantlistItem = { 
-          ...itemData, 
-          id: tempId, 
-          created_at: itemData.created_at || new Date().toISOString(),
-          format: itemData.format || collectionMode 
-      } as WantlistItem;
-
-      if (itemData.id) {
-          setWantlist(prev => prev.map(i => i.id === itemData.id ? finalItem : i));
-      } else {
-          setWantlist(prev => [finalItem, ...prev]);
-      }
-      setIsAddWantlistModalOpen(false);
-      setWantlistItemToEdit(null);
-      if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
+    navigate('/');
   }, [collectionMode, navigate]);
 
-  const handleDeleteWantlistItem = useCallback(async (id: string) => { setWantlist(prev => prev.filter(item => item.id !== id)); }, []);
+  const onDeleteCD = useCallback((id: string) => {
+    setCollection(prev => prev.filter(c => c.id !== id));
+  }, []);
 
-  const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
-      const cdData: Omit<CD, 'id'> = { ...item, created_at: new Date().toISOString() };
-      await handleSaveCD(cdData);
-      await handleDeleteWantlistItem(item.id);
-  }, [handleSaveCD, handleDeleteWantlistItem]);
+  const onUpdateCD = useCallback(async (updatedCd: CD) => {
+    setCollection(prev => prev.map(c => c.id === updatedCd.id ? updatedCd : c));
+  }, []);
 
-  const location = useLocation();
-  const isOnWantlistPage = location.pathname.startsWith('/wantlist');
-  const isGoogleDriveSelectedButLoggedOut = syncProvider === 'google_drive' && !driveSignedIn;
+  const onAddToWantlist = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
+    const newItem: WantlistItem = {
+        ...itemData,
+        id: itemData.id || generateId(),
+        created_at: itemData.created_at || new Date().toISOString(),
+        format: collectionMode
+    };
+    if (itemData.id) {
+        setWantlist(prev => prev.map(i => i.id === itemData.id ? newItem : i));
+    } else {
+        setWantlist(prev => [newItem, ...prev]);
+    }
+    navigate('/wantlist');
+  }, [collectionMode, navigate]);
+
+  const onDeleteWantlistItem = useCallback((id: string) => {
+      setWantlist(prev => prev.filter(i => i.id !== id));
+  }, []);
+
+  const onMoveToCollection = useCallback((item: WantlistItem) => {
+      const newCd: CD = { ...item, created_at: new Date().toISOString() };
+      setCollection(prev => [newCd, ...prev]);
+      setWantlist(prev => prev.filter(i => i.id !== item.id));
+      navigate('/');
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0 font-sans selection:bg-zinc-200">
+    <div className="min-h-screen bg-zinc-100 flex flex-col pb-16 md:pb-0">
+      <ScrollToTop />
       <Header 
-        onAddClick={() => {
-            if (isOnWantlistPage) { setIsAddWantlistModalOpen(true); setWantlistItemToEdit(null); } 
-            else { setIsAddModalOpen(true); setCdToEdit(null); setPrefillData(null); }
-        }} 
-        collectionCount={currentCollection.length} 
-        onImport={handleImport}
-        onExport={handleExport}
-        onOpenSyncSettings={() => setIsSyncSettingsOpen(true)}
-        syncStatus={currentSyncStatus}
-        syncError={currentSyncError}
+        onAddClick={() => navigate(location.pathname === '/wantlist' ? '/wantlist' : '/', { state: { openAdd: true } })} 
+        collectionCount={collection.filter(c => (c.format || 'cd') === collectionMode).length}
+        onImport={() => {}} 
+        onExport={() => {}}
+        onOpenSyncSettings={() => setSyncProvider('google_drive')}
+        syncStatus={driveStatus}
+        syncError={driveError}
         syncProvider={syncProvider}
-        syncMode={syncMode}
-        onManualSync={handleManualSync}
+        syncMode="realtime"
+        onManualSync={handlePullLatest}
         onSignOut={driveSignOut}
-        isOnWantlistPage={isOnWantlistPage}
         collectionMode={collectionMode}
-        onToggleMode={handleToggleMode}
+        onToggleMode={() => setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd')}
       />
-      <main className="container mx-auto p-4 md:p-6">
-        {isGoogleDriveSelectedButLoggedOut && (
-             <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
-                <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
-                <p className="text-zinc-600 mt-2">Sign in to your Google account to keep your collection and wantlist synced across devices.</p>
-                {driveError && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 flex flex-col gap-2">
-                        <p>{driveError}</p>
-                        <button onClick={driveResetStatus} className="text-xs font-bold underline">Clear error and try again</button>
-                    </div>
-                )}
-                {!driveReady ? (
-                    <div className="mt-6 flex flex-col items-center gap-2">
-                        <SpinnerIcon className="w-8 h-8 text-zinc-400" />
-                        <button disabled className="w-full bg-zinc-200 text-zinc-400 font-bold py-3 px-6 rounded-lg cursor-not-allowed">Initializing...</button>
-                    </div>
-                ) : (
-                    <div className="flex flex-col gap-3">
-                        <button 
-                            onClick={driveSignIn} 
-                            disabled={driveStatus === 'authenticating'}
-                            className="mt-6 w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                            {driveStatus === 'authenticating' && <SpinnerIcon className="w-5 h-5" />}
-                            {driveStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
-                        </button>
-                        {driveStatus === 'authenticating' && (
-                            <button onClick={driveResetStatus} className="text-xs text-zinc-400 underline">Cancel or Reset</button>
-                        )}
-                    </div>
-                )}
-                <p className="mt-4 text-[10px] text-zinc-400">DiscO only requests access to files it creates in your Drive.</p>
-             </div>
-        )}
 
+      <main className="container mx-auto px-4 py-8 flex-grow">
         <Routes>
-          <Route path="/" element={<ListView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
-          <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} collectionMode={collectionMode} />} />
-          <Route path="/artists" element={<ArtistsView cds={currentCollection} collectionMode={collectionMode} />} />
-          <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={(item) => handleSaveWantlistItem(item)} collectionMode={collectionMode} />} />
-          <Route path="/stats" element={<DashboardView cds={currentCollection} collectionMode={collectionMode} />} />
-          <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} collectionMode={collectionMode} />} />
-          <Route path="/wantlist" element={<WantlistView wantlist={currentWantlist} onRequestEdit={(item) => { setWantlistItemToEdit(item); setIsAddWantlistModalOpen(true); }} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
-          <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
+          <Route path="/" element={
+            <ListView 
+                cds={collection.filter(c => (c.format || 'cd') === collectionMode)} 
+                wantlist={wantlist.filter(w => (w.format || 'cd') === collectionMode)}
+                onAddToWantlist={onAddToWantlist}
+                onRequestAdd={() => navigate('/', { state: { openAdd: true }})}
+                onRequestEdit={(cd) => navigate('/', { state: { editCdId: cd.id }})}
+                collectionMode={collectionMode}
+            />
+          } />
+          <Route path="/cd/:id" element={<DetailView cds={collection} onDeleteCD={onDeleteCD} onUpdateCD={onUpdateCD} collectionMode={collectionMode} />} />
+          <Route path="/artists" element={<ArtistsView cds={collection} collectionMode={collectionMode} />} />
+          <Route path="/artist/:artistName" element={<ArtistDetailView cds={collection} wantlist={wantlist} onAddToWantlist={onAddToWantlist} collectionMode={collectionMode} />} />
+          <Route path="/stats" element={<DashboardView cds={collection} collectionMode={collectionMode} />} />
+          <Route path="/duplicates" element={<DuplicatesView cds={collection} onDeleteCD={onDeleteCD} collectionMode={collectionMode} />} />
+          <Route path="/wantlist" element={<WantlistView wantlist={wantlist.filter(w => (w.format || 'cd') === collectionMode)} onRequestEdit={(i) => navigate('/wantlist', { state: { editWantlistItemId: i.id }})} onDelete={onDeleteWantlistItem} onMoveToCollection={onMoveToCollection} collectionMode={collectionMode} />} />
+          <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={wantlist} cds={collection} onDelete={onDeleteWantlistItem} onMoveToCollection={onMoveToCollection} collectionMode={collectionMode} />} />
         </Routes>
       </main>
 
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="w-full max-w-3xl my-8 shadow-2xl">
-            <AddCDForm onSave={handleSaveCD} onCancel={() => { setIsAddModalOpen(false); setCdToEdit(null); setPrefillData(null); }} cdToEdit={cdToEdit} prefill={prefillData} isVinyl={collectionMode === 'vinyl'} />
+      <BottomNavBar collectionMode={collectionMode} onToggleMode={() => setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd')} />
+      
+      {syncProvider === 'google_drive' && !driveSignedIn && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white p-8 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+                  <h2 className="text-2xl font-bold text-zinc-900 mb-2">Cloud Sync</h2>
+                  <p className="text-zinc-600 mb-6 text-sm">Sign in to back up your collection and access it from any device.</p>
+                  <button 
+                    onClick={driveSignIn}
+                    className="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2"
+                  >
+                      {driveStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
+                  </button>
+              </div>
           </div>
-        </div>
       )}
-      {isAddWantlistModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="w-full max-w-3xl my-8 shadow-2xl">
-                <AddWantlistItemForm onSave={handleSaveWantlistItem} onCancel={() => { setIsAddWantlistModalOpen(false); setWantlistItemToEdit(null); }} itemToEdit={wantlistItemToEdit} isVinyl={collectionMode === 'vinyl'} />
-            </div>
-        </div>
-      )}
-      {duplicateCheckResult && <ConfirmDuplicateModal isOpen={true} onClose={() => setDuplicateCheckResult(null)} onConfirm={(version) => handleSaveCD({ ...duplicateCheckResult.newCd, version })} newCdData={duplicateCheckResult.newCd} existingCd={duplicateCheckResult.existingCd} />}
-      <ImportConfirmModal isOpen={!!pendingImport} onClose={() => setPendingImport(null)} onMerge={() => confirmImport('merge')} onReplace={() => confirmImport('replace')} importCount={pendingImport?.length || 0} />
-      <SyncSettingsModal isOpen={isSyncSettingsOpen} onClose={() => setIsSyncSettingsOpen(false)} currentProvider={syncProvider} onProviderChange={setSyncProvider} syncMode={syncMode} onSyncModeChange={setSyncMode} />
-      <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} />
-      <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30" aria-label="Add New"><PlusIcon className="h-6 w-6" /></button>
+
+      <SyncConflictModal 
+        isOpen={!!conflictCloudTime} 
+        onResolve={handleResolveConflict} 
+        lastCloudTime={conflictCloudTime} 
+      />
     </div>
   );
 };
 
-const App: React.FC = () => (<HashRouter><ScrollToTop /><AppContent /></HashRouter>);
+const App: React.FC = () => (
+  <HashRouter>
+    <AppContent />
+  </HashRouter>
+);
+
 export default App;
