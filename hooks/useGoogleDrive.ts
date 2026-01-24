@@ -74,12 +74,24 @@ export const useGoogleDrive = () => {
             setSyncStatus('idle');
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
+          } else if (tokenResponse && tokenResponse.error) {
+            setError(`Login failed: ${tokenResponse.error_description || tokenResponse.error}`);
+            setSyncStatus('error');
+          } else {
+            setSyncStatus('idle');
           }
         },
       });
       setIsApiReady(true);
+      
+      // Attempt silent reconnect if previously signed in
       if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
-        window.tokenClient.requestAccessToken({ prompt: '' });
+        try {
+          window.tokenClient.requestAccessToken({ prompt: '' });
+        } catch (e) {
+          console.warn("Silent re-auth failed, waiting for user gesture.");
+          localStorage.removeItem(SIGNED_IN_KEY);
+        }
       }
     } catch (e) {
       console.error("GIS Init Error:", e);
@@ -116,7 +128,10 @@ export const useGoogleDrive = () => {
   }, [initializeGapi]);
 
   const signIn = useCallback(() => {
-    if (!window.tokenClient) return;
+    if (!window.tokenClient) {
+      setError("Sync system not ready. Please refresh.");
+      return;
+    }
     setSyncStatus('authenticating');
     setError(null);
     window.tokenClient.requestAccessToken({ prompt: 'select_account' });
@@ -160,7 +175,8 @@ export const useGoogleDrive = () => {
       });
       const remoteTime = new Date(metadata.result.modifiedTime).getTime();
       const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
-      return remoteTime > (localTime + 2000);
+      // Use a larger tolerance for mobile devices with potential clock drift
+      return remoteTime > (localTime + 5000);
     } catch (e) {
       return false;
     }
@@ -171,9 +187,12 @@ export const useGoogleDrive = () => {
     setSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
-      const response = await window.gapi.client.drive.files.get({ 
-        fileId: id, 
-        alt: 'media' 
+      
+      // Use standard request for the body to ensure we can add cache-busters
+      const response = await window.gapi.client.request({
+        path: `/drive/v3/files/${id}`,
+        method: 'GET',
+        params: { alt: 'media', t: Date.now() } // Cache buster
       });
       
       const metadata = await window.gapi.client.drive.files.get({ 

@@ -91,11 +91,11 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.5-flash-image',
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: "Identify the album from this cover art. Provide JSON with artist, title, genre, year, record_label, and tags." }
+                    { text: "Identify the artist and album from this cover art. Provide JSON output." }
                 ]
             },
             config: {
