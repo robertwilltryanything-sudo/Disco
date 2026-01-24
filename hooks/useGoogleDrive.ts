@@ -263,7 +263,8 @@ export const useGoogleDrive = () => {
     
     const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
     if (currentHash === lastSyncHashRef.current) {
-        updateSyncStatus('synced');
+        // If hash matches but status is not synced, set it. But usually it's already synced.
+        if (syncStatusRef.current !== 'synced') updateSyncStatus('synced');
         return;
     }
 

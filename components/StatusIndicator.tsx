@@ -1,4 +1,3 @@
-// Add missing React import
 import React, { useMemo } from 'react';
 import { SyncStatus, SyncProvider, SyncMode } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
@@ -50,8 +49,9 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const isClickable = isGoogleDrive && !isBusy;
 
   return (
-    <div className="relative group flex items-center">
+    <div className="relative group flex items-center h-8">
       <button
+        type="button"
         onClick={isClickable ? onManualSync : undefined}
         disabled={!isClickable}
         className={`p-1.5 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-800 ${isClickable ? 'hover:bg-zinc-100 cursor-pointer' : 'cursor-default'}`}
@@ -61,10 +61,10 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
         <Icon className={`h-5 w-5 ${color} ${isBusy ? 'animate-spin' : ''} transition-all duration-500 ease-in-out`} />
       </button>
       {status === 'synced' && (
-        <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter transition-opacity duration-300 opacity-100">Synced</span>
+        <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter transition-opacity duration-300 opacity-100 pointer-events-none">Synced</span>
       )}
     </div>
   );
 };
 
-export default StatusIndicator;
+export default React.memo(StatusIndicator);

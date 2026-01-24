@@ -94,9 +94,10 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 
 export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | null> {
     try {
-        // Using Pro for visual recognition tasks as it handles complex images much better than Flash.
+        // Switched to Flash for better rate limits and stability on Vercel deployments.
+        // Pro models often encounter "Resource Exhausted" on high-traffic or shared keys.
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3-flash-preview',
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
@@ -107,8 +108,7 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
                 systemInstruction: "You are a highly accurate music metadata assistant. Identify albums from cover art images. Always return valid JSON matching the requested schema. If an album cannot be identified with high confidence, return a reasonable guess or leave fields blank if completely unknown, but the JSON structure must always be valid.",
                 responseMimeType: "application/json",
                 responseSchema: albumInfoSchema,
-                // Thinking is helpful for image reasoning, but we cap it to keep it snappy.
-                thinkingConfig: { thinkingBudget: 1024 }
+                thinkingConfig: { thinkingBudget: 0 }
             },
         });
         
