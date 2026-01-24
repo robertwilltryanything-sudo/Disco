@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SyncStatus, SyncProvider, SyncMode } from '../types';
+import { SyncStatus, SyncProvider } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UploadIcon } from './icons/UploadIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -12,7 +12,6 @@ interface StatusIndicatorProps {
   status: SyncStatus;
   error: string | null;
   syncProvider: SyncProvider;
-  syncMode?: SyncMode;
   onManualSync: () => void;
 }
 
@@ -29,7 +28,6 @@ const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; to
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, onManualSync }) => {
   const isGoogleDrive = syncProvider === 'google_drive';
-  
   const currentStatusInfo = statusMap[status];
   
   const Icon = (status === 'loading' || status === 'saving' || status === 'authenticating') ? SpinnerIcon :
@@ -40,7 +38,6 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const color = currentStatusInfo.color;
 
   let finalTooltip = isGoogleDrive ? currentStatusInfo.driveTooltip : currentStatusInfo.tooltip;
-  
   if ((status === 'error' || status === 'disabled') && error) {
     finalTooltip = error;
   }
