@@ -34,6 +34,7 @@ export const useGoogleDrive = () => {
   const fileIdRef = useRef<string | null>(null);
   const scriptsInitiatedRef = useRef(false);
   const tokenExpiryRef = useRef<number>(0);
+  const authTimeoutRef = useRef<number | null>(null);
   
   const syncStatusRef = useRef<SyncStatus>('idle');
   useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
@@ -44,6 +45,9 @@ export const useGoogleDrive = () => {
       setError('Google Sync is not configured.');
       setIsApiReady(false);
     }
+    return () => {
+        if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+    };
   }, []);
 
   const clearAuthState = useCallback(() => {
@@ -65,6 +69,7 @@ export const useGoogleDrive = () => {
     if (!isSignedIn || !window.tokenClient) return;
     
     const now = Date.now();
+    // Refresh token if it's expired or expiring in the next 5 minutes
     if (now > tokenExpiryRef.current - 300000) {
       return new Promise<void>((resolve) => {
         const originalCallback = window.tokenClient.callback;
@@ -123,6 +128,8 @@ export const useGoogleDrive = () => {
             client_id: GOOGLE_CLIENT_ID,
             scope: GOOGLE_DRIVE_SCOPES,
             callback: (tokenResponse: any) => {
+                if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+                
                 if (tokenResponse && tokenResponse.access_token) {
                     window.gapi.client.setToken(tokenResponse);
                     tokenExpiryRef.current = Date.now() + (tokenResponse.expires_in * 1000);
@@ -130,6 +137,11 @@ export const useGoogleDrive = () => {
                     setSyncStatus('idle');
                     setError(null);
                     localStorage.setItem(SIGNED_IN_KEY, 'true');
+                } else if (tokenResponse?.error) {
+                    setError(`Sign-in error: ${tokenResponse.error}`);
+                    setSyncStatus('error');
+                } else {
+                    setSyncStatus('idle');
                 }
             },
         });
@@ -168,19 +180,37 @@ export const useGoogleDrive = () => {
 
   const signIn = useCallback(() => {
       if (!isApiReady || !GOOGLE_CLIENT_ID) return;
+      
       setSyncStatus('authenticating');
+      setError(null);
+      
+      // Safety timeout for mobile popups that get blocked or closed
+      if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+      authTimeoutRef.current = window.setTimeout(() => {
+          if (syncStatusRef.current === 'authenticating') {
+              setSyncStatus('idle');
+              setError('Sign-in timed out. Please try again and ensure pop-ups are allowed.');
+          }
+      }, 45000);
+
       window.tokenClient.requestAccessToken({ prompt: 'select_account' });
   }, [isApiReady]);
 
+  const resetSyncStatus = useCallback(() => {
+    setSyncStatus('idle');
+    setError(null);
+  }, []);
+
   const getOrCreateFileId = useCallback(async () => {
     if (fileIdRef.current) return fileIdRef.current;
-    // Sort by modifiedTime to ensure we get the most recent version if duplicates exist
+    
     const response = await window.gapi.client.drive.files.list({
         q: `name='${COLLECTION_FILENAME}' and trashed=false`,
         spaces: 'drive',
         fields: 'files(id, name, modifiedTime)',
         orderBy: 'modifiedTime desc'
     });
+    
     if (response.result.files.length > 0) {
         fileIdRef.current = response.result.files[0].id;
         const time = response.result.files[0].modifiedTime;
@@ -204,14 +234,18 @@ export const useGoogleDrive = () => {
     try {
         await ensureValidToken();
         const id = await getOrCreateFileId();
-        // Use a cache buster even for metadata
+        
+        // Cache-busting metadata check
         const metadataResponse = await window.gapi.client.request({
             path: `/drive/v3/files/${id}`,
             method: 'GET',
             params: { fields: 'modifiedTime', t: Date.now() }
         });
+        
         const remoteTime = new Date(metadataResponse.result.modifiedTime).getTime();
         const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
+        
+        // Allow for 1s tolerance
         return remoteTime > (localTime + 1000);
     } catch (e) {
         return false;
@@ -225,11 +259,16 @@ export const useGoogleDrive = () => {
         await ensureValidToken();
         const id = await getOrCreateFileId();
         
-        // Use gapi.client.request to add a cache-buster query parameter to the media load
+        // Explicitly bust cache on mobile for the actual file content
         const response = await window.gapi.client.request({
             path: `/drive/v3/files/${id}`,
             method: 'GET',
-            params: { alt: 'media', t: Date.now() }
+            params: { alt: 'media', t: Date.now() },
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
         });
         
         const metadataResponse = await window.gapi.client.request({
@@ -270,6 +309,7 @@ export const useGoogleDrive = () => {
         wantlist: data.wantlist || [] 
     });
 
+    // Don't save if nothing changed since last sync
     if (currentHash === lastSyncHash) {
         setSyncStatus('synced');
         return;
@@ -280,6 +320,15 @@ export const useGoogleDrive = () => {
     try {
         await ensureValidToken();
         const id = await getOrCreateFileId();
+        
+        // Check for remote update before saving to prevent overwriting someone else's changes
+        const hasUpdate = await checkRemoteUpdate();
+        if (hasUpdate) {
+            setSyncStatus('error');
+            setError("Remote changes detected. Please refresh before saving.");
+            return;
+        }
+
         await window.gapi.client.request({
             path: `/upload/drive/v3/files/${id}`,
             method: 'PATCH',
@@ -299,7 +348,7 @@ export const useGoogleDrive = () => {
     } catch (e: any) {
         handleApiError(e, 'save data');
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError, ensureValidToken, lastSyncHash]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, ensureValidToken, lastSyncHash, checkRemoteUpdate]);
 
   const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {
     if (!isSignedIn) return [];
@@ -341,6 +390,6 @@ export const useGoogleDrive = () => {
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate,
     getRevisions, loadRevision, syncStatus, error, lastSyncTime,
-    lastSyncHash
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate, getRevisions, loadRevision, syncStatus, error, lastSyncTime, lastSyncHash]);
+    lastSyncHash, resetSyncStatus
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate, getRevisions, loadRevision, syncStatus, error, lastSyncTime, lastSyncHash, resetSyncStatus]);
 };

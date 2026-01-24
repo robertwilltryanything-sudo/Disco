@@ -17,10 +17,10 @@ interface StatusIndicatorProps {
 
 const statusMap: { [key in SyncStatus]: { icon: React.FC<any>; color: string; tooltip: string; driveTooltip: string } } = {
   idle: { icon: UploadIcon, color: 'text-zinc-500', tooltip: 'Sync idle.', driveTooltip: 'Signed out.' },
-  loading: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Downloading...', driveTooltip: 'Downloading from Drive...' },
+  loading: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Downloading...', driveTooltip: 'Downloading latest from Drive...' },
   saving: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Uploading...', driveTooltip: 'Syncing changes to Drive...' },
-  synced: { icon: CheckIcon, color: 'text-green-500', tooltip: 'Synced.', driveTooltip: 'Cloud backup is up to date.' },
-  error: { icon: XCircleIcon, color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error.' },
+  synced: { icon: CheckIcon, color: 'text-green-500', tooltip: 'Synced.', driveTooltip: 'Cloud backup is up to date. Click to force refresh.' },
+  error: { icon: XCircleIcon, color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error. Click to try again.' },
   disabled: { icon: XCircleIcon, color: 'text-zinc-400', tooltip: 'Not configured.', driveTooltip: 'Not configured.' },
   authenticating: { icon: SpinnerIcon, color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in to Google...' },
 };
@@ -31,6 +31,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   
   const Icon = (status === 'loading' || status === 'saving' || status === 'authenticating') ? SpinnerIcon :
                (status === 'error' && isGoogleDrive) ? SyncIcon : 
+               (status === 'synced' && isGoogleDrive) ? SyncIcon :
                currentStatusInfo.icon;
 
   const color = currentStatusInfo.color;

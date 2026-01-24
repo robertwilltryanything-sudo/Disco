@@ -112,7 +112,8 @@ const AppContent: React.FC = () => {
     syncStatus: driveStatus,
     error: driveError,
     lastSyncHash: driveLastSyncHash,
-    isApiReady: driveReady
+    isApiReady: driveReady,
+    resetSyncStatus: driveResetStatus
   } = useGoogleDrive();
 
   const handlePullLatest = useCallback(async () => {
@@ -131,7 +132,7 @@ const AppContent: React.FC = () => {
       }
   }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad, driveStatus]);
 
-  // Robust visibility sync (better for mobile backgrounding)
+  // Robust background & visibility sync
   useEffect(() => {
     const checkSync = async () => {
         if (syncProvider === 'google_drive' && driveSignedIn && driveStatus !== 'loading' && driveStatus !== 'saving' && hasAttemptedInitialLoad) {
@@ -158,9 +159,13 @@ const AppContent: React.FC = () => {
         }
     };
 
+    // Polling interval for users who keep the app open (e.g. tablet on a shelf)
+    const interval = setInterval(checkSync, 30000); 
+
     window.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', checkSync);
     return () => {
+        clearInterval(interval);
         window.removeEventListener('visibilitychange', handleVisibility);
         window.removeEventListener('focus', checkSync);
     };
@@ -175,7 +180,7 @@ const AppContent: React.FC = () => {
                   wantlist,
                   lastUpdated: new Date().toISOString()
               });
-          }, 4000); // Slightly longer delay to ensure initial pull finishes completely
+          }, 4000); 
           return () => clearTimeout(timeout);
       }
   }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad, driveStatus]);
@@ -202,10 +207,10 @@ const AppContent: React.FC = () => {
 
   const handleManualSync = useCallback(async () => {
     if (syncProvider === 'google_drive') {
-        await driveSaveData({ collection, wantlist, lastUpdated: new Date().toISOString() });
+        // Force pull instead of conditional check
         await handlePullLatest();
     }
-  }, [syncProvider, driveSaveData, collection, wantlist, handlePullLatest]);
+  }, [syncProvider, handlePullLatest]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
@@ -364,21 +369,31 @@ const AppContent: React.FC = () => {
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
                 <p className="text-zinc-600 mt-2">Sign in to your Google account to keep your collection and wantlist synced across devices.</p>
-                {driveError && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{driveError}</div>}
+                {driveError && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 flex flex-col gap-2">
+                        <p>{driveError}</p>
+                        <button onClick={driveResetStatus} className="text-xs font-bold underline">Clear error and try again</button>
+                    </div>
+                )}
                 {!driveReady ? (
                     <div className="mt-6 flex flex-col items-center gap-2">
                         <SpinnerIcon className="w-8 h-8 text-zinc-400" />
                         <button disabled className="w-full bg-zinc-200 text-zinc-400 font-bold py-3 px-6 rounded-lg cursor-not-allowed">Initializing...</button>
                     </div>
                 ) : (
-                    <button 
-                        onClick={driveSignIn} 
-                        disabled={driveStatus === 'authenticating'}
-                        className="mt-6 w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {driveStatus === 'authenticating' && <SpinnerIcon className="w-5 h-5" />}
-                        {driveStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
-                    </button>
+                    <div className="flex flex-col gap-3">
+                        <button 
+                            onClick={driveSignIn} 
+                            disabled={driveStatus === 'authenticating'}
+                            className="mt-6 w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {driveStatus === 'authenticating' && <SpinnerIcon className="w-5 h-5" />}
+                            {driveStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
+                        </button>
+                        {driveStatus === 'authenticating' && (
+                            <button onClick={driveResetStatus} className="text-xs text-zinc-400 underline">Cancel or Reset</button>
+                        )}
+                    </div>
                 )}
                 <p className="mt-4 text-[10px] text-zinc-400">DiscO only requests access to files it creates in your Drive.</p>
              </div>
