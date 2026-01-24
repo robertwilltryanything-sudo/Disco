@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
 import Header from './components/Header';
@@ -109,7 +109,8 @@ const AppContent: React.FC = () => {
     saveData: driveSaveData, 
     checkRemoteUpdate: driveCheckUpdate,
     syncStatus: driveStatus,
-    error: driveError
+    error: driveError,
+    lastSyncHash: driveLastSyncHash
   } = useGoogleDrive();
 
   const handlePullLatest = useCallback(async () => {
@@ -120,24 +121,51 @@ const AppContent: React.FC = () => {
     }
   }, [driveLoadData]);
 
+  // Initial load
   useEffect(() => {
       if (syncProvider === 'google_drive' && driveSignedIn) {
           handlePullLatest();
       }
   }, [syncProvider, driveSignedIn, handlePullLatest]);
 
+  // Auto-Pull on focus if cloud is newer and no local changes exist
   useEffect(() => {
     const handleFocus = async () => {
-        if (syncProvider === 'google_drive' && driveSignedIn) {
+        if (syncProvider === 'google_drive' && driveSignedIn && driveStatus !== 'loading' && driveStatus !== 'saving') {
             const hasUpdate = await driveCheckUpdate();
-            if (hasUpdate && window.confirm("A newer version of your collection is available on Google Drive. Update now?")) {
-                handlePullLatest();
+            if (hasUpdate) {
+                // Determine if local data matches last known sync state
+                const currentLocalHash = JSON.stringify({ collection, wantlist });
+                const noLocalChanges = currentLocalHash === driveLastSyncHash;
+
+                if (noLocalChanges) {
+                    console.log("Cloud version is newer and no local changes found. Auto-pulling...");
+                    handlePullLatest();
+                } else {
+                    if (window.confirm("A newer version of your collection is available on Google Drive. Overwrite your local unsaved changes with the cloud version?")) {
+                        handlePullLatest();
+                    }
+                }
             }
         }
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest]);
+  }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus]);
+
+  // Periodic background check (every 2 minutes) for users who leave the app open
+  useEffect(() => {
+      if (syncProvider === 'google_drive' && driveSignedIn) {
+          const interval = setInterval(async () => {
+              const hasUpdate = await driveCheckUpdate();
+              const currentLocalHash = JSON.stringify({ collection, wantlist });
+              if (hasUpdate && currentLocalHash === driveLastSyncHash) {
+                  handlePullLatest();
+              }
+          }, 120000);
+          return () => clearInterval(interval);
+      }
+  }, [syncProvider, driveSignedIn, driveCheckUpdate, driveLastSyncHash, collection, wantlist, handlePullLatest]);
 
   useEffect(() => {
       if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime') {
