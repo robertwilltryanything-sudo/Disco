@@ -74,6 +74,8 @@ const AppContent: React.FC = () => {
       return Array.isArray(data) ? data.map(normalizeData<WantlistItem>) : [];
   });
 
+  const [hasAttemptedInitialLoad, setHasAttemptedInitialLoad] = useState(false);
+
   const currentCollection = useMemo(() => 
     collection.filter(item => (item.format || 'cd') === collectionMode), 
   [collection, collectionMode]);
@@ -101,7 +103,6 @@ const AppContent: React.FC = () => {
   });
 
   const { 
-    isApiReady: driveReady, 
     isSignedIn: driveSignedIn, 
     signIn: driveSignIn, 
     signOut: driveSignOut, 
@@ -110,7 +111,8 @@ const AppContent: React.FC = () => {
     checkRemoteUpdate: driveCheckUpdate,
     syncStatus: driveStatus,
     error: driveError,
-    lastSyncHash: driveLastSyncHash
+    lastSyncHash: driveLastSyncHash,
+    isApiReady: driveReady
   } = useGoogleDrive();
 
   const handlePullLatest = useCallback(async () => {
@@ -119,56 +121,53 @@ const AppContent: React.FC = () => {
         setCollection(data.collection || []);
         setWantlist(data.wantlist || []);
     }
+    setHasAttemptedInitialLoad(true);
   }, [driveLoadData]);
 
-  // Initial load
+  // Initial load when signing in
   useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn) {
+      if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad) {
           handlePullLatest();
       }
-  }, [syncProvider, driveSignedIn, handlePullLatest]);
+  }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad]);
 
-  // Auto-Pull on focus if cloud is newer and no local changes exist
+  // Robust visibility sync (better for mobile backgrounding)
   useEffect(() => {
-    const handleFocus = async () => {
+    const checkSync = async () => {
         if (syncProvider === 'google_drive' && driveSignedIn && driveStatus !== 'loading' && driveStatus !== 'saving') {
             const hasUpdate = await driveCheckUpdate();
             if (hasUpdate) {
-                // Determine if local data matches last known sync state
                 const currentLocalHash = JSON.stringify({ collection, wantlist });
-                const noLocalChanges = currentLocalHash === driveLastSyncHash;
+                const noLocalChanges = currentLocalHash === driveLastSyncHash || !driveLastSyncHash;
 
                 if (noLocalChanges) {
-                    console.log("Cloud version is newer and no local changes found. Auto-pulling...");
                     handlePullLatest();
                 } else {
-                    if (window.confirm("A newer version of your collection is available on Google Drive. Overwrite your local unsaved changes with the cloud version?")) {
+                    if (window.confirm("Remote changes detected. Update your collection? Your local unsaved changes will be lost.")) {
                         handlePullLatest();
                     }
                 }
             }
         }
     };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+
+    const handleVisibility = () => {
+        if (document.visibilityState === 'visible') {
+            checkSync();
+        }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', checkSync);
+    return () => {
+        window.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('focus', checkSync);
+    };
   }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus]);
 
-  // Periodic background check (every 2 minutes) for users who leave the app open
+  // Auto-Save Effect with Safety Gate
   useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn) {
-          const interval = setInterval(async () => {
-              const hasUpdate = await driveCheckUpdate();
-              const currentLocalHash = JSON.stringify({ collection, wantlist });
-              if (hasUpdate && currentLocalHash === driveLastSyncHash) {
-                  handlePullLatest();
-              }
-          }, 120000);
-          return () => clearInterval(interval);
-      }
-  }, [syncProvider, driveSignedIn, driveCheckUpdate, driveLastSyncHash, collection, wantlist, handlePullLatest]);
-
-  useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime') {
+      if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad) {
           const timeout = setTimeout(() => {
               driveSaveData({
                   collection,
@@ -178,7 +177,7 @@ const AppContent: React.FC = () => {
           }, 3000); 
           return () => clearTimeout(timeout);
       }
-  }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData]);
+  }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad]);
 
   const handleToggleMode = useCallback(() => {
     setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');

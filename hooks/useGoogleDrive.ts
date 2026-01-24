@@ -60,15 +60,17 @@ export const useGoogleDrive = () => {
   const ensureValidToken = useCallback(async () => {
     if (!isSignedIn || !window.tokenClient) return;
     
-    // Refresh token if it's expired or expiring in the next 5 minutes
     const now = Date.now();
+    // Refresh token if it's expired or expiring in the next 5 minutes
     if (now > tokenExpiryRef.current - 300000) {
       return new Promise<void>((resolve) => {
+        const originalCallback = window.tokenClient.callback;
         window.tokenClient.callback = (response: any) => {
             if (response.access_token) {
                 window.gapi.client.setToken(response);
                 tokenExpiryRef.current = Date.now() + (response.expires_in * 1000);
             }
+            if (originalCallback) originalCallback(response);
             resolve();
         };
         window.tokenClient.requestAccessToken({ prompt: '' });
@@ -196,8 +198,8 @@ export const useGoogleDrive = () => {
         const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
         const remoteTime = new Date(metadata.result.modifiedTime).getTime();
         const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
-        // Cloud is newer if it's > 5s ahead of local record
-        return remoteTime > (localTime + 5000);
+        // Use a 2s buffer for clock drift
+        return remoteTime > (localTime + 2000);
     } catch (e) {
         return false;
     }
@@ -305,6 +307,6 @@ export const useGoogleDrive = () => {
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate,
     getRevisions, loadRevision, syncStatus, error, lastSyncTime,
-    lastSyncHash: lastSyncHashRef.current // Exported for auto-pull logic
+    lastSyncHash: lastSyncHashRef.current
   }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate, getRevisions, loadRevision, syncStatus, error, lastSyncTime]);
 };
