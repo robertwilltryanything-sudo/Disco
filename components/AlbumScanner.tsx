@@ -1,3 +1,4 @@
+// Added missing React import to satisfy namespace usage
 import React, { useState, useRef, useEffect } from 'react';
 import { CameraIcon } from './icons/CameraIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
@@ -68,10 +69,29 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
     if (video && canvas && video.readyState >= video.HAVE_METADATA) {
       const context = canvas.getContext('2d');
       if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        // Optimize image size for API consumption (max 1024px)
+        const MAX_DIMENSION = 1024;
+        let width = video.videoWidth;
+        let height = video.videoHeight;
+
+        if (width > height) {
+          if (width > MAX_DIMENSION) {
+            height *= MAX_DIMENSION / width;
+            width = MAX_DIMENSION;
+          }
+        } else {
+          if (height > MAX_DIMENSION) {
+            width *= MAX_DIMENSION / height;
+            height = MAX_DIMENSION;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        context.drawImage(video, 0, 0, width, height);
+        
+        // Export as JPEG with 0.8 quality to further reduce payload size
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         const base64 = dataUrl.split(',')[1];
         onCapture(base64);
       }

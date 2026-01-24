@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD, DiscographyAlbum } from './types';
 
@@ -49,6 +48,7 @@ export async function getArtistDiscography(artistName: string): Promise<Discogra
             config: {
                 responseMimeType: "application/json",
                 responseSchema: discographySchema,
+                thinkingConfig: { thinkingBudget: 0 }
             },
         });
         return JSON.parse(response.text || '[]');
@@ -63,6 +63,9 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: `Provide one interesting brief piece of trivia about the album "${title}" by "${artist}". One concise sentence.`,
+            config: {
+                thinkingConfig: { thinkingBudget: 0 }
+            }
         });
         return response.text?.trim() || null;
     } catch (error) {
@@ -79,6 +82,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
             config: {
                 responseMimeType: "application/json",
                 responseSchema: albumDetailsSchema,
+                thinkingConfig: { thinkingBudget: 0 }
             },
         });
         return JSON.parse(response.text || '{}');
@@ -91,19 +95,25 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
+            model: 'gemini-3-flash-preview',
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: "Identify the artist and album from this cover art. Provide JSON output." }
+                    { text: "Examine the album cover provided in the image and identify the Artist and Album Title. Return the data in the specified JSON format." }
                 ]
             },
             config: {
+                systemInstruction: "You are a world-class music database expert. Your task is to accurately identify album covers from photos and provide structured metadata including artist, title, year, genre, and record label.",
                 responseMimeType: "application/json",
                 responseSchema: albumInfoSchema,
+                thinkingConfig: { thinkingBudget: 0 }
             },
         });
-        const data = JSON.parse(response.text || '{}');
+        
+        const text = response.text;
+        if (!text) return null;
+        
+        const data = JSON.parse(text);
         return Object.keys(data).length === 0 ? null : data;
     } catch (error) {
         console.error("Album scan error:", error);

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
@@ -32,7 +33,6 @@ export const useGoogleDrive = () => {
   const scriptsInitiatedRef = useRef(false);
   const authTimeoutRef = useRef<number | null>(null);
   
-  // Ref for internal state checking to avoid closure issues in callbacks
   const syncStatusRef = useRef<SyncStatus>('idle');
   useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
 
@@ -73,7 +73,6 @@ export const useGoogleDrive = () => {
         client_id: GOOGLE_CLIENT_ID,
         scope: GOOGLE_DRIVE_SCOPES,
         callback: (tokenResponse: any) => {
-          // Clear timeout when callback hits
           if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
           
           if (tokenResponse && tokenResponse.access_token) {
@@ -143,12 +142,11 @@ export const useGoogleDrive = () => {
     setSyncStatus('authenticating');
     setError(null);
     
-    // Safety timeout for mobile popups that get blocked or closed
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
         if (syncStatusRef.current === 'authenticating') {
             setSyncStatus('idle');
-            setError('Sign-in timed out. Please try again and ensure pop-ups are allowed.');
+            setError('Sign-in timed out. Please ensure pop-ups are allowed and try again.');
         }
     }, 45000);
 
@@ -188,16 +186,21 @@ export const useGoogleDrive = () => {
     if (!isSignedIn) return false;
     try {
       const id = await getOrCreateFileId();
-      // Cache buster for metadata check
-      const metadata = await window.gapi.client.drive.files.get({ 
-        fileId: id, 
-        fields: 'modifiedTime',
-        t: Date.now() 
+      
+      // Use low-level request for metadata with aggressive cache busting
+      const response = await window.gapi.client.request({
+        path: `/drive/v3/files/${id}`,
+        method: 'GET',
+        params: { fields: 'modifiedTime', t: Date.now() },
+        headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+        }
       });
-      const remoteTime = new Date(metadata.result.modifiedTime).getTime();
+      
+      const remoteTime = new Date(response.result.modifiedTime).getTime();
       const localTime = lastSyncTime ? new Date(lastSyncTime).getTime() : 0;
       
-      // Return true if remote is newer by at least 1 second
       return remoteTime > (localTime + 1000);
     } catch (e) {
       return false;
@@ -210,21 +213,20 @@ export const useGoogleDrive = () => {
     try {
       const id = await getOrCreateFileId();
       
-      // Explicitly bust cache on mobile for the actual file content
       const response = await window.gapi.client.request({
         path: `/drive/v3/files/${id}`,
         method: 'GET',
         params: { alt: 'media', t: Date.now() },
         headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
+            'Pragma': 'no-cache'
         }
       });
       
-      const metadata = await window.gapi.client.drive.files.get({ 
-        fileId: id, 
-        fields: 'modifiedTime' 
+      const metadata = await window.gapi.client.request({
+        path: `/drive/v3/files/${id}`,
+        method: 'GET',
+        params: { fields: 'modifiedTime', t: Date.now() }
       });
 
       const data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
@@ -261,12 +263,11 @@ export const useGoogleDrive = () => {
     try {
       const id = await getOrCreateFileId();
       
-      // Before saving, ensure we aren't overwriting a remote change
       const remoteChanged = await checkRemoteUpdate();
       if (remoteChanged) {
           setSyncStatus('error');
-          setError("Remote changes detected! Pulling latest version...");
-          return; // Let App.tsx handle the re-sync
+          setError("Cloud updates detected. Please refresh to avoid overwriting changes.");
+          return;
       }
 
       await window.gapi.client.request({
