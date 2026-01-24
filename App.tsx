@@ -23,6 +23,7 @@ import { useGoogleDrive } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import { SpinnerIcon } from './components/icons/SpinnerIcon';
+import SyncConflictModal from './components/SyncConflictModal';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
@@ -85,35 +86,64 @@ const AppContent: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cdToEdit, setCdToEdit] = useState<CD | null>(null);
   const [prefillData, setPrefillData] = useState<Partial<CD> | null>(null);
-  
   const [isAddWantlistModalOpen, setIsAddWantlistModalOpen] = useState(false);
   const [wantlistItemToEdit, setWantlistItemToEdit] = useState<WantlistItem | null>(null);
-  
   const [duplicateCheckResult, setDuplicateCheckResult] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
   const [pendingImport, setPendingImport] = useState<CD[] | null>(null);
-  
   const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
+
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
       const saved = localStorage.getItem('disco_sync_provider');
       return (saved === 'google_drive' ? 'google_drive' : 'none');
   });
+
   const [syncMode, setSyncMode] = useState<SyncMode>(() => {
        return (localStorage.getItem('disco_sync_mode') as SyncMode) || 'realtime';
   });
 
   const googleDriveSync = useGoogleDrive();
 
-  // Load from Google Drive on startup or provider change
+  const handlePullLatest = useCallback(async () => {
+    const data = await googleDriveSync.loadData();
+    if (data) {
+        setCollection(data.collection);
+        setWantlist(data.wantlist);
+    }
+  }, [googleDriveSync]);
+
+  const handleResolveConflict = useCallback(async (strategy: 'cloud' | 'local') => {
+      if (strategy === 'cloud') {
+          await handlePullLatest();
+      } else {
+          // Force save local version over cloud
+          await googleDriveSync.saveData({
+              collection,
+              wantlist,
+              lastUpdated: new Date().toISOString()
+          }, true);
+      }
+  }, [handlePullLatest, googleDriveSync, collection, wantlist]);
+
+  // Load from Google Drive on startup
   useEffect(() => {
       if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn) {
-          googleDriveSync.loadData().then(data => {
-              if (data) {
-                  setCollection(data.collection);
-                  setWantlist(data.wantlist);
-              }
-          });
+          handlePullLatest();
       }
-  }, [syncProvider, googleDriveSync.isSignedIn]);
+  }, [syncProvider, googleDriveSync.isSignedIn, handlePullLatest]);
+
+  // Check for remote updates when tab is focused
+  useEffect(() => {
+    const handleFocus = async () => {
+        if (syncProvider === 'google_drive' && googleDriveSync.isSignedIn) {
+            const hasUpdate = await googleDriveSync.checkRemoteUpdate();
+            if (hasUpdate && window.confirm("A newer version of your collection is available on Google Drive. Update now?")) {
+                handlePullLatest();
+            }
+        }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [syncProvider, googleDriveSync, handlePullLatest]);
 
   // Real-time Sync logic
   useEffect(() => {
@@ -124,25 +154,20 @@ const AppContent: React.FC = () => {
                   wantlist,
                   lastUpdated: new Date().toISOString()
               });
-          }, 2000); // 2 second debounce for real-time feel
+          }, 2000);
           return () => clearTimeout(timeout);
       }
-  }, [collection, wantlist, syncProvider, googleDriveSync.isSignedIn, syncMode]);
+  }, [collection, wantlist, syncProvider, googleDriveSync, syncMode]);
 
   const handleToggleMode = useCallback(() => {
     setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd');
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('disco_mode', collectionMode);
-  }, [collectionMode]);
-
-  // Persistent Local Cache
+  useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
   useEffect(() => {
     localStorage.setItem('disco_collection', JSON.stringify(collection));
     localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
   }, [collection, wantlist]);
-  
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
   useEffect(() => { localStorage.setItem('disco_sync_mode', syncMode); }, [syncMode]);
 
@@ -151,18 +176,10 @@ const AppContent: React.FC = () => {
 
   const handleManualSync = useCallback(async () => {
     if (syncProvider === 'google_drive') {
-        await googleDriveSync.saveData({
-            collection,
-            wantlist,
-            lastUpdated: new Date().toISOString()
-        });
-        const data = await googleDriveSync.loadData();
-        if (data) {
-            setCollection(data.collection);
-            setWantlist(data.wantlist);
-        }
+        await googleDriveSync.saveData({ collection, wantlist, lastUpdated: new Date().toISOString() });
+        await handlePullLatest();
     }
-  }, [syncProvider, googleDriveSync, collection, wantlist]);
+  }, [syncProvider, googleDriveSync, collection, wantlist, handlePullLatest]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
@@ -258,14 +275,11 @@ const AppContent: React.FC = () => {
     setCdToEdit(null);
     setPrefillData(null);
     setDuplicateCheckResult(null);
-
     fetchAndApplyAlbumDetails(finalCd);
     if (cdData.id) navigate(`/cd/${finalCd.id}`);
   }, [collectionMode, duplicateCheckResult, navigate, currentCollection]);
 
-  const handleDeleteCD = useCallback(async (id: string) => {
-    setCollection(prev => prev.filter(cd => cd.id !== id));
-  }, []);
+  const handleDeleteCD = useCallback(async (id: string) => { setCollection(prev => prev.filter(cd => cd.id !== id)); }, []);
   
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
       const tempId = itemData.id || generateId();
@@ -281,16 +295,12 @@ const AppContent: React.FC = () => {
       } else {
           setWantlist(prev => [finalItem, ...prev]);
       }
-
       setIsAddWantlistModalOpen(false);
       setWantlistItemToEdit(null);
-
       if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
   }, [collectionMode, navigate]);
 
-  const handleDeleteWantlistItem = useCallback(async (id: string) => {
-    setWantlist(prev => prev.filter(item => item.id !== id));
-  }, []);
+  const handleDeleteWantlistItem = useCallback(async (id: string) => { setWantlist(prev => prev.filter(item => item.id !== id)); }, []);
 
   const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
       const cdData: Omit<CD, 'id'> = { ...item, created_at: new Date().toISOString() };
@@ -328,17 +338,10 @@ const AppContent: React.FC = () => {
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
                 <p className="text-zinc-600 mt-2">Sign in to your Google account to keep your collection and wantlist synced across devices.</p>
-                
-                {googleDriveSync.error && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                        {googleDriveSync.error}
-                    </div>
-                )}
-
+                {googleDriveSync.error && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{googleDriveSync.error}</div>}
                 {!googleDriveSync.isApiReady ? (
                     <div className="mt-6 flex flex-col items-center gap-2">
                         <SpinnerIcon className="w-8 h-8 text-zinc-400" />
-                        <p className="text-xs text-zinc-400">Initializing Google Identity Services...</p>
                         <button disabled className="w-full bg-zinc-200 text-zinc-400 font-bold py-3 px-6 rounded-lg cursor-not-allowed">Initializing...</button>
                     </div>
                 ) : (
@@ -351,10 +354,7 @@ const AppContent: React.FC = () => {
                         {googleDriveSync.syncStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
                     </button>
                 )}
-                
-                <p className="mt-4 text-[10px] text-zinc-400">
-                    DiscO only requests access to files it creates in your Drive.
-                </p>
+                <p className="mt-4 text-[10px] text-zinc-400">DiscO only requests access to files it creates in your Drive.</p>
              </div>
         )}
 
@@ -369,6 +369,12 @@ const AppContent: React.FC = () => {
           <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
         </Routes>
       </main>
+
+      <SyncConflictModal 
+        isOpen={currentSyncStatus === 'conflict'} 
+        onResolve={handleResolveConflict} 
+        lastCloudTime={googleDriveSync.lastSyncTime}
+      />
 
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">

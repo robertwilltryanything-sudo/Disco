@@ -1,94 +1,59 @@
+
 import React from 'react';
-import { CollectionData } from '../types';
 import { CloudIcon } from './icons/CloudIcon';
 import { ComputerDesktopIcon } from './icons/ComputerDesktopIcon';
 
 interface SyncConflictModalProps {
   isOpen: boolean;
-  onClose: () => void;
-  onResolve: (useCloudVersion: boolean) => void;
-  conflictData: {
-    local: CollectionData;
-    cloud: CollectionData;
-  };
+  onResolve: (strategy: 'cloud' | 'local') => void;
+  lastCloudTime: string | null;
 }
 
-const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleString();
-};
+const SyncConflictModal: React.FC<SyncConflictModalProps> = ({ isOpen, onResolve, lastCloudTime }) => {
+  if (!isOpen) return null;
 
-const VersionCard: React.FC<{
-    title: string,
-    timestamp: string | null,
-    onSelect: () => void,
-    children: React.ReactNode
-}> = ({ title, timestamp, onSelect, children }) => (
-    <div className="border border-zinc-200 rounded-lg p-4 flex-1">
-        <div className="flex items-center gap-2 text-lg font-bold text-zinc-800">
-            {children}
-            <h3>{title}</h3>
-        </div>
-        <p className="text-sm text-zinc-600 mt-1">
-            Last Updated: <span className="font-medium text-zinc-800">{formatDate(timestamp)}</span>
-        </p>
-        <button
-            onClick={onSelect}
-            className="mt-4 w-full bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
-        >
-            Keep This Version
-        </button>
-    </div>
-);
-
-
-const SyncConflictModal: React.FC<SyncConflictModalProps> = ({ isOpen, onClose, onResolve, conflictData }) => {
-  if (!isOpen) {
-    return null;
-  }
+  const formattedCloudTime = lastCloudTime ? new Date(lastCloudTime).toLocaleString() : 'Recently';
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="conflict-dialog-title"
-    >
-      <div className="bg-white rounded-lg border border-zinc-200 p-6 m-4 max-w-2xl w-full">
-        <h2 id="conflict-dialog-title" className="text-xl font-bold text-zinc-800">Sync Conflict Detected</h2>
-        <p className="mt-2 text-zinc-600">
-          The version of your collection in the cloud is newer than your local version. This can happen if you've made changes on another device.
-        </p>
-        <p className="mt-1 text-zinc-600">
-          Please choose which version you want to keep.
-        </p>
-
-        <div className="mt-6 flex flex-col md:flex-row gap-4">
-            <VersionCard 
-                title="Cloud Version"
-                timestamp={conflictData.cloud.lastUpdated}
-                onSelect={() => onResolve(true)}
-            >
-                <CloudIcon className="w-6 h-6" />
-            </VersionCard>
-
-            <VersionCard 
-                title="Local Version"
-                timestamp={conflictData.local.lastUpdated}
-                onSelect={() => onResolve(false)}
-            >
-                <ComputerDesktopIcon className="w-6 h-6" />
-            </VersionCard>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div className="bg-white rounded-xl border border-zinc-200 shadow-2xl max-w-xl w-full p-8">
+        <div className="flex items-center gap-3 text-red-600 mb-4">
+          <CloudIcon className="w-8 h-8" />
+          <h2 className="text-2xl font-bold">Sync Conflict Detected</h2>
         </div>
+        
+        <p className="text-zinc-600 mb-6">
+          A newer version of your collection was found on Google Drive (last updated {formattedCloudTime}).
+          Someone else or another device has saved changes. How would you like to proceed?
+        </p>
 
-        <div className="mt-6 flex justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
-            onClick={onClose}
-            className="py-2 px-4 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+            onClick={() => onResolve('cloud')}
+            className="flex flex-col items-center gap-3 p-6 border-2 border-zinc-100 rounded-xl hover:border-zinc-900 transition-all text-center"
           >
-            Cancel
+            <CloudIcon className="w-10 h-10 text-blue-600" />
+            <div>
+              <span className="block font-bold text-zinc-900">Use Cloud Version</span>
+              <span className="text-xs text-zinc-500">Pulls latest updates to this device</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => onResolve('local')}
+            className="flex flex-col items-center gap-3 p-6 border-2 border-zinc-100 rounded-xl hover:border-zinc-900 transition-all text-center"
+          >
+            <ComputerDesktopIcon className="w-10 h-10 text-zinc-700" />
+            <div>
+              <span className="block font-bold text-zinc-900">Keep Local Version</span>
+              <span className="text-xs text-zinc-500">Overwrites the cloud with current data</span>
+            </div>
           </button>
         </div>
+
+        <p className="mt-6 text-[10px] text-zinc-400 text-center uppercase tracking-widest">
+          Version control allows you to restore any version later if you make a mistake.
+        </p>
       </div>
     </div>
   );

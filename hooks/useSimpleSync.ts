@@ -1,7 +1,6 @@
-import { useState, useCallback } from 'react';
-import { CD, CollectionData } from '../types';
 
-export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
+import { useState, useCallback } from 'react';
+import { CD, CollectionData, SyncStatus } from '../types';
 
 const BUCKET_URL = process.env.VITE_SIMPLE_SYNC_URL;
 

@@ -1,4 +1,5 @@
 
+
 export interface CD {
   id: string;
   artist: string;
@@ -44,7 +45,11 @@ export interface DriveRevision {
 export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'record_label' | 'created_at';
 export type SortOrder = 'asc' | 'desc';
 
-export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
+/**
+ * Common sync statuses used throughout the app.
+ * Added 'conflict' to support Google Drive conflict resolution.
+ */
+export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating' | 'conflict';
 
 // Added 'supabase' to SyncProvider to allow comparison in useSupabaseSync hook
 export type SyncProvider = 'google_drive' | 'supabase' | 'none';
