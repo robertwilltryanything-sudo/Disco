@@ -95,7 +95,7 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: "Examine this music album cover. Extract the artist name, album title, release year, and genre. Return the details in JSON format." }
+                    { text: "Identify the artist and album from this cover art. Provide JSON output." }
                 ]
             },
             config: {
@@ -103,8 +103,7 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
                 responseSchema: albumInfoSchema,
             },
         });
-        const text = response.text || '{}';
-        const data = JSON.parse(text);
+        const data = JSON.parse(response.text || '{}');
         return Object.keys(data).length === 0 ? null : data;
     } catch (error) {
         console.error("Album scan error:", error);
