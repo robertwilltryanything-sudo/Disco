@@ -36,6 +36,11 @@ export interface CollectionData {
   lastUpdated: string | null;
 }
 
+export interface DriveRevision {
+  id: string;
+  modifiedTime: string;
+}
+
 export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'record_label' | 'created_at';
 export type SortOrder = 'asc' | 'desc';
 

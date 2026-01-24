@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
-import { CD, WantlistItem } from '../types';
+import { CD, WantlistItem, DriveRevision } from '../types';
 
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
 
@@ -10,6 +10,8 @@ export interface UnifiedStorage {
     wantlist: WantlistItem[];
     lastUpdated: string;
 }
+
+const SIGNED_IN_KEY = 'disco_drive_signed_in';
 
 declare global {
   interface Window {
@@ -26,10 +28,12 @@ export const useGoogleDrive = () => {
   const [isApiReady, setIsApiReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   const fileIdRef = useRef<string | null>(null);
   const lastSyncHashRef = useRef<string | null>(null);
   const scriptsInitiatedRef = useRef(false);
+  const refreshTimerRef = useRef<number | null>(null);
   
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
@@ -43,10 +47,16 @@ export const useGoogleDrive = () => {
     if (window.gapi?.client) {
       window.gapi.client.setToken(null);
     }
+    if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+    }
+    localStorage.removeItem(SIGNED_IN_KEY);
     setIsSignedIn(false);
     fileIdRef.current = null;
     lastSyncHashRef.current = null;
     setSyncStatus('idle');
+    setLastSyncTime(null);
   }, []);
 
   const handleApiError = useCallback((e: any, context: string) => {
@@ -108,9 +118,24 @@ export const useGoogleDrive = () => {
                     setIsSignedIn(true);
                     setSyncStatus('idle');
                     setError(null);
+                    localStorage.setItem(SIGNED_IN_KEY, 'true');
+
+                    // Setup auto-refresh
+                    if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
+                    const expiresIn = (tokenResponse.expires_in || 3600) * 1000;
+                    const refreshDelay = Math.max(expiresIn - 300000, 60000); 
+                    refreshTimerRef.current = window.setTimeout(() => {
+                        window.tokenClient.requestAccessToken({ prompt: '' });
+                    }, refreshDelay);
+
                 } else if (tokenResponse.error) {
-                    setError(`Sign-In Error: ${tokenResponse.error_description || tokenResponse.error}`);
-                    setSyncStatus('error');
+                    if (tokenResponse.error === 'immediate_failed') {
+                        setIsSignedIn(false);
+                        setSyncStatus('idle');
+                    } else {
+                        setError(`Sign-In Error: ${tokenResponse.error_description || tokenResponse.error}`);
+                        setSyncStatus('error');
+                    }
                 }
             },
         });
@@ -124,12 +149,14 @@ export const useGoogleDrive = () => {
   useEffect(() => {
     if (gapiLoaded && gisLoaded) {
         setIsApiReady(true);
+        if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
+            window.tokenClient.requestAccessToken({ prompt: '' });
+        }
     }
   }, [gapiLoaded, gisLoaded]);
 
   useEffect(() => {
     if (scriptsInitiatedRef.current || !GOOGLE_CLIENT_ID) return;
-    
     scriptsInitiatedRef.current = true;
     
     const gapiScript = document.createElement('script');
@@ -146,15 +173,16 @@ export const useGoogleDrive = () => {
     gisScript.onload = handleGisLoad;
     document.body.appendChild(gisScript);
     
+    return () => {
+        if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
+    };
   }, [handleGapiLoad, handleGisLoad]);
 
   const signIn = useCallback(() => {
-      if (!isApiReady || !GOOGLE_CLIENT_ID) {
-          return;
-      }
+      if (!isApiReady || !GOOGLE_CLIENT_ID) return;
       setSyncStatus('authenticating');
       if (window.tokenClient) {
-          window.tokenClient.requestAccessToken({ prompt: 'consent' });
+          window.tokenClient.requestAccessToken({ prompt: 'select_account' });
       }
   }, [isApiReady]);
 
@@ -165,19 +193,21 @@ export const useGoogleDrive = () => {
         const response = await window.gapi.client.drive.files.list({
             q: `name='${COLLECTION_FILENAME}' and trashed=false`,
             spaces: 'drive',
-            fields: 'files(id, name)',
+            fields: 'files(id, name, modifiedTime)',
         });
         if (response.result.files.length > 0) {
             fileIdRef.current = response.result.files[0].id;
+            setLastSyncTime(response.result.files[0].modifiedTime);
         } else {
             const createResponse = await window.gapi.client.drive.files.create({
                 resource: {
                     name: COLLECTION_FILENAME,
                     mimeType: 'application/json',
                 },
-                fields: 'id',
+                fields: 'id, modifiedTime',
             });
             fileIdRef.current = createResponse.result.id;
+            setLastSyncTime(createResponse.result.modifiedTime);
         }
         return fileIdRef.current;
     } catch (e: any) {
@@ -193,7 +223,10 @@ export const useGoogleDrive = () => {
     try {
         const id = await getOrCreateFileId();
         const response = await window.gapi.client.drive.files.get({ fileId: id, alt: 'media' });
+        const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
+        
         const content = response.body;
+        setLastSyncTime(metadata.result.modifiedTime);
         
         if (content && content.length > 0) {
             const data = JSON.parse(content);
@@ -218,7 +251,6 @@ export const useGoogleDrive = () => {
   const saveData = useCallback(async (data: UnifiedStorage) => {
     if (!isSignedIn || syncStatus === 'saving') return;
     
-    // Hash based comparison to prevent redundant API calls
     const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
     if (currentHash === lastSyncHashRef.current) {
         setSyncStatus('synced');
@@ -230,18 +262,57 @@ export const useGoogleDrive = () => {
     try {
         const id = await getOrCreateFileId();
         const payload = JSON.stringify(data);
-        await window.gapi.client.request({
+        const response = await window.gapi.client.request({
             path: `/upload/drive/v3/files/${id}`,
             method: 'PATCH',
             params: { uploadType: 'media' },
             body: payload,
         });
+        
+        // Update local sync time from response
+        const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
+        setLastSyncTime(metadata.result.modifiedTime);
+        
         lastSyncHashRef.current = currentHash;
         setSyncStatus('synced');
     } catch (e: any) {
         handleApiError(e, 'save data');
     }
   }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus]);
+
+  const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {
+    if (!isSignedIn) return [];
+    try {
+        const id = await getOrCreateFileId();
+        const response = await window.gapi.client.drive.revisions.list({
+            fileId: id,
+            fields: 'revisions(id, modifiedTime)',
+        });
+        return response.result.revisions || [];
+    } catch (e) {
+        console.error("Failed to fetch revisions:", e);
+        return [];
+    }
+  }, [isSignedIn, getOrCreateFileId]);
+
+  const loadRevision = useCallback(async (revisionId: string): Promise<UnifiedStorage | null> => {
+    if (!isSignedIn) return null;
+    setSyncStatus('loading');
+    try {
+        const id = await getOrCreateFileId();
+        const response = await window.gapi.client.drive.revisions.get({
+            fileId: id,
+            revisionId: revisionId,
+            alt: 'media',
+        });
+        const data = JSON.parse(response.body);
+        setSyncStatus('synced');
+        return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : data;
+    } catch (e) {
+        handleApiError(e, 'load revision');
+        return null;
+    }
+  }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
   const signOut = useCallback(() => {
     const token = window.gapi?.client?.getToken();
@@ -252,5 +323,17 @@ export const useGoogleDrive = () => {
     }
   }, [clearAuthState]);
 
-  return { isApiReady, isSignedIn, signIn, signOut, loadData, saveData, syncStatus, error };
+  return { 
+    isApiReady, 
+    isSignedIn, 
+    signIn, 
+    signOut, 
+    loadData, 
+    saveData, 
+    getRevisions, 
+    loadRevision,
+    syncStatus, 
+    error,
+    lastSyncTime
+  };
 };

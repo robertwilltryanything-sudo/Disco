@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { SyncProvider, SyncMode } from '../types';
+
+import React, { useState, useEffect } from 'react';
+import { SyncProvider, SyncMode, DriveRevision } from '../types';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
 import { QuestionMarkCircleIcon } from './icons/QuestionMarkCircleIcon';
+import { ClockIcon } from './icons/ClockIcon';
+import { SpinnerIcon } from './icons/SpinnerIcon';
+import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 interface SyncSettingsModalProps {
     isOpen: boolean;
@@ -56,10 +60,32 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     onProviderChange,
 }) => {
     const [showDriveHelp, setShowDriveHelp] = useState(false);
+    const [revisions, setRevisions] = useState<DriveRevision[]>([]);
+    const [isLoadingRevisions, setIsLoadingRevisions] = useState(false);
+    const googleDrive = useGoogleDrive();
 
-    if (!isOpen) {
-        return null;
-    }
+    useEffect(() => {
+        if (isOpen && currentProvider === 'google_drive' && googleDrive.isSignedIn) {
+            setIsLoadingRevisions(true);
+            googleDrive.getRevisions().then(revs => {
+                setRevisions(revs.sort((a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime()).slice(0, 10));
+                setIsLoadingRevisions(false);
+            });
+        }
+    }, [isOpen, currentProvider, googleDrive.isSignedIn]);
+
+    const handleRestore = async (revId: string) => {
+        if (!window.confirm("Restore this version? Your current local changes will be replaced.")) return;
+        const data = await googleDrive.loadRevision(revId);
+        if (data) {
+            // Force a reload of the app state by notifying the parent or just reloading
+            // In this app structure, we rely on the next effect cycle in App.tsx to pick up changes
+            // but we'll trigger a reload for safety if needed.
+            window.location.reload(); 
+        }
+    };
+
+    if (!isOpen) return null;
 
     const isGoogleConfigured = !!process.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -73,20 +99,60 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
             <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-lg relative shadow-2xl my-8">
                 <div className="p-6 border-b border-zinc-200">
                     <h2 id="sync-dialog-title" className="text-xl font-bold text-zinc-900">Sync & Backup Settings</h2>
-                    <p className="text-sm text-zinc-600 mt-1">Choose how you'd like to protect your data.</p>
+                    <p className="text-sm text-zinc-600 mt-1">Protect your collection with cloud version control.</p>
                 </div>
                 
                 <div className="p-6 space-y-4">
                     {/* Google Drive Option */}
                     <ProviderOption
                         title="Google Drive Sync"
-                        description={isGoogleConfigured ? "Save your collection to a private file in your own Google Drive." : "Configuration required in Google Cloud Console."}
+                        description={isGoogleConfigured ? "Sync and keep history in your private Google Drive." : "Configuration required in Google Cloud Console."}
                         isSelected={currentProvider === 'google_drive'}
                         isDisabled={!isGoogleConfigured}
                         onSelect={() => onProviderChange('google_drive')}
                     />
 
-                    {/* Setup Guidance for Google Drive */}
+                    {/* Version History Section */}
+                    {currentProvider === 'google_drive' && googleDrive.isSignedIn && (
+                        <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+                            <h4 className="text-sm font-bold text-zinc-800 flex items-center gap-2 mb-3">
+                                <ClockIcon className="w-4 h-4" />
+                                Version History (Latest 10)
+                            </h4>
+                            
+                            {isLoadingRevisions ? (
+                                <div className="flex items-center gap-2 py-2 text-zinc-500 text-xs">
+                                    <SpinnerIcon className="w-3 h-3 animate-spin" />
+                                    <span>Fetching history...</span>
+                                </div>
+                            ) : revisions.length > 0 ? (
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {revisions.map((rev) => (
+                                        <div key={rev.id} className="flex items-center justify-between p-2 bg-white border border-zinc-200 rounded text-xs">
+                                            <span className="text-zinc-600">
+                                                {new Date(rev.modifiedTime).toLocaleString()}
+                                            </span>
+                                            <button 
+                                                onClick={() => handleRestore(rev.id)}
+                                                className="text-blue-600 font-bold hover:underline"
+                                            >
+                                                Restore
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-zinc-500 italic">No sync history available yet.</p>
+                            )}
+                            
+                            {googleDrive.lastSyncTime && (
+                                <p className="mt-3 text-[10px] text-zinc-400 border-t border-zinc-200 pt-2">
+                                    Last Cloud Sync: {new Date(googleDrive.lastSyncTime).toLocaleString()}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     {!isGoogleConfigured && (
                         <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
                             <div className="flex items-start gap-3">
@@ -94,8 +160,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                                 <div className="flex-1">
                                     <h4 className="text-sm font-bold text-zinc-800">Setup Google Sync</h4>
                                     <p className="text-xs text-zinc-600 mt-1 leading-relaxed">
-                                        Go to the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-zinc-900 underline font-medium">Google Cloud Console</a>, 
-                                        create an <strong>OAuth client ID</strong>, and add it as <code>VITE_GOOGLE_CLIENT_ID</code>.
+                                        Go to the Google Cloud Console, create an OAuth client ID, and add it as <code>VITE_GOOGLE_CLIENT_ID</code>.
                                     </p>
                                     
                                     <button 
@@ -108,11 +173,8 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
 
                                     {showDriveHelp && (
                                         <div className="mt-3 p-3 bg-white border border-zinc-200 rounded text-[11px] text-zinc-700 space-y-3 leading-tight shadow-inner">
-                                            <p><span className="font-bold text-red-600">0. Enable API:</span> In the sidebar, go to "APIs & Services" &gt; "Library". Search for <span className="font-bold">Google Drive API</span> and click <span className="font-bold">Enable</span>.</p>
-                                            <p><span className="font-bold">1. Origins (IMPORTANT):</span> In your OAuth Client settings, add <span className="italic font-medium">{window.location.origin}</span> to the <span className="font-bold">Authorized JavaScript origins</span> list.</p>
-                                            <p><span className="font-bold">2. Test Users:</span> In "OAuth consent screen", scroll to <span className="font-bold">Test users</span> and add your email. Your app must be in "Testing" mode or "Published".</p>
-                                            <p><span className="font-bold">3. Credentials:</span> In the sidebar, click <span className="font-bold">Credentials</span> &gt; <span className="font-bold">+ Create</span> &gt; <span className="italic">OAuth client ID</span> &gt; <span className="italic">Web Application</span>.</p>
-                                            <p className="text-orange-600 text-[10px] mt-2 italic font-medium">Tip: If you get a 401 error, it's almost always a missing "Origin" (Step 1) or wrong Client ID.</p>
+                                            <p><span className="font-bold">1. Origins:</span> Add <span className="italic font-medium">{window.location.origin}</span> to the <span className="font-bold">Authorized JavaScript origins</span> list.</p>
+                                            <p><span className="font-bold">2. Test Users:</span> Add your email to "Test users" in the OAuth consent screen.</p>
                                         </div>
                                     )}
                                 </div>
@@ -120,7 +182,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                         </div>
                     )}
                     
-                    {/* Local Only Option */}
                     <ProviderOption
                         title="No Sync (Local Only)"
                         description="Data is stored only in this browser. Use manual export for backups."
