@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
@@ -125,27 +124,24 @@ const AppContent: React.FC = () => {
     setHasAttemptedInitialLoad(true);
   }, [driveLoadData]);
 
-  // Initial load when signing in
+  // Initial load when signing in - Mandatory Sync
   useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad && driveStatus !== 'loading') {
+      if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad && driveStatus !== 'loading' && driveStatus !== 'authenticating') {
           handlePullLatest();
       }
   }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad, driveStatus]);
 
-  // Robust background & visibility sync
+  // Sync safety check
   useEffect(() => {
     const checkSync = async () => {
-        if (syncProvider === 'google_drive' && driveSignedIn && driveStatus !== 'loading' && driveStatus !== 'saving' && hasAttemptedInitialLoad) {
+        if (syncProvider === 'google_drive' && driveSignedIn && driveStatus === 'synced' && hasAttemptedInitialLoad) {
             const hasUpdate = await driveCheckUpdate();
             if (hasUpdate) {
                 const currentLocalHash = JSON.stringify({ collection, wantlist });
-                // If local matches cloud's last known state, pull silently
-                const noLocalChanges = currentLocalHash === driveLastSyncHash;
-
-                if (noLocalChanges) {
+                if (currentLocalHash === driveLastSyncHash) {
                     handlePullLatest();
                 } else {
-                    if (window.confirm("Cloud updates detected! Would you like to refresh your collection? Unsaved local changes will be lost.")) {
+                    if (window.confirm("Remote changes detected! Pull cloud version? Unsaved local changes will be lost.")) {
                         handlePullLatest();
                     }
                 }
@@ -154,14 +150,10 @@ const AppContent: React.FC = () => {
     };
 
     const handleVisibility = () => {
-        if (document.visibilityState === 'visible') {
-            checkSync();
-        }
+        if (document.visibilityState === 'visible') checkSync();
     };
 
-    // Polling interval for users who keep the app open (e.g. tablet on a shelf)
-    const interval = setInterval(checkSync, 30000); 
-
+    const interval = setInterval(checkSync, 60000); 
     window.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', checkSync);
     return () => {
@@ -171,7 +163,7 @@ const AppContent: React.FC = () => {
     };
   }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus, hasAttemptedInitialLoad]);
 
-  // Auto-Save Effect with strict Safety Gate
+  // Optimized Auto-Save
   useEffect(() => {
       if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad && driveStatus === 'synced') {
           const timeout = setTimeout(() => {
@@ -180,7 +172,7 @@ const AppContent: React.FC = () => {
                   wantlist,
                   lastUpdated: new Date().toISOString()
               });
-          }, 4000); 
+          }, 3000); 
           return () => clearTimeout(timeout);
       }
   }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad, driveStatus]);
@@ -191,7 +183,6 @@ const AppContent: React.FC = () => {
 
   useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
   
-  // Only persist collection to local storage if we have successfully engaged with the sync provider OR we aren't using one
   useEffect(() => {
     if (syncProvider === 'none' || hasAttemptedInitialLoad) {
         localStorage.setItem('disco_collection', JSON.stringify(collection));
@@ -207,7 +198,6 @@ const AppContent: React.FC = () => {
 
   const handleManualSync = useCallback(async () => {
     if (syncProvider === 'google_drive') {
-        // Force pull instead of conditional check
         await handlePullLatest();
     }
   }, [syncProvider, handlePullLatest]);
@@ -308,7 +298,7 @@ const AppContent: React.FC = () => {
     setDuplicateCheckResult(null);
     fetchAndApplyAlbumDetails(finalCd);
     if (cdData.id) navigate(`/cd/${finalCd.id}`);
-  }, [collectionMode, duplicateCheckResult, navigate, currentCollection]);
+  }, [collectionMode, duplicateCheckResult, navigate, currentCollection, collectionMode]);
 
   const handleDeleteCD = useCallback(async (id: string) => { setCollection(prev => prev.filter(cd => cd.id !== id)); }, []);
   
@@ -368,34 +358,30 @@ const AppContent: React.FC = () => {
         {isGoogleDriveSelectedButLoggedOut && (
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
-                <p className="text-zinc-600 mt-2">Sign in to your Google account to keep your collection and wantlist synced across devices.</p>
+                <p className="text-zinc-600 mt-2">Sign in to keep your collection synced across devices.</p>
                 {driveError && (
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 flex flex-col gap-2">
                         <p>{driveError}</p>
-                        <button onClick={driveResetStatus} className="text-xs font-bold underline">Clear error and try again</button>
+                        <button onClick={driveResetStatus} className="text-xs font-bold underline">Try again</button>
                     </div>
                 )}
                 {!driveReady ? (
                     <div className="mt-6 flex flex-col items-center gap-2">
                         <SpinnerIcon className="w-8 h-8 text-zinc-400" />
-                        <button disabled className="w-full bg-zinc-200 text-zinc-400 font-bold py-3 px-6 rounded-lg cursor-not-allowed">Initializing...</button>
+                        <button disabled className="w-full bg-zinc-200 text-zinc-400 font-bold py-3 px-6 rounded-lg">Initializing...</button>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
                         <button 
                             onClick={driveSignIn} 
                             disabled={driveStatus === 'authenticating'}
-                            className="mt-6 w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="mt-6 w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all flex items-center justify-center gap-2"
                         >
                             {driveStatus === 'authenticating' && <SpinnerIcon className="w-5 h-5" />}
                             {driveStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
                         </button>
-                        {driveStatus === 'authenticating' && (
-                            <button onClick={driveResetStatus} className="text-xs text-zinc-400 underline">Cancel or Reset</button>
-                        )}
                     </div>
                 )}
-                <p className="mt-4 text-[10px] text-zinc-400">DiscO only requests access to files it creates in your Drive.</p>
              </div>
         )}
 

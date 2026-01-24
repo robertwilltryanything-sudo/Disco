@@ -99,11 +99,11 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: "Examine the album cover provided in the image and identify the Artist and Album Title. Return the data in structured JSON format including metadata like year, genre, and record label." }
+                    { text: "Identify the Artist and Album Title from this image. Return structured JSON with year, genre, and record label if visible." }
                 ]
             },
             config: {
-                systemInstruction: "You are a world-class music database expert. Your task is to accurately identify album covers from photos and provide structured metadata. If you are unsure, provide your best guess based on the visual information.",
+                systemInstruction: "You are a music database expert. Extract metadata from album covers accurately. If text is blurry, provide your best guess based on recognizable logos or art style.",
                 responseMimeType: "application/json",
                 responseSchema: albumInfoSchema,
                 thinkingConfig: { thinkingBudget: 0 }
@@ -111,20 +111,12 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
         });
         
         const text = response.text;
-        if (!text) {
-            console.error("Empty response from Gemini API for getAlbumInfo");
-            return null;
-        }
+        if (!text) return null;
         
         const data = JSON.parse(text);
-        if (!data.artist || !data.title) {
-            console.warn("Gemini returned partial JSON missing required fields:", data);
-            return data.artist || data.title ? data : null;
-        }
-        
-        return data;
+        return data.artist && data.title ? data : null;
     } catch (error) {
         console.error("Album scan error:", error);
-        throw error;
+        return null;
     }
 }
