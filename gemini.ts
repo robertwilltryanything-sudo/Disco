@@ -99,11 +99,11 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: "Identify the Artist and Album Title from this image. Return structured JSON with year, genre, and record label if visible." }
+                    { text: "Examine this album cover and extract the Artist and Album Title. Return structured metadata in JSON format." }
                 ]
             },
             config: {
-                systemInstruction: "You are a music database expert. Extract metadata from album covers accurately. If text is blurry, provide your best guess based on recognizable logos or art style.",
+                systemInstruction: "You are a specialized music cataloger. Identify album covers accurately. If you identify the album, provide Artist, Title, Year, Genre, and Record Label as JSON.",
                 responseMimeType: "application/json",
                 responseSchema: albumInfoSchema,
                 thinkingConfig: { thinkingBudget: 0 }

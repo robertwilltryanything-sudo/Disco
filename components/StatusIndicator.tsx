@@ -31,7 +31,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const isError = status === 'error';
   const isSynced = status === 'synced';
 
-  // Choose icon based on state but keep size stable
+  // Use a stable size for all icons to prevent "jumping"
   const Icon = isError ? XCircleIcon : isSynced ? CheckIcon : isBusy ? SpinnerIcon : SyncIcon;
   const color = currentStatusInfo.color;
 
@@ -43,18 +43,18 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const isClickable = isGoogleDrive && !isBusy;
 
   return (
-    <div className="relative group flex items-center">
+    <div className="relative group flex items-center h-8">
       <button
         onClick={isClickable ? onManualSync : undefined}
         disabled={!isClickable}
-        className={`p-1 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-800 ${isClickable ? 'hover:bg-zinc-100 cursor-pointer' : 'cursor-default'}`}
+        className={`p-1.5 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-800 ${isClickable ? 'hover:bg-zinc-100 cursor-pointer' : 'cursor-default'}`}
         aria-label={finalTooltip}
         title={finalTooltip}
       >
-        <Icon className={`h-5 w-5 ${color} ${isBusy ? 'animate-spin' : ''} transition-all duration-300`} />
+        <Icon className={`h-5 w-5 ${color} ${isBusy ? 'animate-spin' : ''} transition-colors duration-500`} />
       </button>
       {isSynced && (
-        <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter animate-pulse transition-opacity duration-500">
+        <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter animate-pulse transition-opacity duration-700">
           Synced
         </span>
       )}

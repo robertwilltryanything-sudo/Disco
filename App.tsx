@@ -124,14 +124,14 @@ const AppContent: React.FC = () => {
     setHasAttemptedInitialLoad(true);
   }, [driveLoadData]);
 
-  // Initial load when signing in - Mandatory Sync
+  // MANDATORY INITIAL SYNC: Read the latest file when logging in
   useEffect(() => {
       if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad && driveStatus !== 'loading' && driveStatus !== 'authenticating') {
           handlePullLatest();
       }
   }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad, driveStatus]);
 
-  // Sync safety check
+  // Background Remote Change Checker
   useEffect(() => {
     const checkSync = async () => {
         if (syncProvider === 'google_drive' && driveSignedIn && driveStatus === 'synced' && hasAttemptedInitialLoad) {
@@ -141,7 +141,7 @@ const AppContent: React.FC = () => {
                 if (currentLocalHash === driveLastSyncHash) {
                     handlePullLatest();
                 } else {
-                    if (window.confirm("Remote changes detected! Pull cloud version? Unsaved local changes will be lost.")) {
+                    if (window.confirm("A newer collection exists on Drive. Pull it now? (Current unsaved changes will be lost)")) {
                         handlePullLatest();
                     }
                 }
@@ -153,7 +153,7 @@ const AppContent: React.FC = () => {
         if (document.visibilityState === 'visible') checkSync();
     };
 
-    const interval = setInterval(checkSync, 60000); 
+    const interval = setInterval(checkSync, 120000); // Check every 2 minutes
     window.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', checkSync);
     return () => {
@@ -163,7 +163,7 @@ const AppContent: React.FC = () => {
     };
   }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus, hasAttemptedInitialLoad]);
 
-  // Optimized Auto-Save
+  // AUTOMATIC CLOUD SAVE: Write whenever there is an edit or addition
   useEffect(() => {
       if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad && driveStatus === 'synced') {
           const timeout = setTimeout(() => {
@@ -172,7 +172,7 @@ const AppContent: React.FC = () => {
                   wantlist,
                   lastUpdated: new Date().toISOString()
               });
-          }, 3000); 
+          }, 3000); // 3 second debounce to group rapid edits
           return () => clearTimeout(timeout);
       }
   }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad, driveStatus]);

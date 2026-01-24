@@ -151,7 +151,7 @@ export const useGoogleDrive = () => {
             setSyncStatus('idle');
             setError('Sign-in timed out. Please ensure pop-ups are allowed and try again.');
         }
-    }, 45000);
+    }, 60000); // Increased to 60s for mobile users
 
     window.tokenClient.requestAccessToken({ prompt: 'select_account' });
   }, []);
@@ -258,7 +258,7 @@ export const useGoogleDrive = () => {
     
     const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
     if (currentHash === lastSyncHashRef.current) {
-        setSyncStatus('synced');
+        if (syncStatusRef.current !== 'synced') setSyncStatus('synced');
         return;
     }
 
