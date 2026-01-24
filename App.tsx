@@ -100,7 +100,6 @@ const AppContent: React.FC = () => {
        return (localStorage.getItem('disco_sync_mode') as SyncMode) || 'realtime';
   });
 
-  // Destructure properties to avoid entire object as dependency in effects
   const { 
     isApiReady: driveReady, 
     isSignedIn: driveSignedIn, 
@@ -110,8 +109,7 @@ const AppContent: React.FC = () => {
     saveData: driveSaveData, 
     checkRemoteUpdate: driveCheckUpdate,
     syncStatus: driveStatus,
-    error: driveError,
-    lastSyncTime: driveSyncTime
+    error: driveError
   } = useGoogleDrive();
 
   const handlePullLatest = useCallback(async () => {
@@ -122,14 +120,12 @@ const AppContent: React.FC = () => {
     }
   }, [driveLoadData]);
 
-  // Load from Google Drive on startup
   useEffect(() => {
       if (syncProvider === 'google_drive' && driveSignedIn) {
           handlePullLatest();
       }
   }, [syncProvider, driveSignedIn, handlePullLatest]);
 
-  // Check for remote updates when tab is focused
   useEffect(() => {
     const handleFocus = async () => {
         if (syncProvider === 'google_drive' && driveSignedIn) {
@@ -143,7 +139,6 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest]);
 
-  // Real-time Sync logic
   useEffect(() => {
       if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime') {
           const timeout = setTimeout(() => {
@@ -152,7 +147,7 @@ const AppContent: React.FC = () => {
                   wantlist,
                   lastUpdated: new Date().toISOString()
               });
-          }, 3000); // Increased debounce to 3s for stability
+          }, 3000); 
           return () => clearTimeout(timeout);
       }
   }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData]);

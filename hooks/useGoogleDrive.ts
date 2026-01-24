@@ -32,6 +32,10 @@ export const useGoogleDrive = () => {
   const lastSyncHashRef = useRef<string | null>(null);
   const scriptsInitiatedRef = useRef(false);
   
+  // Use a ref to track syncStatus so callbacks can check it without being re-created
+  const syncStatusRef = useRef<SyncStatus>('idle');
+  useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
+
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
       setSyncStatus('disabled');
@@ -205,7 +209,8 @@ export const useGoogleDrive = () => {
   }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
   const saveData = useCallback(async (data: UnifiedStorage) => {
-    if (!isSignedIn || syncStatus === 'loading' || syncStatus === 'saving') return;
+    // Avoid double-saves if already busy
+    if (!isSignedIn || syncStatusRef.current === 'loading' || syncStatusRef.current === 'saving') return;
     
     const currentHash = JSON.stringify({ 
         collection: data.collection || [], 
@@ -235,7 +240,7 @@ export const useGoogleDrive = () => {
     } catch (e: any) {
         handleApiError(e, 'save data');
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError, syncStatus]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError]);
 
   const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {
     if (!isSignedIn) return [];
@@ -272,7 +277,6 @@ export const useGoogleDrive = () => {
     }
   }, [clearAuthState]);
 
-  // VERY IMPORTANT: Memoize the return value to prevent re-render loops in App.tsx
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate,
     getRevisions, loadRevision, syncStatus, error, lastSyncTime
