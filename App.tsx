@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, SyncMode, WantlistItem, CollectionMode } from './types';
 import Header from './components/Header';
@@ -75,11 +75,6 @@ const AppContent: React.FC = () => {
   });
 
   const [hasAttemptedInitialLoad, setHasAttemptedInitialLoad] = useState(false);
-  const collectionRef = useRef(collection);
-  const wantlistRef = useRef(wantlist);
-
-  useEffect(() => { collectionRef.current = collection; }, [collection]);
-  useEffect(() => { wantlistRef.current = wantlist; }, [wantlist]);
 
   const currentCollection = useMemo(() => 
     collection.filter(item => (item.format || 'cd') === collectionMode), 
@@ -130,7 +125,7 @@ const AppContent: React.FC = () => {
     setHasAttemptedInitialLoad(true);
   }, [driveLoadData]);
 
-  // Initial load logic
+  // Initial load when signing in
   useEffect(() => {
       if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad && driveStatus !== 'loading') {
           handlePullLatest();
@@ -143,20 +138,14 @@ const AppContent: React.FC = () => {
         if (syncProvider === 'google_drive' && driveSignedIn && driveStatus !== 'loading' && driveStatus !== 'saving' && hasAttemptedInitialLoad) {
             const hasUpdate = await driveCheckUpdate();
             if (hasUpdate) {
-                // Determine if local matches cloud's last known state to decide on "Silent Pull"
-                const localHashOnDevice = localStorage.getItem('disco_last_sync_hash');
-                const currentLocalHash = JSON.stringify({ 
-                    c: collectionRef.current.map(i => i.id).sort(),
-                    cl: collectionRef.current.length,
-                    w: wantlistRef.current.map(i => i.id).sort(),
-                    wl: wantlistRef.current.length,
-                    content: JSON.stringify({ collection: collectionRef.current, wantlist: wantlistRef.current })
-                });
+                const currentLocalHash = JSON.stringify({ collection, wantlist });
+                // If local matches cloud's last known state, pull silently
+                const noLocalChanges = currentLocalHash === driveLastSyncHash;
 
-                if (currentLocalHash === localHashOnDevice) {
+                if (noLocalChanges) {
                     handlePullLatest();
                 } else {
-                    if (window.confirm("Cloud updates detected! Refresh to see changes? Unsaved local edits will be lost.")) {
+                    if (window.confirm("Cloud updates detected! Would you like to refresh your collection? Unsaved local changes will be lost.")) {
                         handlePullLatest();
                     }
                 }
@@ -170,27 +159,28 @@ const AppContent: React.FC = () => {
         }
     };
 
+    // Polling interval for users who keep the app open (e.g. tablet on a shelf)
     const interval = setInterval(checkSync, 30000); 
+
     window.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', checkSync);
-    
     return () => {
         clearInterval(interval);
         window.removeEventListener('visibilitychange', handleVisibility);
         window.removeEventListener('focus', checkSync);
     };
-  }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, driveStatus, hasAttemptedInitialLoad]);
+  }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus, hasAttemptedInitialLoad]);
 
-  // Auto-Save Effect
+  // Auto-Save Effect with strict Safety Gate - Reduced delay for better UX feedback
   useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad && driveStatus === 'synced') {
+      if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad && (driveStatus === 'synced' || driveStatus === 'idle')) {
           const timeout = setTimeout(() => {
               driveSaveData({
                   collection,
                   wantlist,
                   lastUpdated: new Date().toISOString()
               });
-          }, 2000); // Shorter debounce for faster propagation
+          }, 2000); 
           return () => clearTimeout(timeout);
       }
   }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad, driveStatus]);
@@ -201,6 +191,7 @@ const AppContent: React.FC = () => {
 
   useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
   
+  // Only persist collection to local storage if we have successfully engaged with the sync provider OR we aren't using one
   useEffect(() => {
     if (syncProvider === 'none' || hasAttemptedInitialLoad) {
         localStorage.setItem('disco_collection', JSON.stringify(collection));
@@ -216,6 +207,7 @@ const AppContent: React.FC = () => {
 
   const handleManualSync = useCallback(async () => {
     if (syncProvider === 'google_drive') {
+        // Force pull instead of conditional check
         await handlePullLatest();
     }
   }, [syncProvider, handlePullLatest]);

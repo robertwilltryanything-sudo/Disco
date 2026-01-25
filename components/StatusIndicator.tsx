@@ -13,14 +13,14 @@ interface StatusIndicatorProps {
   onManualSync: () => void;
 }
 
-const statusMap: { [key in SyncStatus]: { color: string; tooltip: string; driveTooltip: string } } = {
+const statusMap: { [key in SyncStatus]: { color: string; tooltip: string; driveTooltip: string; label?: string } } = {
   idle: { color: 'text-zinc-400', tooltip: 'Sync idle.', driveTooltip: 'Signed out.' },
-  loading: { color: 'text-blue-500', tooltip: 'Downloading...', driveTooltip: 'Downloading latest from Drive...' },
-  saving: { color: 'text-blue-500', tooltip: 'Uploading...', driveTooltip: 'Syncing changes to Drive...' },
-  synced: { color: 'text-green-500', tooltip: 'Synced.', driveTooltip: 'Cloud backup is up to date. Click to force refresh.' },
-  error: { color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error. Click to try again.' },
+  loading: { color: 'text-blue-500', tooltip: 'Downloading...', driveTooltip: 'Syncing from Cloud...', label: 'Updating' },
+  saving: { color: 'text-blue-500', tooltip: 'Uploading...', driveTooltip: 'Syncing to Cloud...', label: 'Saving' },
+  synced: { color: 'text-green-500', tooltip: 'Synced.', driveTooltip: 'Cloud backup up to date.', label: 'Synced' },
+  error: { color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error. Click to try again.', label: 'Error' },
   disabled: { color: 'text-zinc-300', tooltip: 'Not configured.', driveTooltip: 'Not configured.' },
-  authenticating: { color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in to Google...' },
+  authenticating: { color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in to Google...', label: 'Connecting' },
 };
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, onManualSync }) => {
@@ -49,19 +49,23 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const isClickable = isGoogleDrive && !isBusy;
 
   return (
-    <div className="relative group flex items-center h-8">
+    <div className="relative group flex items-center h-8 bg-zinc-50 px-2 rounded-full border border-zinc-100">
       <button
         type="button"
         onClick={isClickable ? onManualSync : undefined}
         disabled={!isClickable}
-        className={`p-1.5 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-zinc-800 ${isClickable ? 'hover:bg-zinc-100 cursor-pointer' : 'cursor-default'}`}
+        className={`p-1 rounded-full transition-all duration-300 focus:outline-none ${isClickable ? 'hover:bg-zinc-200 cursor-pointer' : 'cursor-default'}`}
         aria-label={finalTooltip}
         title={finalTooltip}
       >
-        <Icon className={`h-5 w-5 ${color} ${isBusy ? 'animate-spin' : ''} transition-all duration-500 ease-in-out`} />
+        <Icon className={`h-4 w-4 md:h-5 md:w-5 ${color} ${isBusy ? 'animate-spin' : ''} transition-all duration-500 ease-in-out`} />
       </button>
-      {status === 'synced' && (
-        <span className="hidden lg:inline text-[10px] font-bold text-green-600 ml-1 uppercase tracking-tighter transition-opacity duration-300 opacity-100 pointer-events-none">Synced</span>
+      
+      {currentStatusInfo.label && (
+        <span className={`hidden md:inline text-[10px] font-bold ml-1.5 uppercase tracking-tighter transition-all duration-300 ${color} ${isBusy ? 'animate-pulse' : ''}`}>
+          {currentStatusInfo.label}
+          {isBusy && '...'}
+        </span>
       )}
     </div>
   );
