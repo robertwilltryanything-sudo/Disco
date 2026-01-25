@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { CD, DiscographyAlbum } from './types';
 
+// Use the API key exclusively from the environment variable.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const albumInfoSchema = {
@@ -41,13 +42,21 @@ const discographySchema = {
 };
 
 /**
- * Uses 'gemini-flash-lite-latest' for the highest free-tier availability.
- * Provides a massive daily quota (1500+ requests) compared to Gemini 3 (20 requests).
+ * Normalizes API errors, identifying quota limits.
  */
+function handleApiError(error: any, operation: string): string {
+    console.error(`Gemini API Error during ${operation}:`, error);
+    const message = error?.message || String(error);
+    if (message.includes('429') || message.includes('QUOTA') || message.includes('RESOURCE_EXHAUSTED')) {
+        return "Quota exceeded. Please wait a moment.";
+    }
+    return message;
+}
+
 export async function getArtistDiscography(artistName: string): Promise<DiscographyAlbum[] | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-flash-lite-latest',
+            model: 'gemini-3-flash-preview',
             contents: `Provide a list of official studio albums for "${artistName}". Include title and original release year. Respond in JSON.`,
             config: {
                 responseMimeType: "application/json",
@@ -57,7 +66,7 @@ export async function getArtistDiscography(artistName: string): Promise<Discogra
         });
         return JSON.parse(response.text || '[]');
     } catch (error) {
-        console.error("Discography fetch error:", error);
+        handleApiError(error, 'getArtistDiscography');
         return null;
     }
 }
@@ -65,7 +74,7 @@ export async function getArtistDiscography(artistName: string): Promise<Discogra
 export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-flash-lite-latest',
+            model: 'gemini-3-flash-preview',
             contents: `Provide one interesting brief piece of trivia about the album "${title}" by "${artist}". One concise sentence.`,
             config: {
                 thinkingConfig: { thinkingBudget: 0 }
@@ -73,7 +82,8 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
         });
         return response.text?.trim() || null;
     } catch (error) {
-        console.error("Trivia error:", error);
+        const msg = handleApiError(error, 'getAlbumTrivia');
+        if (msg.includes('Quota')) throw new Error(msg);
         return null;
     }
 }
@@ -81,7 +91,7 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
 export async function getAlbumDetails(artist: string, title: string): Promise<any | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-flash-lite-latest',
+            model: 'gemini-3-flash-preview',
             contents: `Details for album "${title}" by "${artist}": year, genre, label, and 2-3 tags. JSON format.`,
             config: {
                 responseMimeType: "application/json",
@@ -91,7 +101,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
         });
         return JSON.parse(response.text || '{}');
     } catch (error) {
-        console.error("Album details error:", error);
+        handleApiError(error, 'getAlbumDetails');
         return null;
     }
 }
@@ -99,7 +109,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | null> {
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-flash-lite-latest',
+            model: 'gemini-3-flash-preview',
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
@@ -107,7 +117,7 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
                 ]
             },
             config: {
-                systemInstruction: "You are a highly accurate music metadata assistant. Identify albums from cover art images. Always return valid JSON matching the requested schema. If an album cannot be identified with high confidence, return a reasonable guess or leave fields blank if completely unknown, but the JSON structure must always be valid.",
+                systemInstruction: "You are a highly accurate music metadata assistant. Identify albums from cover art images. Always return valid JSON matching the requested schema.",
                 responseMimeType: "application/json",
                 responseSchema: albumInfoSchema,
                 thinkingConfig: { thinkingBudget: 0 }
@@ -115,20 +125,11 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
         });
         
         const text = response.text;
-        if (!text) {
-            console.error("Empty response from Gemini API for getAlbumInfo");
-            return null;
-        }
+        if (!text) return null;
         
-        const data = JSON.parse(text);
-        if (!data.artist || !data.title) {
-            console.warn("Gemini returned partial JSON missing required fields:", data);
-            return data.artist || data.title ? data : null;
-        }
-        
-        return data;
+        return JSON.parse(text);
     } catch (error) {
-        console.error("Album scan error:", error);
+        handleApiError(error, 'getAlbumInfo');
         throw error;
     }
 }

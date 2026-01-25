@@ -41,20 +41,19 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                 // Store result in cache
                 localStorage.setItem(cacheKey, triviaText);
 
-            } catch (err) {
-                console.error("Failed to fetch trivia", err);
-                const errorMessage = (err as any)?.toString() ?? '';
-                if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
-                    setError("Trivia is unavailable due to high demand. Please check back later.");
+            } catch (err: any) {
+                const msg = err.message || String(err);
+                if (msg.includes('Quota') || msg.includes('429')) {
+                    setError("Trivia paused (API limit).");
                 } else {
-                    setError("Could not load trivia at this time.");
+                    setError("Trivia unavailable.");
                 }
             } finally {
                 setIsLoading(false);
             }
         };
         fetchTrivia();
-    }, [cd.id]); // Use ID as dependency to prevent re-fetching on reference changes
+    }, [cd.id]);
 
     const handleArtistClick = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -68,7 +67,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
     return (
         <Link
           to={`/cd/${cd.id}`}
-          className="block bg-white rounded-lg border border-zinc-200 overflow-hidden flex flex-col md:flex-row"
+          className="block bg-white rounded-lg border border-zinc-200 overflow-hidden flex flex-col md:flex-row shadow-sm hover:shadow-md transition-shadow"
           aria-label={`View details for featured album: ${cd.title} by ${cd.artist}`}
         >
             <div className="md:w-64 flex-shrink-0">
@@ -85,19 +84,19 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                 <h3 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h3>
                 <button
                     onClick={handleArtistClick}
-                    className="text-left text-base text-zinc-500"
+                    className="text-left text-base text-zinc-500 hover:text-zinc-800 transition-colors"
                     title={cd.artist}
                 >
                     {cd.artist}
                 </button>
-                <div className="mt-4 pt-4 border-t border-zinc-100">
+                <div className="mt-4 pt-4 border-t border-zinc-100 min-h-[3rem] flex items-center">
                      {isLoading ? (
                         <div className="flex items-center text-zinc-400 text-xs">
-                            <SpinnerIcon className="w-3 h-3 mr-2" />
-                            <span>Loading trivia...</span>
+                            <SpinnerIcon className="w-3 h-3 animate-spin mr-2" />
+                            <span>Discovering trivia...</span>
                         </div>
                     ) : error ? (
-                        <p className="text-red-400 text-xs">{error}</p>
+                        <p className="text-zinc-400 text-xs italic">{error}</p>
                     ) : (
                         <p className="text-zinc-600 italic text-sm leading-relaxed">"{trivia}"</p>
                     )}
