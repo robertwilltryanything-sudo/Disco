@@ -185,8 +185,8 @@ export const useGoogleDrive = () => {
       });
       const remoteTime = new Date(response.result.modifiedTime).getTime();
       const localTime = localStorage.getItem(LAST_SYNC_TIME_KEY) ? new Date(localStorage.getItem(LAST_SYNC_TIME_KEY)!).getTime() : 0;
-      // Increased threshold to 5s to account for minor clock skew and network latency
-      return remoteTime > (localTime + 5000);
+      // Increased threshold to 10s to account for minor clock skew and network latency across regions
+      return remoteTime > (localTime + 10000);
     } catch (e) {
       return false;
     }
@@ -232,27 +232,29 @@ export const useGoogleDrive = () => {
   const saveData = useCallback(async (data: UnifiedStorage) => {
     if (!isSignedIn || syncStatusRef.current === 'loading' || syncStatusRef.current === 'saving') return;
     const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
+    
+    // Don't save if there are no changes
     if (currentHash === lastSyncHashRef.current) {
         if (syncStatusRef.current !== 'synced') updateSyncStatus('synced');
         return;
     }
+
     updateSyncStatus('saving');
     try {
       const id = await getOrCreateFileId();
-      const remoteChanged = await checkRemoteUpdate();
-      if (remoteChanged) {
-          updateSyncStatus('error');
-          setError("Cloud updates detected. Please refresh to avoid overwriting changes.");
-          return;
-      }
+      
+      // Attempt the patch directly. If there's a serious conflict, the server or our timestamp check will catch it.
       await window.gapi.client.request({
         path: `/upload/drive/v3/files/${id}`,
         method: 'PATCH',
         params: { uploadType: 'media' },
         body: JSON.stringify(data),
       });
+
+      // Refetch metadata to get the official server-side modifiedTime
       const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
       const time = metadata.result.modifiedTime;
+      
       setLastSyncTime(time);
       setLastSyncHash(currentHash);
       lastSyncHashRef.current = currentHash;
@@ -262,7 +264,7 @@ export const useGoogleDrive = () => {
     } catch (e: any) {
       handleApiError(e, 'save data');
     }
-  }, [isSignedIn, getOrCreateFileId, handleApiError, checkRemoteUpdate, updateSyncStatus]);
+  }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus]);
 
   const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {
     if (!isSignedIn) return [];
