@@ -18,10 +18,11 @@ import { PlusIcon } from './components/icons/PlusIcon';
 import AddWantlistItemForm from './components/AddWantlistItemForm';
 import WantlistDetailView from './views/WantlistDetailView';
 import ArtistDetailView from './views/ArtistDetailView';
-import { useGoogleDrive } from './hooks/useGoogleDrive';
+import { useGoogleDrive, UnifiedStorage } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import { SpinnerIcon } from './components/icons/SpinnerIcon';
+import SyncConfirmationModal from './components/SyncConfirmationModal';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
@@ -87,6 +88,12 @@ const AppContent: React.FC = () => {
   const [pendingImport, setPendingImport] = useState<CD[] | null>(null);
   const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
 
+  // Sync Safety States
+  const [isSyncConfirmOpen, setIsSyncConfirmOpen] = useState(false);
+  const [syncConfirmType, setSyncConfirmType] = useState<'push' | 'pull'>('push');
+  const [pendingCloudData, setPendingCloudData] = useState<UnifiedStorage | null>(null);
+  const [isPeekingCloud, setIsPeekingCloud] = useState(false);
+
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
       const saved = localStorage.getItem('disco_sync_provider');
       return (saved === 'google_drive' ? 'google_drive' : 'none');
@@ -105,23 +112,44 @@ const AppContent: React.FC = () => {
     resetSyncStatus: driveResetStatus
   } = useGoogleDrive();
 
-  const handleCloudPull = useCallback(async () => {
-    if (!window.confirm("Replace your current local collection with the one on Google Drive? Unsaved local changes will be lost.")) return;
+  // Updated Sync Initiation: Peek first
+  const initiateCloudPull = useCallback(async () => {
+    setIsPeekingCloud(true);
     const data = await driveLoadData();
+    setIsPeekingCloud(false);
     if (data) {
-        setCollection(data.collection || []);
-        setWantlist(data.wantlist || []);
+        setPendingCloudData(data);
+        setSyncConfirmType('pull');
+        setIsSyncConfirmOpen(true);
     }
   }, [driveLoadData]);
 
-  const handleCloudPush = useCallback(async () => {
-      if (!window.confirm("Overwrite the collection on Google Drive with your current local version?")) return;
-      await driveSaveData({ 
-          collection, 
-          wantlist, 
-          lastUpdated: new Date().toISOString() 
-      });
-  }, [collection, wantlist, driveSaveData]);
+  const initiateCloudPush = useCallback(async () => {
+    setIsPeekingCloud(true);
+    const data = await driveLoadData(); // Peek at cloud to show comparison
+    setIsPeekingCloud(false);
+    // Even if no data on cloud, we show modal to confirm upload
+    setPendingCloudData(data || { collection: [], wantlist: [], lastUpdated: '' });
+    setSyncConfirmType('push');
+    setIsSyncConfirmOpen(true);
+  }, [driveLoadData]);
+
+  const handleConfirmSync = useCallback(async () => {
+      if (syncConfirmType === 'pull') {
+          if (pendingCloudData) {
+              setCollection(pendingCloudData.collection || []);
+              setWantlist(pendingCloudData.wantlist || []);
+          }
+      } else {
+          await driveSaveData({ 
+              collection, 
+              wantlist, 
+              lastUpdated: new Date().toISOString() 
+          });
+      }
+      setIsSyncConfirmOpen(false);
+      setPendingCloudData(null);
+  }, [syncConfirmType, pendingCloudData, collection, wantlist, driveSaveData]);
 
   useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
@@ -264,11 +292,11 @@ const AppContent: React.FC = () => {
         onImport={handleImport}
         onExport={handleExport}
         onOpenSyncSettings={() => setIsSyncSettingsOpen(true)}
-        syncStatus={currentSyncStatus}
+        syncStatus={isPeekingCloud ? 'loading' : currentSyncStatus}
         syncError={currentSyncError}
         syncProvider={syncProvider}
-        onCloudPush={handleCloudPush}
-        onCloudPull={handleCloudPull}
+        onCloudPush={initiateCloudPush}
+        onCloudPull={initiateCloudPull}
         onSignOut={driveSignOut}
         isOnWantlistPage={isOnWantlistPage}
         collectionMode={collectionMode}
@@ -329,6 +357,21 @@ const AppContent: React.FC = () => {
       {duplicateCheckResult && <ConfirmDuplicateModal isOpen={true} onClose={() => setDuplicateCheckResult(null)} onConfirm={(version) => handleSaveCD({ ...duplicateCheckResult.newCd, version })} newCdData={duplicateCheckResult.newCd} existingCd={duplicateCheckResult.existingCd} />}
       <ImportConfirmModal isOpen={!!pendingImport} onClose={() => setPendingImport(null)} onMerge={() => confirmImport('merge')} onReplace={() => confirmImport('replace')} importCount={pendingImport?.length || 0} />
       <SyncSettingsModal isOpen={isSyncSettingsOpen} onClose={() => setIsSyncSettingsOpen(false)} currentProvider={syncProvider} onProviderChange={setSyncProvider} syncMode="manual" onSyncModeChange={() => {}} />
+      <SyncConfirmationModal 
+        isOpen={isSyncConfirmOpen}
+        onClose={() => setIsSyncConfirmOpen(false)}
+        onConfirm={handleConfirmSync}
+        type={syncConfirmType}
+        isProcessing={driveStatus === 'saving' || driveStatus === 'loading'}
+        localStats={{
+            count: collection.length + wantlist.length,
+            lastUpdated: new Date().toISOString() // We don't track local change time strictly, but we show current as "now"
+        }}
+        cloudStats={{
+            count: (pendingCloudData?.collection?.length || 0) + (pendingCloudData?.wantlist?.length || 0),
+            lastUpdated: pendingCloudData?.lastUpdated || null
+        }}
+      />
       <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} />
       <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30"><PlusIcon className="h-6 w-6" /></button>
     </div>
