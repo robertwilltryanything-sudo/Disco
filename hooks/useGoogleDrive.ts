@@ -74,7 +74,7 @@ export const useGoogleDrive = () => {
   }, [clearAuthState, updateSyncStatus]);
 
   const initializeGis = useCallback(() => {
-    if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.oauth2) return;
+    if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.oauth2) return false;
     try {
       window.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
@@ -98,18 +98,17 @@ export const useGoogleDrive = () => {
       });
       setIsApiReady(true);
       
-      // Automatic silent token refresh if we were previously signed in
       if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
         try {
           window.tokenClient.requestAccessToken({ prompt: '' });
         } catch (e) {
-          console.warn("Silent refresh failed:", e);
           localStorage.removeItem(SIGNED_IN_KEY);
         }
       }
+      return true;
     } catch (e) {
       console.error("GIS Init Error:", e);
-      setError("Failed to initialize Google Auth client.");
+      return false;
     }
   }, [updateSyncStatus]);
 
@@ -119,7 +118,6 @@ export const useGoogleDrive = () => {
       await window.gapi.client.init({
         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       });
-      // Once GAPI is ready, we check if GIS is also ready to complete setup
       if (window.google?.accounts?.oauth2) {
         initializeGis();
       }
@@ -147,20 +145,18 @@ export const useGoogleDrive = () => {
 
     const initAll = async () => {
         try {
-            // Load both scripts in parallel
             await Promise.all([
                 loadScript('https://apis.google.com/js/api.js'),
                 loadScript('https://accounts.google.com/gsi/client')
             ]);
             
-            // Wait for gapi.load to finish
             window.gapi.load('client', initializeGapi);
             
-            // Periodically check if GIS is ready if GAPI finishes first
+            // Polling interval for GIS availability (fixes race conditions)
             const checkGisInterval = setInterval(() => {
                 if (window.google?.accounts?.oauth2 && window.gapi?.client?.drive) {
-                    clearInterval(checkGisInterval);
-                    if (!window.tokenClient) initializeGis();
+                    const success = initializeGis();
+                    if (success) clearInterval(checkGisInterval);
                 }
             }, 500);
             setTimeout(() => clearInterval(checkGisInterval), 10000);
@@ -180,13 +176,9 @@ export const useGoogleDrive = () => {
 
   const signIn = useCallback(() => {
     if (!window.tokenClient) {
-      // Try to re-init if client is missing but libs are loaded
-      if (window.google?.accounts?.oauth2) {
-        initializeGis();
-      }
-      
+      if (window.google?.accounts?.oauth2) initializeGis();
       if (!window.tokenClient) {
-        setError("Auth system not ready. Please wait a moment and try again.");
+        setError("Sign-in system is still warming up. Please wait 2 seconds.");
         return;
       }
     }
@@ -198,16 +190,15 @@ export const useGoogleDrive = () => {
     authTimeoutRef.current = window.setTimeout(() => {
         if (syncStatusRef.current === 'authenticating') {
             updateSyncStatus('idle');
-            setError('Sign-in timed out. This often happens if the pop-up was blocked. Please enable pop-ups for this site and try again.');
+            setError('Sign-in timed out. This usually happens if the pop-up was blocked. Please enable pop-ups and try again.');
         }
-    }, 45000);
+    }, 30000);
 
     try {
         window.tokenClient.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
-        console.error("Request Access Token Error:", e);
         updateSyncStatus('error');
-        setError("Failed to open Google sign-in window.");
+        setError("Failed to open the sign-in window.");
     }
   }, [updateSyncStatus, initializeGis]);
 
@@ -249,10 +240,7 @@ export const useGoogleDrive = () => {
         path: `/drive/v3/files/${id}`,
         method: 'GET',
         params: { fields: 'modifiedTime', t: Date.now() },
-        headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-        }
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
       });
       
       const remoteTime = new Date(response.result.modifiedTime).getTime();
@@ -274,10 +262,7 @@ export const useGoogleDrive = () => {
         path: `/drive/v3/files/${id}`,
         method: 'GET',
         params: { alt: 'media', t: Date.now() },
-        headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-        }
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
       });
       
       const metadata = await window.gapi.client.request({
@@ -287,9 +272,11 @@ export const useGoogleDrive = () => {
       });
 
       const data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
-      const normalizedData = Array.isArray(data) 
-        ? { collection: data, wantlist: [], lastUpdated: metadata.result.modifiedTime } 
-        : { collection: data.collection || [], wantlist: data.wantlist || [], lastUpdated: metadata.result.modifiedTime };
+      const normalizedData = {
+          collection: data.collection || [],
+          wantlist: data.wantlist || [],
+          lastUpdated: metadata.result.modifiedTime
+      };
 
       const time = metadata.result.modifiedTime;
       const hash = JSON.stringify({ collection: normalizedData.collection, wantlist: normalizedData.wantlist });
@@ -320,8 +307,8 @@ export const useGoogleDrive = () => {
     updateSyncStatus('saving');
     try {
       const id = await getOrCreateFileId();
-      
       const remoteChanged = await checkRemoteUpdate();
+      
       if (remoteChanged) {
           updateSyncStatus('error');
           setError("Cloud updates detected. Please refresh to avoid overwriting changes.");
@@ -369,7 +356,11 @@ export const useGoogleDrive = () => {
       const response = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId, alt: 'media' });
       const data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
       updateSyncStatus('synced');
-      return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : (data as UnifiedStorage);
+      return { 
+          collection: data.collection || [], 
+          wantlist: data.wantlist || [], 
+          lastUpdated: new Date().toISOString() 
+      };
     } catch (e) {
       handleApiError(e, 'load revision');
       return null;
