@@ -75,6 +75,12 @@ export const useGoogleDrive = () => {
 
   const initializeGis = useCallback(() => {
     if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.oauth2) return false;
+    // Prevent double initialization
+    if (window.tokenClient) {
+        setIsApiReady(true);
+        return true;
+    }
+
     try {
       window.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
@@ -87,22 +93,24 @@ export const useGoogleDrive = () => {
             updateSyncStatus('idle');
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
-          } else if (tokenResponse && tokenResponse.error) {
+          } else if (tokenResponse && (tokenResponse.error || tokenResponse.error_description)) {
             console.error("GIS Auth Error:", tokenResponse);
-            setError(`Login failed: ${tokenResponse.error_description || tokenResponse.error}`);
+            setError(`Sign-in failed: ${tokenResponse.error_description || tokenResponse.error || 'User cancelled'}`);
             updateSyncStatus('error');
           } else {
+            // Likely user closed the window without finishing
             updateSyncStatus('idle');
           }
         },
       });
       setIsApiReady(true);
       
+      // Attempt silent refresh if we previously had a session
       if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
         try {
           window.tokenClient.requestAccessToken({ prompt: '' });
         } catch (e) {
-          localStorage.removeItem(SIGNED_IN_KEY);
+          console.warn("Silent token refresh skipped or failed.");
         }
       }
       return true;
@@ -118,12 +126,13 @@ export const useGoogleDrive = () => {
       await window.gapi.client.init({
         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       });
+      // GAPI is ready, but we still need GIS
       if (window.google?.accounts?.oauth2) {
         initializeGis();
       }
     } catch (e) {
       console.error("GAPI Init Error:", e);
-      setError("Failed to initialize Google Drive client.");
+      setError("Failed to initialize Google Drive client library.");
     }
   }, [initializeGis]);
 
@@ -131,39 +140,45 @@ export const useGoogleDrive = () => {
     if (scriptsInitiatedRef.current || !GOOGLE_CLIENT_ID) return;
     scriptsInitiatedRef.current = true;
 
-    const loadScript = (src: string): Promise<void> => {
+    const loadScript = (src: string, id: string): Promise<void> => {
         return new Promise((resolve, reject) => {
+            if (document.getElementById(id)) return resolve();
             const script = document.createElement('script');
             script.src = src;
+            script.id = id;
             script.async = true;
             script.defer = true;
             script.onload = () => resolve();
-            script.onerror = () => reject();
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
             document.body.appendChild(script);
         });
     };
 
     const initAll = async () => {
         try {
-            await Promise.all([
-                loadScript('https://apis.google.com/js/api.js'),
-                loadScript('https://accounts.google.com/gsi/client')
-            ]);
+            // Load scripts sequentially to avoid some browser race conditions
+            await loadScript('https://apis.google.com/js/api.js', 'gapi-script');
+            await loadScript('https://accounts.google.com/gsi/client', 'gis-script');
             
-            window.gapi.load('client', initializeGapi);
+            // Initialization for GAPI
+            if (window.gapi) {
+                window.gapi.load('client', initializeGapi);
+            }
             
-            // Polling interval for GIS availability (fixes race conditions)
+            // Polling interval for GIS availability (as back-stop)
             const checkGisInterval = setInterval(() => {
                 if (window.google?.accounts?.oauth2 && window.gapi?.client?.drive) {
                     const success = initializeGis();
                     if (success) clearInterval(checkGisInterval);
                 }
-            }, 500);
-            setTimeout(() => clearInterval(checkGisInterval), 10000);
+            }, 1000);
+            
+            // Give up polling after 15 seconds
+            setTimeout(() => clearInterval(checkGisInterval), 15000);
 
         } catch (e) {
             console.error("Script load error:", e);
-            setError("Could not load Google security scripts. Check your internet connection.");
+            setError("Google Drive libraries failed to load. Please check your internet connection or ad-blocker.");
         }
     };
 
@@ -175,10 +190,16 @@ export const useGoogleDrive = () => {
   }, [initializeGapi, initializeGis]);
 
   const signIn = useCallback(() => {
+    // Check for blocking conditions
+    if (!window.google?.accounts?.oauth2) {
+        setError("Sign-in security library is still loading. Please wait a few seconds and try again.");
+        return;
+    }
+
     if (!window.tokenClient) {
-      if (window.google?.accounts?.oauth2) initializeGis();
-      if (!window.tokenClient) {
-        setError("Sign-in system is still warming up. Please wait 2 seconds.");
+      const success = initializeGis();
+      if (!success) {
+        setError("Could not initialize the sign-in window. Please try refreshing the page.");
         return;
       }
     }
@@ -186,19 +207,21 @@ export const useGoogleDrive = () => {
     updateSyncStatus('authenticating');
     setError(null);
     
+    // Auth Timeout
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
         if (syncStatusRef.current === 'authenticating') {
             updateSyncStatus('idle');
-            setError('Sign-in timed out. This usually happens if the pop-up was blocked. Please enable pop-ups and try again.');
+            setError('Sign-in timed out. Please look for a "Pop-up blocked" icon in your browser address bar and enable pop-ups for this site.');
         }
-    }, 30000);
+    }, 45000); // 45s is safer for mobile/slow networks
 
     try {
         window.tokenClient.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
+        console.error("Token request error:", e);
         updateSyncStatus('error');
-        setError("Failed to open the sign-in window.");
+        setError("Could not open the sign-in window. This is usually due to a pop-up blocker.");
     }
   }, [updateSyncStatus, initializeGis]);
 
