@@ -1,5 +1,4 @@
 import React from 'react';
-import { CD, WantlistItem } from '../types';
 import { ArrowUpCircleIcon } from './icons/ArrowUpCircleIcon';
 import { ArrowDownCircleIcon } from './icons/ArrowDownCircleIcon';
 import { ClockIcon } from './icons/ClockIcon';
