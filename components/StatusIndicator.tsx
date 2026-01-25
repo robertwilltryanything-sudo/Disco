@@ -11,6 +11,7 @@ interface StatusIndicatorProps {
   syncProvider: SyncProvider;
   syncMode?: SyncMode;
   onManualSync: () => void;
+  lastSyncTime?: string | null;
 }
 
 const statusMap: { [key in SyncStatus]: { color: string; tooltip: string; driveTooltip: string; label?: string } } = {
@@ -23,7 +24,7 @@ const statusMap: { [key in SyncStatus]: { color: string; tooltip: string; driveT
   authenticating: { color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in to Google...', label: 'Connecting' },
 };
 
-const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, onManualSync }) => {
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, onManualSync, lastSyncTime }) => {
   const isGoogleDrive = syncProvider === 'google_drive';
   const currentStatusInfo = statusMap[status] || statusMap.idle;
   
@@ -31,7 +32,6 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
   const isError = status === 'error';
   const isSynced = status === 'synced';
 
-  // Memoize icon selection to prevent flickering during rapid state transitions
   const Icon = useMemo(() => {
     if (isError) return XCircleIcon;
     if (isSynced) return CheckIcon;
@@ -41,7 +41,19 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
 
   const color = currentStatusInfo.color;
 
+  const timeLabel = useMemo(() => {
+    if (!lastSyncTime) return '';
+    const date = new Date(lastSyncTime);
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }, [lastSyncTime, status]);
+
   let finalTooltip = isGoogleDrive ? currentStatusInfo.driveTooltip : currentStatusInfo.tooltip;
+  if (isSynced && lastSyncTime) {
+      finalTooltip = `Last synced: ${new Date(lastSyncTime).toLocaleString()}`;
+  }
   if ((status === 'error' || status === 'disabled') && error) {
     finalTooltip = error;
   }
@@ -62,10 +74,16 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
       </button>
       
       {currentStatusInfo.label && (
-        <span className={`hidden md:inline text-[10px] font-bold ml-1.5 uppercase tracking-tighter transition-all duration-300 ${color} ${isBusy ? 'animate-pulse' : ''}`}>
-          {currentStatusInfo.label}
-          {isBusy && '...'}
-        </span>
+        <div className="flex flex-col items-start ml-1.5 leading-none">
+            <span className={`hidden md:inline text-[10px] font-bold uppercase tracking-tighter transition-all duration-300 ${color} ${isBusy ? 'animate-pulse' : ''}`}>
+              {currentStatusInfo.label}{isBusy && '...'}
+            </span>
+            {isSynced && lastSyncTime && (
+                <span className="hidden md:inline text-[8px] text-zinc-400 font-medium">
+                    {timeLabel}
+                </span>
+            )}
+        </div>
       )}
     </div>
   );
