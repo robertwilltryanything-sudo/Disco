@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { SyncStatus, SyncProvider, SyncMode } from '../types';
+import { SyncStatus, SyncProvider } from '../types';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
@@ -9,22 +9,21 @@ interface StatusIndicatorProps {
   status: SyncStatus;
   error: string | null;
   syncProvider: SyncProvider;
-  syncMode?: SyncMode;
   onManualSync: () => void;
   lastSyncTime?: string | null;
 }
 
 const statusMap: { [key in SyncStatus]: { color: string; tooltip: string; driveTooltip: string; label?: string } } = {
-  idle: { color: 'text-zinc-400', tooltip: 'Sync idle.', driveTooltip: 'Signed out.' },
-  loading: { color: 'text-blue-500', tooltip: 'Downloading...', driveTooltip: 'Syncing from Cloud...', label: 'Updating' },
-  saving: { color: 'text-blue-500', tooltip: 'Uploading...', driveTooltip: 'Syncing to Cloud...', label: 'Saving' },
-  synced: { color: 'text-green-500', tooltip: 'Synced.', driveTooltip: 'Cloud backup up to date.', label: 'Synced' },
-  error: { color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Drive Sync Error. Click to try again.', label: 'Error' },
+  idle: { color: 'text-zinc-400', tooltip: 'Sync ready.', driveTooltip: 'Cloud connection ready.' },
+  loading: { color: 'text-blue-500', tooltip: 'Downloading...', driveTooltip: 'Pulling from cloud...', label: 'Loading' },
+  saving: { color: 'text-blue-500', tooltip: 'Uploading...', driveTooltip: 'Pushing to cloud...', label: 'Saving' },
+  synced: { color: 'text-green-500', tooltip: 'Cloud updated.', driveTooltip: 'Cloud updated.', label: 'Active' },
+  error: { color: 'text-red-500', tooltip: 'Error.', driveTooltip: 'Sync Error.', label: 'Error' },
   disabled: { color: 'text-zinc-300', tooltip: 'Not configured.', driveTooltip: 'Not configured.' },
-  authenticating: { color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in to Google...', label: 'Connecting' },
+  authenticating: { color: 'text-blue-500', tooltip: 'Authenticating...', driveTooltip: 'Signing in...', label: 'Connecting' },
 };
 
-const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, onManualSync, lastSyncTime }) => {
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncProvider, lastSyncTime }) => {
   const isGoogleDrive = syncProvider === 'google_drive';
   const currentStatusInfo = statusMap[status] || statusMap.idle;
   
@@ -45,46 +44,35 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, error, syncPr
     if (!lastSyncTime) return '';
     const date = new Date(lastSyncTime);
     const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (diff < 60) return 'Just now';
+    if (diff < 60) return 'now';
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, [lastSyncTime, status]);
 
   let finalTooltip = isGoogleDrive ? currentStatusInfo.driveTooltip : currentStatusInfo.tooltip;
   if (isSynced && lastSyncTime) {
-      finalTooltip = `Last synced: ${new Date(lastSyncTime).toLocaleString()}`;
+      finalTooltip = `Last cloud action: ${new Date(lastSyncTime).toLocaleString()}`;
   }
-  if ((status === 'error' || status === 'disabled') && error) {
+  if (error) {
     finalTooltip = error;
   }
 
-  const isClickable = isGoogleDrive && !isBusy;
-
   return (
-    <div className="relative group flex items-center h-8 bg-zinc-50 px-2 rounded-full border border-zinc-100">
-      <button
-        type="button"
-        onClick={isClickable ? onManualSync : undefined}
-        disabled={!isClickable}
-        className={`p-1 rounded-full transition-all duration-300 focus:outline-none ${isClickable ? 'hover:bg-zinc-200 cursor-pointer' : 'cursor-default'}`}
-        aria-label={finalTooltip}
-        title={finalTooltip}
-      >
-        <Icon className={`h-4 w-4 md:h-5 md:w-5 ${color} ${isBusy ? 'animate-spin' : ''} transition-all duration-500 ease-in-out`} />
-      </button>
+    <div className="relative flex items-center h-8 bg-zinc-50 px-2 rounded-full border border-zinc-100" title={finalTooltip}>
+      <div className={`p-1 rounded-full ${isBusy ? 'animate-spin' : ''}`}>
+        <Icon className={`h-4 w-4 md:h-5 md:w-5 ${color} transition-all duration-500`} />
+      </div>
       
-      {currentStatusInfo.label && (
-        <div className="flex flex-col items-start ml-1.5 leading-none">
-            <span className={`hidden md:inline text-[10px] font-bold uppercase tracking-tighter transition-all duration-300 ${color} ${isBusy ? 'animate-pulse' : ''}`}>
-              {currentStatusInfo.label}{isBusy && '...'}
-            </span>
-            {isSynced && lastSyncTime && (
-                <span className="hidden md:inline text-[8px] text-zinc-400 font-medium">
-                    {timeLabel}
-                </span>
-            )}
-        </div>
-      )}
+      <div className="flex flex-col items-start ml-1 leading-none mr-1">
+          <span className={`hidden md:inline text-[9px] font-black uppercase tracking-tighter transition-all duration-300 ${color}`}>
+            {currentStatusInfo.label || 'Drive'}
+          </span>
+          {isSynced && lastSyncTime && (
+              <span className="hidden md:inline text-[8px] text-zinc-400 font-bold uppercase">
+                  {timeLabel}
+              </span>
+          )}
+      </div>
     </div>
   );
 };

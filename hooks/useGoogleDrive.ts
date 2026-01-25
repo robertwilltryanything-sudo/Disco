@@ -10,7 +10,6 @@ export interface UnifiedStorage {
 
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
-const LAST_SYNC_HASH_KEY = 'disco_last_sync_hash';
 
 declare global {
   interface Window {
@@ -26,19 +25,15 @@ export const useGoogleDrive = () => {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => localStorage.getItem(LAST_SYNC_TIME_KEY));
-  const [lastSyncHash, setLastSyncHash] = useState<string | null>(() => localStorage.getItem(LAST_SYNC_HASH_KEY));
 
   const fileIdRef = useRef<string | null>(null);
   const scriptsInitiatedRef = useRef(false);
   const authTimeoutRef = useRef<number | null>(null);
-  const lastSyncHashRef = useRef<string | null>(localStorage.getItem(LAST_SYNC_HASH_KEY));
   const syncStatusRef = useRef<SyncStatus>('idle');
   
   const updateSyncStatus = useCallback((newStatus: SyncStatus) => {
-    if (syncStatusRef.current !== newStatus) {
-      syncStatusRef.current = newStatus;
-      setSyncStatus(newStatus);
-    }
+    syncStatusRef.current = newStatus;
+    setSyncStatus(newStatus);
   }, []);
 
   const clearAuthState = useCallback(() => {
@@ -47,13 +42,10 @@ export const useGoogleDrive = () => {
     }
     localStorage.removeItem(SIGNED_IN_KEY);
     localStorage.removeItem(LAST_SYNC_TIME_KEY);
-    localStorage.removeItem(LAST_SYNC_HASH_KEY);
     setIsSignedIn(false);
     fileIdRef.current = null;
     updateSyncStatus('idle');
     setLastSyncTime(null);
-    setLastSyncHash(null);
-    lastSyncHashRef.current = null;
   }, [updateSyncStatus]);
 
   const handleApiError = useCallback((e: any, context: string) => {
@@ -66,7 +58,7 @@ export const useGoogleDrive = () => {
       setError("Session expired. Please sign in again.");
       updateSyncStatus('error');
     } else {
-      setError(`Sync error: ${errorDetails?.message || 'Check your connection'}`);
+      setError(`Sync error: ${errorDetails?.message || 'Check connection'}`);
       updateSyncStatus('error');
     }
   }, [clearAuthState, updateSyncStatus]);
@@ -136,20 +128,12 @@ export const useGoogleDrive = () => {
     }
     updateSyncStatus('authenticating');
     setError(null);
-    if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
-    authTimeoutRef.current = window.setTimeout(() => {
-        if (syncStatusRef.current === 'authenticating') {
-            updateSyncStatus('idle');
-            setError('Sign-in timed out. Please ensure pop-ups are allowed.');
-        }
-    }, 45000);
     window.tokenClient.requestAccessToken({ prompt: 'select_account' });
   }, [updateSyncStatus]);
 
   const resetSyncStatus = useCallback(() => {
     updateSyncStatus('idle');
     setError(null);
-    if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
   }, [updateSyncStatus]);
 
   const getOrCreateFileId = useCallback(async () => {
@@ -157,8 +141,7 @@ export const useGoogleDrive = () => {
     const response = await window.gapi.client.drive.files.list({
       q: `name='${COLLECTION_FILENAME}' and trashed=false`,
       spaces: 'drive',
-      fields: 'files(id, modifiedTime)',
-      orderBy: 'modifiedTime desc'
+      fields: 'files(id)',
     });
     if (response.result.files.length > 0) {
       fileIdRef.current = response.result.files[0].id;
@@ -173,41 +156,19 @@ export const useGoogleDrive = () => {
     }
   }, []);
 
-  const checkRemoteUpdate = useCallback(async (): Promise<boolean> => {
-    if (!isSignedIn) return false;
-    try {
-      const id = await getOrCreateFileId();
-      const response = await window.gapi.client.request({
-        path: `/drive/v3/files/${id}`,
-        method: 'GET',
-        params: { fields: 'modifiedTime', t: Date.now() },
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-      });
-      const remoteTime = new Date(response.result.modifiedTime).getTime();
-      const localTime = localStorage.getItem(LAST_SYNC_TIME_KEY) ? new Date(localStorage.getItem(LAST_SYNC_TIME_KEY)!).getTime() : 0;
-      // Increased threshold to 10s to account for minor clock skew and network latency across regions
-      return remoteTime > (localTime + 10000);
-    } catch (e) {
-      return false;
-    }
-  }, [isSignedIn, getOrCreateFileId]);
-
   const loadData = useCallback(async (): Promise<UnifiedStorage | null> => {
     if (!isSignedIn) return null;
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
+      // Use timestamp to bust cache
       const response = await window.gapi.client.request({
         path: `/drive/v3/files/${id}`,
         method: 'GET',
         params: { alt: 'media', t: Date.now() },
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+        headers: { 'Cache-Control': 'no-cache' }
       });
-      const metadata = await window.gapi.client.request({
-        path: `/drive/v3/files/${id}`,
-        method: 'GET',
-        params: { fields: 'modifiedTime', t: Date.now() }
-      });
+      const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
       const data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
       const normalizedData = {
           collection: (Array.isArray(data) ? data : data.collection) || [],
@@ -215,12 +176,8 @@ export const useGoogleDrive = () => {
           lastUpdated: metadata.result.modifiedTime
       };
       const time = metadata.result.modifiedTime;
-      const hash = JSON.stringify({ collection: normalizedData.collection, wantlist: normalizedData.wantlist });
       setLastSyncTime(time);
-      setLastSyncHash(hash);
-      lastSyncHashRef.current = hash;
       localStorage.setItem(LAST_SYNC_TIME_KEY, time);
-      localStorage.setItem(LAST_SYNC_HASH_KEY, hash);
       updateSyncStatus('synced');
       return normalizedData as UnifiedStorage;
     } catch (e: any) {
@@ -230,36 +187,20 @@ export const useGoogleDrive = () => {
   }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus]);
 
   const saveData = useCallback(async (data: UnifiedStorage) => {
-    if (!isSignedIn || syncStatusRef.current === 'loading' || syncStatusRef.current === 'saving') return;
-    const currentHash = JSON.stringify({ collection: data.collection, wantlist: data.wantlist });
-    
-    // Don't save if there are no changes
-    if (currentHash === lastSyncHashRef.current) {
-        if (syncStatusRef.current !== 'synced') updateSyncStatus('synced');
-        return;
-    }
-
+    if (!isSignedIn) return;
     updateSyncStatus('saving');
     try {
       const id = await getOrCreateFileId();
-      
-      // Attempt the patch directly. If there's a serious conflict, the server or our timestamp check will catch it.
       await window.gapi.client.request({
         path: `/upload/drive/v3/files/${id}`,
         method: 'PATCH',
         params: { uploadType: 'media' },
         body: JSON.stringify(data),
       });
-
-      // Refetch metadata to get the official server-side modifiedTime
       const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
       const time = metadata.result.modifiedTime;
-      
       setLastSyncTime(time);
-      setLastSyncHash(currentHash);
-      lastSyncHashRef.current = currentHash;
       localStorage.setItem(LAST_SYNC_TIME_KEY, time);
-      localStorage.setItem(LAST_SYNC_HASH_KEY, currentHash);
       updateSyncStatus('synced');
     } catch (e: any) {
       handleApiError(e, 'save data');
@@ -298,7 +239,7 @@ export const useGoogleDrive = () => {
   }, [clearAuthState]);
 
   return useMemo(() => ({ 
-    isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate,
-    getRevisions, loadRevision, syncStatus, error, lastSyncTime, lastSyncHash, resetSyncStatus
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, checkRemoteUpdate, getRevisions, loadRevision, syncStatus, error, lastSyncTime, lastSyncHash, resetSyncStatus]);
+    isApiReady, isSignedIn, signIn, signOut, loadData, saveData,
+    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus]);
 };

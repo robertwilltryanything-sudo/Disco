@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { SyncProvider, SyncMode, DriveRevision } from '../types';
+import { SyncProvider, DriveRevision } from '../types';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
@@ -14,8 +13,8 @@ interface SyncSettingsModalProps {
     onClose: () => void;
     currentProvider: SyncProvider;
     onProviderChange: (provider: SyncProvider) => void;
-    syncMode: SyncMode;
-    onSyncModeChange: (mode: SyncMode) => void;
+    syncMode: string;
+    onSyncModeChange: (mode: string) => void;
 }
 
 const ProviderOption: React.FC<{
@@ -78,9 +77,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
         if (!window.confirm("Restore this version? Your current local changes will be replaced.")) return;
         const data = await googleDrive.loadRevision(revId);
         if (data) {
-            // Force a reload of the app state by notifying the parent or just reloading
-            // In this app structure, we rely on the next effect cycle in App.tsx to pick up changes
-            // but we'll trigger a reload for safety if needed.
             window.location.reload(); 
         }
     };
@@ -99,25 +95,23 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
             <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-lg relative shadow-2xl my-8">
                 <div className="p-6 border-b border-zinc-200">
                     <h2 id="sync-dialog-title" className="text-xl font-bold text-zinc-900">Sync & Backup Settings</h2>
-                    <p className="text-sm text-zinc-600 mt-1">Protect your collection with cloud version control.</p>
+                    <p className="text-sm text-zinc-600 mt-1">Manage cloud synchronization for your collection.</p>
                 </div>
                 
                 <div className="p-6 space-y-4">
-                    {/* Google Drive Option */}
                     <ProviderOption
                         title="Google Drive Sync"
-                        description={isGoogleConfigured ? "Sync and keep history in your private Google Drive." : "Configuration required in Google Cloud Console."}
+                        description={isGoogleConfigured ? "Manual Load/Save to your private Drive storage." : "Configuration required in Google Cloud Console."}
                         isSelected={currentProvider === 'google_drive'}
                         isDisabled={!isGoogleConfigured}
                         onSelect={() => onProviderChange('google_drive')}
                     />
 
-                    {/* Version History Section */}
                     {currentProvider === 'google_drive' && googleDrive.isSignedIn && (
                         <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
                             <h4 className="text-sm font-bold text-zinc-800 flex items-center gap-2 mb-3">
                                 <ClockIcon className="w-4 h-4" />
-                                Version History (Latest 10)
+                                Version History (Cloud)
                             </h4>
                             
                             {isLoadingRevisions ? (
@@ -142,13 +136,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-xs text-zinc-500 italic">No sync history available yet.</p>
-                            )}
-                            
-                            {googleDrive.lastSyncTime && (
-                                <p className="mt-3 text-[10px] text-zinc-400 border-t border-zinc-200 pt-2">
-                                    Last Cloud Sync: {new Date(googleDrive.lastSyncTime).toLocaleString()}
-                                </p>
+                                <p className="text-xs text-zinc-500 italic">No cloud history found.</p>
                             )}
                         </div>
                     )}
@@ -159,22 +147,16 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                                 <GlobeIcon className="w-5 h-5 text-zinc-400 mt-0.5" />
                                 <div className="flex-1">
                                     <h4 className="text-sm font-bold text-zinc-800">Setup Google Sync</h4>
-                                    <p className="text-xs text-zinc-600 mt-1 leading-relaxed">
-                                        Go to the Google Cloud Console, create an OAuth client ID, and add it as <code>VITE_GOOGLE_CLIENT_ID</code>.
-                                    </p>
-                                    
                                     <button 
                                         onClick={() => setShowDriveHelp(!showDriveHelp)}
                                         className="mt-2 text-[10px] font-bold text-blue-600 flex items-center gap-1 hover:underline"
                                     >
                                         <QuestionMarkCircleIcon className="w-3 h-3" />
-                                        {showDriveHelp ? 'Hide Setup Tips' : 'Stuck? See Step-by-Step'}
+                                        {showDriveHelp ? 'Hide Setup Tips' : 'Show Setup Tips'}
                                     </button>
-
                                     {showDriveHelp && (
                                         <div className="mt-3 p-3 bg-white border border-zinc-200 rounded text-[11px] text-zinc-700 space-y-3 leading-tight shadow-inner">
-                                            <p><span className="font-bold">1. Origins:</span> Add <span className="italic font-medium">{window.location.origin}</span> to the <span className="font-bold">Authorized JavaScript origins</span> list.</p>
-                                            <p><span className="font-bold">2. Test Users:</span> Add your email to "Test users" in the OAuth consent screen.</p>
+                                            <p><span className="font-bold">1. Origins:</span> Add <span className="italic font-medium">{window.location.origin}</span> to the <span className="font-bold">Authorized JavaScript origins</span> list in GCP.</p>
                                         </div>
                                     )}
                                 </div>
@@ -184,7 +166,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                     
                     <ProviderOption
                         title="No Sync (Local Only)"
-                        description="Data is stored only in this browser. Use manual export for backups."
+                        description="Data stays on this device only. Use manual export for backups."
                         isSelected={currentProvider === 'none'}
                         onSelect={() => onProviderChange('none')}
                     />

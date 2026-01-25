@@ -70,8 +70,6 @@ const AppContent: React.FC = () => {
       return Array.isArray(data) ? data.map(normalizeData<WantlistItem>) : [];
   });
 
-  const [hasAttemptedInitialLoad, setHasAttemptedInitialLoad] = useState(false);
-
   const currentCollection = useMemo(() => 
     collection.filter(item => (item.format || 'cd') === collectionMode), 
   [collection, collectionMode]);
@@ -94,101 +92,49 @@ const AppContent: React.FC = () => {
       return (saved === 'google_drive' ? 'google_drive' : 'none');
   });
 
-  const [syncMode, setSyncMode] = useState<SyncMode>(() => {
-       return (localStorage.getItem('disco_sync_mode') as SyncMode) || 'realtime';
-  });
-
   const { 
     isSignedIn: driveSignedIn, 
     signIn: driveSignIn, 
     signOut: driveSignOut, 
     loadData: driveLoadData, 
     saveData: driveSaveData, 
-    checkRemoteUpdate: driveCheckUpdate,
     syncStatus: driveStatus,
     error: driveError,
     lastSyncTime: driveLastSyncTime,
-    lastSyncHash: driveLastSyncHash,
     isApiReady: driveReady,
     resetSyncStatus: driveResetStatus
   } = useGoogleDrive();
 
-  const handlePullLatest = useCallback(async () => {
+  const handleCloudPull = useCallback(async () => {
+    if (!window.confirm("Replace your current local collection with the one on Google Drive? Unsaved local changes will be lost.")) return;
     const data = await driveLoadData();
     if (data) {
         setCollection(data.collection || []);
         setWantlist(data.wantlist || []);
     }
-    setHasAttemptedInitialLoad(true);
   }, [driveLoadData]);
 
-  // Handle mode selection persistence
+  const handleCloudPush = useCallback(async () => {
+      if (!window.confirm("Overwrite the collection on Google Drive with your current local version?")) return;
+      await driveSaveData({ 
+          collection, 
+          wantlist, 
+          lastUpdated: new Date().toISOString() 
+      });
+  }, [collection, wantlist, driveSaveData]);
+
   useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
-  useEffect(() => { localStorage.setItem('disco_sync_mode', syncMode); }, [syncMode]);
 
-  // CRITICAL: Local Storage Persistence (Source of Truth for the current device)
-  // We save locally on every state change, regardless of sync status.
   useEffect(() => {
     localStorage.setItem('disco_collection', JSON.stringify(collection));
     localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
   }, [collection, wantlist]);
 
-  // Trigger initial cloud pull when signed in
-  useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && !hasAttemptedInitialLoad && driveStatus !== 'loading') {
-          handlePullLatest();
-      }
-  }, [syncProvider, driveSignedIn, handlePullLatest, hasAttemptedInitialLoad, driveStatus]);
-
-  // Background cloud check
-  useEffect(() => {
-    const checkSync = async () => {
-        if (syncProvider === 'google_drive' && driveSignedIn && driveStatus === 'synced' && hasAttemptedInitialLoad) {
-            const hasUpdate = await driveCheckUpdate();
-            if (hasUpdate) {
-                const currentLocalHash = JSON.stringify({ collection, wantlist });
-                const noLocalChanges = currentLocalHash === driveLastSyncHash;
-                if (noLocalChanges) {
-                    handlePullLatest(); 
-                } else {
-                    // Only prompt if there's an actual conflict between local state and cloud state
-                    if (window.confirm("New updates found on Google Drive. Pull latest data? This will overwrite your unsaved local changes.")) {
-                        handlePullLatest();
-                    }
-                }
-            }
-        }
-    };
-    
-    const interval = setInterval(checkSync, 60000); // Check every minute
-    const handleFocus = () => checkSync();
-    window.addEventListener('focus', handleFocus);
-    
-    return () => {
-        clearInterval(interval);
-        window.removeEventListener('focus', handleFocus);
-    };
-  }, [syncProvider, driveSignedIn, driveCheckUpdate, handlePullLatest, collection, wantlist, driveLastSyncHash, driveStatus, hasAttemptedInitialLoad]);
-
-  // Cloud Auto-Save
-  useEffect(() => {
-      if (syncProvider === 'google_drive' && driveSignedIn && syncMode === 'realtime' && hasAttemptedInitialLoad && (driveStatus === 'synced' || driveStatus === 'idle')) {
-          const timeout = setTimeout(() => {
-              driveSaveData({ collection, wantlist, lastUpdated: new Date().toISOString() });
-          }, 3000); 
-          return () => clearTimeout(timeout);
-      }
-  }, [collection, wantlist, syncProvider, driveSignedIn, syncMode, driveSaveData, hasAttemptedInitialLoad, driveStatus]);
-
   const handleToggleMode = useCallback(() => { setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd'); }, []);
   
   const currentSyncStatus: SyncStatus = syncProvider === 'google_drive' ? driveStatus : 'idle';
   const currentSyncError: string | null = syncProvider === 'google_drive' ? driveError : null;
-
-  const handleManualSync = useCallback(async () => {
-    if (syncProvider === 'google_drive') await handlePullLatest();
-  }, [syncProvider, handlePullLatest]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
@@ -321,8 +267,8 @@ const AppContent: React.FC = () => {
         syncStatus={currentSyncStatus}
         syncError={currentSyncError}
         syncProvider={syncProvider}
-        syncMode={syncMode}
-        onManualSync={handleManualSync}
+        onCloudPush={handleCloudPush}
+        onCloudPull={handleCloudPull}
         onSignOut={driveSignOut}
         isOnWantlistPage={isOnWantlistPage}
         collectionMode={collectionMode}
@@ -333,7 +279,7 @@ const AppContent: React.FC = () => {
         {isGoogleDriveSelectedButLoggedOut && (
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
-                <p className="text-zinc-600 mt-2">Sign in to your Google account to keep your collection and wantlist synced across devices.</p>
+                <p className="text-zinc-600 mt-2">Sign in to your Google account to enable manual Load/Save between devices.</p>
                 {driveError && (
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 flex flex-col gap-2">
                         <p>{driveError}</p>
@@ -382,7 +328,7 @@ const AppContent: React.FC = () => {
       )}
       {duplicateCheckResult && <ConfirmDuplicateModal isOpen={true} onClose={() => setDuplicateCheckResult(null)} onConfirm={(version) => handleSaveCD({ ...duplicateCheckResult.newCd, version })} newCdData={duplicateCheckResult.newCd} existingCd={duplicateCheckResult.existingCd} />}
       <ImportConfirmModal isOpen={!!pendingImport} onClose={() => setPendingImport(null)} onMerge={() => confirmImport('merge')} onReplace={() => confirmImport('replace')} importCount={pendingImport?.length || 0} />
-      <SyncSettingsModal isOpen={isSyncSettingsOpen} onClose={() => setIsSyncSettingsOpen(false)} currentProvider={syncProvider} onProviderChange={setSyncProvider} syncMode={syncMode} onSyncModeChange={setSyncMode} />
+      <SyncSettingsModal isOpen={isSyncSettingsOpen} onClose={() => setIsSyncSettingsOpen(false)} currentProvider={syncProvider} onProviderChange={setSyncProvider} syncMode="manual" onSyncModeChange={() => {}} />
       <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} />
       <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30"><PlusIcon className="h-6 w-6" /></button>
     </div>

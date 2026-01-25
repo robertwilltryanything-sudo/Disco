@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { SyncStatus, SyncProvider, SyncMode, CollectionMode } from '../types';
+import { SyncStatus, SyncProvider, CollectionMode } from '../types';
 import { MenuIcon } from './icons/MenuIcon';
 import StatusIndicator from './StatusIndicator';
 import { UploadIcon } from './icons/UploadIcon';
@@ -11,6 +11,8 @@ import { SparklesIcon } from './icons/SparklesIcon';
 import { PlusIcon } from './icons/PlusIcon';
 import { CompactDiscIcon } from './icons/CompactDiscIcon';
 import { VinylIcon } from './icons/VinylIcon';
+import { ArrowUpCircleIcon } from './icons/ArrowUpCircleIcon';
+import { ArrowDownCircleIcon } from './icons/ArrowDownCircleIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -21,8 +23,8 @@ interface HeaderProps {
     syncStatus: SyncStatus;
     syncError: string | null;
     syncProvider: SyncProvider;
-    syncMode: SyncMode;
-    onManualSync: () => void;
+    onCloudPush: () => void;
+    onCloudPull: () => void;
     onSignOut: () => void;
     isOnWantlistPage?: boolean;
     collectionMode: CollectionMode;
@@ -47,7 +49,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 
 const Header: React.FC<HeaderProps> = ({ 
     onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings,
-    syncStatus, syncError, syncProvider, syncMode, onManualSync, onSignOut,
+    syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut,
     isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -71,6 +73,8 @@ const Header: React.FC<HeaderProps> = ({
     onSignOut();
     setIsMenuOpen(false);
   };
+
+  const isSyncBusy = syncStatus === 'loading' || syncStatus === 'saving' || syncStatus === 'authenticating';
 
   return (
     <header className="p-4 md:p-6 bg-white sticky top-0 z-20 border-b border-zinc-200">
@@ -101,13 +105,33 @@ const Header: React.FC<HeaderProps> = ({
 
         <div className="flex-1 flex justify-end">
           <div className="flex items-center gap-2">
+            {syncProvider === 'google_drive' && (
+              <div className="flex items-center bg-zinc-50 border border-zinc-100 rounded-full px-1 py-0.5 mr-1">
+                <button 
+                  onClick={onCloudPush}
+                  disabled={isSyncBusy}
+                  className={`p-1.5 rounded-full hover:bg-zinc-200 transition-colors text-zinc-600 disabled:opacity-30`}
+                  title="Save to Cloud (Push)"
+                >
+                  <ArrowUpCircleIcon className={`w-5 h-5 ${syncStatus === 'saving' ? 'animate-bounce text-blue-600' : ''}`} />
+                </button>
+                <button 
+                  onClick={onCloudPull}
+                  disabled={isSyncBusy}
+                  className={`p-1.5 rounded-full hover:bg-zinc-200 transition-colors text-zinc-600 disabled:opacity-30`}
+                  title="Load from Cloud (Pull)"
+                >
+                  <ArrowDownCircleIcon className={`w-5 h-5 ${syncStatus === 'loading' ? 'animate-bounce text-blue-600' : ''}`} />
+                </button>
+              </div>
+            )}
+
             {syncProvider !== 'none' && (
               <StatusIndicator 
                 status={syncStatus} 
                 error={syncError} 
                 syncProvider={syncProvider}
-                syncMode={syncMode}
-                onManualSync={onManualSync}
+                onManualSync={() => {}}
                 lastSyncTime={lastSyncTime}
               />
             )}
