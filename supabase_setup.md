@@ -21,6 +21,8 @@ CREATE TABLE public.collection (
   notes text NULL,
   version text NULL,
   record_label text NULL,
+  condition text NULL,
+  attributes text[] NULL,
   tags text[] NULL,
   format text NULL DEFAULT 'cd', -- differentiation for cd/vinyl
   CONSTRAINT collection_pkey PRIMARY KEY (id),
@@ -48,6 +50,8 @@ CREATE TABLE public.wantlist (
   notes text NULL,
   version text NULL,
   record_label text NULL,
+  condition text NULL,
+  attributes text[] NULL,
   tags text[] NULL,
   format text NULL DEFAULT 'cd',
   CONSTRAINT wantlist_pkey PRIMARY KEY (id),
@@ -88,7 +92,11 @@ BEGIN
   EXCEPTION WHEN undefined_column THEN END;
 END $$;
 
--- 2. Add Missing 'format' Column
+-- 2. Add Missing Columns
 ALTER TABLE public.collection ADD COLUMN IF NOT EXISTS format text DEFAULT 'cd';
 ALTER TABLE public.wantlist ADD COLUMN IF NOT EXISTS format text DEFAULT 'cd';
+ALTER TABLE public.collection ADD COLUMN IF NOT EXISTS condition text;
+ALTER TABLE public.wantlist ADD COLUMN IF NOT EXISTS condition text;
+ALTER TABLE public.collection ADD COLUMN IF NOT EXISTS attributes text[];
+ALTER TABLE public.wantlist ADD COLUMN IF NOT EXISTS attributes text[];
 ```

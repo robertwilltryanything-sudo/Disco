@@ -92,7 +92,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                 </div>
               </div>
 
-              <div className="mt-8 grid grid-cols-2 gap-4 text-sm border-t border-zinc-100 pt-6">
+              <div className="mt-8 grid grid-cols-2 gap-y-4 gap-x-6 text-sm border-t border-zinc-100 pt-6">
                   {cd.year && (
                     <div>
                       <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Year</p>
@@ -117,7 +117,18 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   )}
                   {cd.record_label && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.record_label}</p></div>}
                   {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
+                  {cd.condition && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Condition</p><p className="text-zinc-900 font-bold italic">{cd.condition}</p></div>}
               </div>
+
+              {(cd.attributes && cd.attributes.length > 0) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {cd.attributes.map(attr => (
+                    <span key={attr} className="bg-zinc-900 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-tighter">
+                      {attr}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {cd.notes && <div className="mt-6 pt-6 border-t border-zinc-100"><h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Notes</h3><p className="text-zinc-600 italic">"{cd.notes}"</p></div>}
 

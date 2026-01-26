@@ -22,6 +22,9 @@ interface AddWantlistItemFormProps {
   isVinyl?: boolean;
 }
 
+const VINYL_ATTRIBUTES = ["Ringwear", "Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Import", "Insert"];
+const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Remaster", "Promo"];
+
 const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl }) => {
   const [artist, setArtist] = useState('');
   const [title, setTitle] = useState('');
@@ -29,6 +32,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
   const [record_label, setRecordLabel] = useState('');
+  const [condition, setCondition] = useState('');
+  const [attributes, setAttributes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
   const [cover_art_url, setCoverArtUrl] = useState<string | undefined>('');
@@ -53,11 +58,19 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setYear(itemToEdit.year || '');
       setVersion(itemToEdit.version || '');
       setRecordLabel(itemToEdit.record_label || '');
+      setCondition(itemToEdit.condition || '');
+      setAttributes(itemToEdit.attributes || []);
       setTags(itemToEdit.tags || []);
       setCoverArtUrl(itemToEdit.cover_art_url);
       setNotes(itemToEdit.notes || '');
     }
   }, [itemToEdit]);
+
+  const toggleAttribute = (attr: string) => {
+    setAttributes(prev => 
+      prev.includes(attr) ? prev.filter(a => a !== attr) : [...prev, attr]
+    );
+  };
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +88,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             id: itemToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined,
             version, record_label, tags, cover_art_url, notes,
+            condition, attributes,
             created_at: itemToEdit?.created_at,
         };
 
@@ -107,13 +121,12 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         }
     } catch (error: any) {
         console.error("Error during save process:", error);
-        // Title is appropriately set in try paths
         const errorMsg = error.details || error.message || "An unexpected error occurred while saving to your wantlist. Please check your connection.";
         setFormError(errorMsg);
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genre, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, tags]);
+  }, [artist, title, genre, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, tags, condition, attributes]);
   
   const handlePopulateFromData = (data: Partial<Omit<WantlistItem, 'id'>> | null) => {
       if (data) {
@@ -208,6 +221,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         await onSave({
           id: itemToEdit?.id, artist, title, genre,
           year: year ? Number(year) : undefined, version, record_label, tags,
+          condition, attributes,
           cover_art_url: url, notes,
           created_at: itemToEdit?.created_at,
         });
@@ -219,7 +233,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, condition, attributes]);
 
   const handleCloseSelector = useCallback(async () => {
     setIsSelectorOpen(false);
@@ -232,6 +246,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           await onSave({
             id: itemToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined, version, record_label, tags,
+            condition, attributes,
             cover_art_url: undefined, notes,
             created_at: itemToEdit?.created_at,
           });
@@ -245,7 +260,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     } else {
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, condition, attributes]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);
@@ -273,6 +288,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const albumType = isVinyl ? 'Vinyl' : 'CD';
   const versionPlaceholder = isVinyl ? "Edition (e.g., Gatefold, 180g, Color Vinyl)" : "Version (e.g., Remaster, Deluxe Edition, Digipak)";
   const notesPlaceholder = isVinyl ? "Personal notes (e.g., 'Look for gatefold', 'Target color variant')" : "Personal notes (e.g., 'Japanese import', 'Look for SACD version')";
+  const attributeSuggestions = isVinyl ? VINYL_ATTRIBUTES : CD_ATTRIBUTES;
 
   return (
     <>
@@ -304,7 +320,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             </div>
         )}
         
-        <div className="flex flex-col md:flex-row gap-4 items-start">
+        <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="md:w-1/3 w-1/2 mx-auto md:mx-0 flex flex-col items-center">
                 <div className="relative w-full group">
                   {cover_art_url ? (
@@ -373,56 +389,89 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                     </div>
                 </div>
             </div>
-            <div className="flex-1 w-full space-y-3">
-              <input
-                type="text"
-                placeholder="Artist*"
-                value={artist}
-                onChange={(e) => setArtist(e.target.value)}
-                required
-                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-              />
-              <input
-                type="text"
-                placeholder="Title*"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-              />
-              <input
-                type="text"
-                placeholder={versionPlaceholder}
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
-                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-              />
-              <input
-                type="text"
-                placeholder="Genre"
-                value={genre}
-                onChange={(e) => setGenre(e.target.value)}
-                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-              />
-              <input
-                type="number"
-                placeholder="Year"
-                value={year}
-                onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-              />
-              <input
-                type="text"
-                placeholder="Record Label"
-                value={record_label}
-                onChange={(e) => setRecordLabel(e.target.value)}
-                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-              />
+            <div className="flex-1 w-full space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="Artist*"
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  required
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Title*"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder={versionPlaceholder}
+                  value={version}
+                  onChange={(e) => setVersion(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Condition preference (e.g. Near Mint)"
+                  value={condition}
+                  onChange={(e) => setCondition(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+              </div>
+
+              <div className="p-3 bg-white border border-zinc-200 rounded-lg">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Physical Attributes Desired</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {attributeSuggestions.map(attr => (
+                    <label key={attr} className="flex items-center gap-2 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        checked={attributes.includes(attr)}
+                        onChange={() => toggleAttribute(attr)}
+                        className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-800"
+                      />
+                      <span className="text-xs text-zinc-600 group-hover:text-zinc-900 transition-colors font-medium">{attr}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  placeholder="Genre"
+                  value={genre}
+                  onChange={(e) => setGenre(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+                <input
+                  type="number"
+                  placeholder="Year"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Record Label"
+                  value={record_label}
+                  onChange={(e) => setRecordLabel(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+              </div>
+
               <div>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Add a tag..."
+                    placeholder="Add a custom tag..."
                     value={currentTag}
                     onChange={(e) => setCurrentTag(e.target.value)}
                     onKeyDown={handleTagInputKeyDown}
@@ -463,11 +512,11 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               />
             </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-zinc-200">
             <button
               type="submit"
               disabled={isProcessing}
-              className="flex-1 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 disabled:bg-zinc-500 disabled:cursor-wait"
+              className="flex-1 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 disabled:bg-zinc-500 disabled:cursor-wait"
             >
               {isProcessing ? (
                 <>
@@ -484,7 +533,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 bg-white text-zinc-700 font-medium py-2 px-4 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+              className="flex-1 bg-white text-zinc-700 font-medium py-3 px-4 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
             >
               Cancel
             </button>

@@ -365,7 +365,7 @@ const AppContent: React.FC = () => {
         isProcessing={driveStatus === 'saving' || driveStatus === 'loading'}
         localStats={{
             count: collection.length + wantlist.length,
-            lastUpdated: new Date().toISOString() // We don't track local change time strictly, but we show current as "now"
+            lastUpdated: new Date().toISOString()
         }}
         cloudStats={{
             count: (pendingCloudData?.collection?.length || 0) + (pendingCloudData?.wantlist?.length || 0),

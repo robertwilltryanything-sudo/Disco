@@ -49,16 +49,24 @@ export const useGoogleDrive = () => {
   }, [updateSyncStatus]);
 
   const handleApiError = useCallback((e: any, context: string) => {
-    const errorDetails = e?.result?.error || e?.error;
-    const errorCode = errorDetails?.code;
     console.error(`Google Drive API Error (${context}):`, e);
+    
+    // Extract error details from various possible GAPI response formats
+    const errorResult = e?.result?.error || e?.error || e;
+    const errorCode = errorResult?.code || e?.status;
+    const message = errorResult?.message || "Unknown error occurred";
 
-    if (errorCode === 401) {
-      clearAuthState();
-      setError("Session expired. Please sign in again.");
+    if (errorCode === 401 || errorCode === 403) {
+      // 403 can sometimes mean origin mismatch or insufficient scopes
+      if (message.toLowerCase().includes('origin')) {
+          setError("Domain mismatch. Ensure this URL is authorized in Google Console.");
+      } else {
+          clearAuthState();
+          setError("Session expired or unauthorized. Please sign in again.");
+      }
       updateSyncStatus('error');
     } else {
-      setError(`Sync error: ${errorDetails?.message || 'Check connection'}`);
+      setError(`Sync error (${context}): ${message}`);
       updateSyncStatus('error');
     }
   }, [clearAuthState, updateSyncStatus]);
@@ -161,21 +169,39 @@ export const useGoogleDrive = () => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
-      // Use timestamp to bust cache
+      
       const response = await window.gapi.client.request({
         path: `/drive/v3/files/${id}`,
         method: 'GET',
         params: { alt: 'media', t: Date.now() },
         headers: { 'Cache-Control': 'no-cache' }
       });
+
+      // Robust parsing of the media content
+      let data: any = null;
+      const body = response.body;
+      
+      if (!body || body.trim() === '') {
+          // File is empty (e.g. newly created)
+          data = { collection: [], wantlist: [], lastUpdated: '' };
+      } else {
+          try {
+              data = typeof body === 'string' ? JSON.parse(body) : body;
+          } catch (pErr) {
+              console.error("JSON Parse error on cloud body:", pErr);
+              data = { collection: [], wantlist: [], lastUpdated: '' };
+          }
+      }
+
       const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
-      const data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
+      
       const normalizedData = {
           collection: (Array.isArray(data) ? data : data.collection) || [],
           wantlist: (data.wantlist) || [],
-          lastUpdated: metadata.result.modifiedTime
+          lastUpdated: metadata.result.modifiedTime || new Date().toISOString()
       };
-      const time = metadata.result.modifiedTime;
+
+      const time = metadata.result.modifiedTime || new Date().toISOString();
       setLastSyncTime(time);
       localStorage.setItem(LAST_SYNC_TIME_KEY, time);
       updateSyncStatus('synced');
@@ -191,14 +217,24 @@ export const useGoogleDrive = () => {
     updateSyncStatus('saving');
     try {
       const id = await getOrCreateFileId();
-      await window.gapi.client.request({
+      
+      // We use the upload endpoint for PATCH to update media content
+      const response = await window.gapi.client.request({
         path: `/upload/drive/v3/files/${id}`,
         method: 'PATCH',
         params: { uploadType: 'media' },
+        headers: {
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify(data),
       });
+
+      if (response.status >= 400) {
+          throw response;
+      }
+
       const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
-      const time = metadata.result.modifiedTime;
+      const time = metadata.result.modifiedTime || new Date().toISOString();
       setLastSyncTime(time);
       localStorage.setItem(LAST_SYNC_TIME_KEY, time);
       updateSyncStatus('synced');
@@ -222,7 +258,14 @@ export const useGoogleDrive = () => {
     try {
       const id = await getOrCreateFileId();
       const response = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId, alt: 'media' });
-      const data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
+      
+      let data: any = null;
+      if (!response.body || response.body.trim() === '') {
+          data = { collection: [], wantlist: [], lastUpdated: '' };
+      } else {
+          data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
+      }
+      
       updateSyncStatus('synced');
       return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : (data as UnifiedStorage);
     } catch (e) {

@@ -10,6 +10,8 @@ export interface CD {
   version?: string;
   record_label?: string;
   tags?: string[];
+  condition?: string;
+  attributes?: string[];
   user_id?: string;
   created_at?: string;
   format?: 'cd' | 'vinyl';
@@ -26,6 +28,8 @@ export interface WantlistItem {
   version?: string;
   record_label?: string;
   tags?: string[];
+  condition?: string;
+  attributes?: string[];
   user_id?: string;
   created_at?: string;
   format?: 'cd' | 'vinyl';
@@ -44,12 +48,10 @@ export interface DriveRevision {
 export type SortKey = 'artist' | 'title' | 'year' | 'genre' | 'record_label' | 'created_at';
 export type SortOrder = 'asc' | 'desc';
 
-/**
- * Reverted to original simpler sync statuses.
- */
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
 
-export type SyncProvider = 'google_drive' | 'supabase' | 'none';
+// Added 'supabase' to SyncProvider to allow comparison with 'supabase' string literal in useSupabaseSync.ts
+export type SyncProvider = 'google_drive' | 'none' | 'supabase';
 
 export type SyncMode = 'realtime' | 'manual';
 

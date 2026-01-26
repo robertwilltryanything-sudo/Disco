@@ -106,7 +106,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     );
   }
 
-  const hasReleaseInfo = item.year || item.genre || item.record_label || item.version;
+  const hasReleaseInfo = item.year || item.genre || item.record_label || item.version || item.condition;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -136,14 +136,25 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
 
               {hasReleaseInfo && (
                   <div className="mt-6 pt-6 border-t border-zinc-200">
-                      <h3 className="text-lg font-bold text-zinc-800">Release Info</h3>
+                      <h3 className="text-lg font-bold text-zinc-800">Target Info</h3>
                       <div className="mt-2 text-zinc-600 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         {item.year && <p><span className="font-bold text-zinc-800">Year:</span> {item.year}</p>}
                         {item.genre && <p><span className="font-bold text-zinc-800">Genre:</span> {item.genre}</p>}
                         {item.record_label && <p><span className="font-bold text-zinc-800">Label:</span> {item.record_label}</p>}
                         {item.version && <p><span className="font-bold text-zinc-800">Version:</span> {item.version}</p>}
+                        {item.condition && <p><span className="font-bold text-zinc-800">Target Condition:</span> {item.condition}</p>}
                       </div>
                   </div>
+              )}
+
+              {(item.attributes && item.attributes.length > 0) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {item.attributes.map(attr => (
+                    <span key={attr} className="bg-zinc-100 text-zinc-600 text-[10px] font-black px-2 py-1 rounded border border-zinc-200 uppercase tracking-tighter">
+                      {attr}
+                    </span>
+                  ))}
+                </div>
               )}
 
               {item.notes && (
