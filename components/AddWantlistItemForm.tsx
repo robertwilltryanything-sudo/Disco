@@ -22,8 +22,11 @@ interface AddWantlistItemFormProps {
   isVinyl?: boolean;
 }
 
-const VINYL_ATTRIBUTES = ["Ringwear", "Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Import", "Insert"];
-const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Remaster", "Promo"];
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
+const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Import", "Insert", "Signed"];
+
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
+const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Remaster", "Promo", "Signed"];
 
 const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl }) => {
   const [artist, setArtist] = useState('');
@@ -32,7 +35,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
   const [record_label, setRecordLabel] = useState('');
-  const [condition, setCondition] = useState('');
   const [attributes, setAttributes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
@@ -58,7 +60,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setYear(itemToEdit.year || '');
       setVersion(itemToEdit.version || '');
       setRecordLabel(itemToEdit.record_label || '');
-      setCondition(itemToEdit.condition || '');
       setAttributes(itemToEdit.attributes || []);
       setTags(itemToEdit.tags || []);
       setCoverArtUrl(itemToEdit.cover_art_url);
@@ -88,7 +89,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             id: itemToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined,
             version, record_label, tags, cover_art_url, notes,
-            condition, attributes,
+            attributes,
             created_at: itemToEdit?.created_at,
         };
 
@@ -126,24 +127,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genre, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, tags, condition, attributes]);
+  }, [artist, title, genre, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, tags, attributes]);
   
-  const handlePopulateFromData = (data: Partial<Omit<WantlistItem, 'id'>> | null) => {
-      if (data) {
-        setArtist(data.artist || '');
-        setTitle(data.title || '');
-        setGenre(data.genre || '');
-        setYear(data.year || '');
-        setVersion(data.version || '');
-        setRecordLabel(data.record_label || '');
-        setTags(data.tags || []);
-        setCoverArtUrl(data.cover_art_url);
-      } else {
-        setFormErrorTitle("Scan Error");
-        setFormError("Could not extract album information.");
-      }
-  };
-
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
       setIsProcessing(true);
@@ -153,7 +138,14 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       try {
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
-              handlePopulateFromData(albumInfo);
+            setArtist(albumInfo.artist || '');
+            setTitle(albumInfo.title || '');
+            setGenre(albumInfo.genre || '');
+            setYear(albumInfo.year || '');
+            setVersion(albumInfo.version || '');
+            setRecordLabel(albumInfo.record_label || '');
+            setTags(albumInfo.tags || []);
+            setCoverArtUrl(albumInfo.cover_art_url);
           }
       } catch (error: any) {
           console.error("Error getting album info:", error);
@@ -198,11 +190,10 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         }
       } else {
         setFormErrorTitle("Cover Art Not Found");
-        setFormError("Could not find cover art online for this specific Artist/Title combination.");
+        setFormError("Could find cover art online for this specific Artist/Title combination.");
       }
     } catch (error: any) {
       console.error("Error finding art online:", error);
-      setFormErrorTitle("Search Error");
       setFormError(error.message || "An error occurred while searching for cover art.");
     } finally {
       setIsProcessing(false);
@@ -221,7 +212,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         await onSave({
           id: itemToEdit?.id, artist, title, genre,
           year: year ? Number(year) : undefined, version, record_label, tags,
-          condition, attributes,
+          attributes,
           cover_art_url: url, notes,
           created_at: itemToEdit?.created_at,
         });
@@ -233,7 +224,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, condition, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
 
   const handleCloseSelector = useCallback(async () => {
     setIsSelectorOpen(false);
@@ -246,12 +237,11 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           await onSave({
             id: itemToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined, version, record_label, tags,
-            condition, attributes,
+            attributes,
             cover_art_url: undefined, notes,
             created_at: itemToEdit?.created_at,
           });
       } catch (error: any) {
-        console.error("Error saving after closing art selector:", error);
         setFormError(error.message || "An error occurred while saving.");
       } finally {
         setIsProcessing(false);
@@ -260,7 +250,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     } else {
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, condition, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);
@@ -286,9 +276,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   };
 
   const albumType = isVinyl ? 'Vinyl' : 'CD';
-  const versionPlaceholder = isVinyl ? "Edition (e.g., Gatefold, 180g, Color Vinyl)" : "Version (e.g., Remaster, Deluxe Edition, Digipak)";
-  const notesPlaceholder = isVinyl ? "Personal notes (e.g., 'Look for gatefold', 'Target color variant')" : "Personal notes (e.g., 'Japanese import', 'Look for SACD version')";
-  const attributeSuggestions = isVinyl ? VINYL_ATTRIBUTES : CD_ATTRIBUTES;
+  const condList = isVinyl ? VINYL_CONDITION : CD_CONDITION;
+  const attrList = isVinyl ? VINYL_ATTRIBUTES : CD_ATTRIBUTES;
 
   return (
     <>
@@ -412,24 +401,24 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
-                  placeholder={versionPlaceholder}
+                  placeholder={isVinyl ? "Edition Preference (e.g. 180g)" : "Version Preference (e.g. Remaster)"}
                   value={version}
                   onChange={(e) => setVersion(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
                   type="text"
-                  placeholder="Condition preference (e.g. Near Mint)"
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
+                  placeholder="Desired Record Label"
+                  value={record_label}
+                  onChange={(e) => setRecordLabel(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
               </div>
 
               <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Physical Attributes Desired</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Condition</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {attributeSuggestions.map(attr => (
+                  {condList.map(attr => (
                     <label key={attr} className="flex items-center gap-2 cursor-pointer group">
                       <input 
                         type="checkbox" 
@@ -443,7 +432,24 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-white border border-zinc-200 rounded-lg">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Physical Attributes</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {attrList.map(attr => (
+                    <label key={attr} className="flex items-center gap-2 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        checked={attributes.includes(attr)}
+                        onChange={() => toggleAttribute(attr)}
+                        className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-800"
+                      />
+                      <span className="text-xs text-zinc-600 group-hover:text-zinc-900 transition-colors font-medium">{attr}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
                   placeholder="Genre"
@@ -456,13 +462,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                   placeholder="Year"
                   value={year}
                   onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-                />
-                <input
-                  type="text"
-                  placeholder="Record Label"
-                  value={record_label}
-                  onChange={(e) => setRecordLabel(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
               </div>
@@ -504,7 +503,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                 )}
               </div>
               <textarea
-                placeholder={notesPlaceholder}
+                placeholder="Personal notes..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}

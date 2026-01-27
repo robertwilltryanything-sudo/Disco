@@ -34,7 +34,11 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
         setIsLoading(true);
         try {
           const mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1080 },
+              height: { ideal: 1080 }
+            },
           });
           streamRef.current = mediaStream;
           if (videoRef.current) {
@@ -112,11 +116,11 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-lg w-full max-w-lg relative overflow-hidden">
+      <div className="bg-white rounded-lg w-full max-w-2xl relative overflow-hidden shadow-2xl">
         <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-20"
+            className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-black/20 focus:outline-none focus:ring-2 focus:ring-zinc-500 z-20 transition-colors"
             aria-label="Close scanner"
         >
             <XIcon className="h-6 w-6" />
@@ -125,39 +129,43 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
         <div className="p-4 border-b border-zinc-200">
             <h2 className="text-xl font-bold text-center text-zinc-800">Scan Album Cover</h2>
         </div>
-        <div className="p-4 bg-zinc-900 aspect-video relative flex items-center justify-center">
+        <div className="p-4 bg-zinc-900 aspect-square relative flex items-center justify-center overflow-hidden">
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-zinc-900 z-10">
-                <SpinnerIcon className="h-8 w-8 mb-2" />
-                <p>Starting camera...</p>
+                <SpinnerIcon className="h-10 w-10 mb-2 animate-spin" />
+                <p className="font-medium">Starting camera...</p>
             </div>
           )}
           {error && (
             <div className="absolute inset-0 flex items-center justify-center text-white text-center p-4 z-10">
-              <p className="text-red-400">{error}</p>
+              <p className="text-red-400 font-medium">{error}</p>
             </div>
           )}
           <video
             ref={videoRef}
             autoPlay
             playsInline
-            className={`w-full h-full object-contain ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
+            muted
+            className={`w-full h-full object-cover ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
             onLoadedData={handleLoadedData}
           />
+          <div className={`absolute inset-0 pointer-events-none border-[30px] border-black/30 flex items-center justify-center ${isLoading || error ? 'hidden' : 'block'}`}>
+             <div className="w-full h-full border-2 border-white/50 rounded-lg"></div>
+          </div>
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
-        <div className="p-4 flex flex-col sm:flex-row items-center justify-center gap-4 bg-zinc-50">
+        <div className="p-6 flex flex-col sm:flex-row items-center justify-center gap-4 bg-zinc-50">
           <button
             onClick={handleCapture}
             disabled={!!error || isLoading}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto flex items-center justify-center gap-3 bg-zinc-900 text-white font-bold py-4 px-10 rounded-xl hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
           >
             <CameraIcon className="h-6 w-6" />
-            Capture
+            Capture Cover
           </button>
           <button
             onClick={onClose}
-            className="w-full sm:w-auto py-3 px-6 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-800"
+            className="w-full sm:w-auto py-4 px-10 rounded-xl bg-white text-zinc-700 font-bold border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-800 transition-all"
           >
             Cancel
           </button>

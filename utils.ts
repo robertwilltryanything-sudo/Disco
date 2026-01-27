@@ -16,10 +16,29 @@ export const capitalizeWords = (str: unknown): string => {
 };
 
 /**
+ * Returns a deterministic Tailwind background color class based on the input string,
+ * using the dashboard's color palette.
+ */
+export const getBrandColor = (str: string): string => {
+    const colors = [
+        'bg-sky-300',
+        'bg-orange-200',
+        'bg-yellow-200',
+        'bg-pink-300',
+        'bg-teal-200',
+        'bg-indigo-200',
+        'bg-rose-200',
+        'bg-lime-200',
+    ];
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+};
+
+/**
  * Calculates the Levenshtein distance between two strings.
- * @param s1 The first string.
- * @param s2 The second string.
- * @returns The Levenshtein distance.
  */
 const levenshteinDistance = (s1: string, s2: string): number => {
   s1 = s1.toLowerCase();
@@ -51,10 +70,6 @@ const levenshteinDistance = (s1: string, s2: string): number => {
 
 /**
  * Checks if two strings are similar based on Levenshtein distance.
- * @param s1 The first string.
- * @param s2 The second string.
- * @param threshold The similarity threshold (0 to 1). Defaults to 0.85.
- * @returns True if the strings are considered similar.
  */
 export const areStringsSimilar = (s1: string, s2: string, threshold = 0.85): boolean => {
     if (!s1 || !s2) return false;
@@ -67,12 +82,6 @@ export const areStringsSimilar = (s1: string, s2: string, threshold = 0.85): boo
 
 /**
  * Heuristically determines the "best" CD from a group of duplicates.
- * The "best" is determined by:
- * 1. Having cover art.
- * 2. Having the most non-empty fields.
- * 3. Being the most recently created entry.
- * @param cds The group of CDs to compare.
- * @returns The CD deemed to be the best choice.
  */
 export const getBestCD = (cds: CD[]): CD => {
   if (cds.length === 0) {
@@ -84,11 +93,9 @@ export const getBestCD = (cds: CD[]): CD => {
 
   const scoreCD = (cd: CD): number => {
     let score = 0;
-    // Fix: Changed coverArtUrl to cover_art_url to match CD interface
     if (cd.cover_art_url) score += 100;
     if (cd.genre) score += 10;
     if (cd.year) score += 10;
-    // Fix: Changed recordLabel to record_label to match CD interface
     if (cd.record_label) score += 10;
     if (cd.version) score += 5;
     if (cd.notes) score += 5;
@@ -100,9 +107,8 @@ export const getBestCD = (cds: CD[]): CD => {
     const scoreA = scoreCD(a);
     const scoreB = scoreCD(b);
     if (scoreA !== scoreB) {
-      return scoreB - scoreA; // Higher score first
+      return scoreB - scoreA; 
     }
-    // If scores are equal, prefer the newest one
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   })[0];
 };

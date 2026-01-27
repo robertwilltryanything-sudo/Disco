@@ -23,8 +23,11 @@ interface AddCDFormProps {
   isVinyl?: boolean;
 }
 
-const VINYL_ATTRIBUTES = ["Ringwear", "Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Import", "Insert"];
-const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Remaster", "Promo"];
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
+const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Import", "Insert", "Signed"];
+
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
+const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Remaster", "Promo", "Signed"];
 
 const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill, isVinyl }) => {
   const [artist, setArtist] = useState('');
@@ -33,7 +36,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
   const [record_label, setRecordLabel] = useState('');
-  const [condition, setCondition] = useState('');
   const [attributes, setAttributes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
@@ -58,7 +60,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     setYear('');
     setVersion('');
     setRecordLabel('');
-    setCondition('');
     setAttributes([]);
     setTags([]);
     setCurrentTag('');
@@ -76,7 +77,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setYear(cdToEdit.year || '');
       setVersion(cdToEdit.version || '');
       setRecordLabel(cdToEdit.record_label || '');
-      setCondition(cdToEdit.condition || '');
       setAttributes(cdToEdit.attributes || []);
       setTags(cdToEdit.tags || []);
       setCoverArtUrl(cdToEdit.cover_art_url);
@@ -90,7 +90,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setYear(prefill.year || '');
         setVersion(prefill.version || '');
         setRecordLabel(prefill.record_label || '');
-        setCondition(prefill.condition || '');
         setAttributes(prefill.attributes || []);
         setTags(prefill.tags || []);
         setCoverArtUrl(prefill.cover_art_url);
@@ -121,7 +120,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             id: cdToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined,
             version, record_label, tags, cover_art_url, notes,
-            condition, attributes,
+            attributes,
             created_at: cdToEdit?.created_at,
         };
 
@@ -159,7 +158,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genre, year, version, cover_art_url, notes, cdToEdit, onSave, record_label, tags, condition, attributes]);
+  }, [artist, title, genre, year, version, cover_art_url, notes, cdToEdit, onSave, record_label, tags, attributes]);
 
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -244,7 +243,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         await onSave({
           id: cdToEdit?.id, artist, title, genre,
           year: year ? Number(year) : undefined, version, record_label, tags,
-          condition, attributes,
+          attributes,
           cover_art_url: url, notes,
           created_at: cdToEdit?.created_at,
         });
@@ -256,7 +255,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags, condition, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
 
   const handleCloseSelector = useCallback(async () => {
     setIsSelectorOpen(false);
@@ -269,7 +268,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
           await onSave({
             id: cdToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined, version, record_label, tags,
-            condition, attributes,
+            attributes,
             cover_art_url: undefined, notes,
             created_at: cdToEdit?.created_at,
           });
@@ -282,7 +281,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } else {
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags, condition, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);
@@ -308,9 +307,8 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   };
 
   const albumType = isVinyl ? 'Vinyl' : 'CD';
-  const versionPlaceholder = isVinyl ? "Edition (e.g., Gatefold, 180g, Color Vinyl)" : "Version (e.g., Remaster, Deluxe Edition, Digipak)";
-  const notesPlaceholder = isVinyl ? "Personal notes (e.g., 'Gatefold sleeve', 'Gift from...')" : "Personal notes (e.g., 'Signed copy', 'Includes bonus track')";
-  const attributeSuggestions = isVinyl ? VINYL_ATTRIBUTES : CD_ATTRIBUTES;
+  const condList = isVinyl ? VINYL_CONDITION : CD_CONDITION;
+  const attrList = isVinyl ? VINYL_ATTRIBUTES : CD_ATTRIBUTES;
 
   return (
     <>
@@ -434,24 +432,24 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
-                  placeholder={versionPlaceholder}
+                  placeholder={isVinyl ? "Edition (e.g., Gatefold, 180g)" : "Version (e.g., Remaster, Deluxe)"}
                   value={version}
                   onChange={(e) => setVersion(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
                   type="text"
-                  placeholder="Condition (e.g. Near Mint, VG+)"
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
+                  placeholder="Record Label"
+                  value={record_label}
+                  onChange={(e) => setRecordLabel(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
               </div>
 
               <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Physical Attributes</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Condition</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {attributeSuggestions.map(attr => (
+                  {condList.map(attr => (
                     <label key={attr} className="flex items-center gap-2 cursor-pointer group">
                       <input 
                         type="checkbox" 
@@ -465,26 +463,36 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-white border border-zinc-200 rounded-lg">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Physical Attributes</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {attrList.map(attr => (
+                    <label key={attr} className="flex items-center gap-2 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        checked={attributes.includes(attr)}
+                        onChange={() => toggleAttribute(attr)}
+                        className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-800"
+                      />
+                      <span className="text-xs text-zinc-600 group-hover:text-zinc-900 transition-colors font-medium">{attr}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
                   placeholder="Genre"
                   value={genre}
                   onChange={(e) => setGenre(e.target.value)}
-                  className="w-full sm:col-span-1 bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
                   type="number"
                   placeholder="Year"
                   value={year}
                   onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-                />
-                <input
-                  type="text"
-                  placeholder="Record Label"
-                  value={record_label}
-                  onChange={(e) => setRecordLabel(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
               </div>
@@ -526,7 +534,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 )}
               </div>
               <textarea
-                placeholder={notesPlaceholder}
+                placeholder="Personal notes..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}

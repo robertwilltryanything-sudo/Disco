@@ -11,6 +11,7 @@ import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { getAlbumDetails } from '../gemini';
+import { getBrandColor } from '../utils';
 
 interface DetailViewProps {
   cds: CD[];
@@ -117,16 +118,18 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   )}
                   {cd.record_label && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.record_label}</p></div>}
                   {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
-                  {cd.condition && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Condition</p><p className="text-zinc-900 font-bold italic">{cd.condition}</p></div>}
               </div>
 
               {(cd.attributes && cd.attributes.length > 0) && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {cd.attributes.map(attr => (
-                    <span key={attr} className="bg-zinc-900 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-tighter">
-                      {attr}
-                    </span>
-                  ))}
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">Condition & Physical Traits</p>
+                  <div className="flex flex-wrap gap-2">
+                    {cd.attributes.map(attr => (
+                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                        {attr}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 

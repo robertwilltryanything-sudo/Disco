@@ -128,7 +128,6 @@ const AppContent: React.FC = () => {
     setIsPeekingCloud(true);
     const data = await driveLoadData(); // Peek at cloud to show comparison
     setIsPeekingCloud(false);
-    // Even if no data on cloud, we show modal to confirm upload
     setPendingCloudData(data || { collection: [], wantlist: [], lastUpdated: '' });
     setSyncConfirmType('push');
     setIsSyncConfirmOpen(true);

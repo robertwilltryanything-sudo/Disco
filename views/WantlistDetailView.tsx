@@ -7,7 +7,7 @@ import { EditIcon } from '../components/icons/EditIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { GlobeIcon } from '../components/icons/GlobeIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
-import { capitalizeWords } from '../utils';
+import { capitalizeWords, getBrandColor } from '../utils';
 import { CheckIcon } from '../components/icons/CheckIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
@@ -106,7 +106,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     );
   }
 
-  const hasReleaseInfo = item.year || item.genre || item.record_label || item.version || item.condition;
+  const hasReleaseInfo = item.year || item.genre || item.record_label || item.version;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -142,18 +142,20 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                         {item.genre && <p><span className="font-bold text-zinc-800">Genre:</span> {item.genre}</p>}
                         {item.record_label && <p><span className="font-bold text-zinc-800">Label:</span> {item.record_label}</p>}
                         {item.version && <p><span className="font-bold text-zinc-800">Version:</span> {item.version}</p>}
-                        {item.condition && <p><span className="font-bold text-zinc-800">Target Condition:</span> {item.condition}</p>}
                       </div>
                   </div>
               )}
 
               {(item.attributes && item.attributes.length > 0) && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {item.attributes.map(attr => (
-                    <span key={attr} className="bg-zinc-100 text-zinc-600 text-[10px] font-black px-2 py-1 rounded border border-zinc-200 uppercase tracking-tighter">
-                      {attr}
-                    </span>
-                  ))}
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">Target Traits & Attributes</p>
+                  <div className="flex flex-wrap gap-2">
+                    {item.attributes.map(attr => (
+                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                        {attr}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
