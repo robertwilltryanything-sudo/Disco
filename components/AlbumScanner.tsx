@@ -112,11 +112,11 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-2 md:p-4"
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-lg w-full max-w-2xl relative overflow-hidden shadow-2xl">
+      <div className="bg-white rounded-xl w-full max-w-3xl flex flex-col relative overflow-hidden shadow-2xl max-h-[95vh]">
         <button
             type="button"
             onClick={onClose}
@@ -126,10 +126,11 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
             <XIcon className="h-6 w-6" />
         </button>
 
-        <div className="p-4 border-b border-zinc-200">
+        <div className="p-4 border-b border-zinc-200 flex-shrink-0 bg-white">
             <h2 className="text-xl font-bold text-center text-zinc-800">Scan Album Cover</h2>
         </div>
-        <div className="p-4 bg-zinc-900 aspect-square relative flex items-center justify-center overflow-hidden">
+        
+        <div className="flex-grow bg-zinc-900 relative flex items-center justify-center overflow-hidden min-h-[300px]">
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-zinc-900 z-10">
                 <SpinnerIcon className="h-10 w-10 mb-2 animate-spin" />
@@ -141,31 +142,35 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
               <p className="text-red-400 font-medium">{error}</p>
             </div>
           )}
+          
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
+            className={`max-w-full max-h-full object-contain ${isLoading || error ? 'opacity-0' : 'opacity-100'}`}
             onLoadedData={handleLoadedData}
           />
-          <div className={`absolute inset-0 pointer-events-none border-[30px] border-black/30 flex items-center justify-center ${isLoading || error ? 'hidden' : 'block'}`}>
-             <div className="w-full h-full border-2 border-white/50 rounded-lg"></div>
+          
+          {/* Target Guide */}
+          <div className={`absolute inset-0 pointer-events-none flex items-center justify-center ${isLoading || error ? 'hidden' : 'block'}`}>
+             <div className="w-4/5 aspect-square border-2 border-white/50 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]"></div>
           </div>
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
-        <div className="p-6 flex flex-col sm:flex-row items-center justify-center gap-4 bg-zinc-50">
+
+        <div className="p-4 md:p-6 flex flex-col sm:flex-row items-center justify-center gap-3 bg-zinc-50 border-t border-zinc-200 flex-shrink-0">
           <button
             onClick={handleCapture}
             disabled={!!error || isLoading}
-            className="w-full sm:w-auto flex items-center justify-center gap-3 bg-zinc-900 text-white font-bold py-4 px-10 rounded-xl hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
+            className="w-full sm:w-auto flex items-center justify-center gap-3 bg-zinc-900 text-white font-bold py-3 md:py-4 px-10 rounded-xl hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
           >
             <CameraIcon className="h-6 w-6" />
             Capture Cover
           </button>
           <button
             onClick={onClose}
-            className="w-full sm:w-auto py-4 px-10 rounded-xl bg-white text-zinc-700 font-bold border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-800 transition-all"
+            className="w-full sm:w-auto py-3 md:py-4 px-10 rounded-xl bg-white text-zinc-700 font-bold border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-50 focus:ring-zinc-800 transition-all"
           >
             Cancel
           </button>
