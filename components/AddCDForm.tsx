@@ -24,10 +24,10 @@ interface AddCDFormProps {
 }
 
 const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
-const VINYL_ATTRIBUTES = ["Gatefold", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Insert"];
+const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Import", "Insert", "Signed"];
 
 const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
-const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "SACD", "Remaster", "Promo"];
+const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Remaster", "Promo", "Signed"];
 
 const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill, isVinyl }) => {
   const [artist, setArtist] = useState('');
@@ -447,7 +447,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
               </div>
 
               <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Condition</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">CONDITION</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {condList.map(attr => (
                     <label key={attr} className="flex items-center gap-2 cursor-pointer group">
@@ -464,7 +464,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
               </div>
 
               <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Physical Attributes</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">PHYSICAL ATTRIBUTES</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {attrList.map(attr => (
                     <label key={attr} className="flex items-center gap-2 cursor-pointer group">

@@ -20,6 +20,9 @@ interface DetailViewProps {
   collectionMode: CollectionMode;
 }
 
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
+
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -66,6 +69,15 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
       navigate({ pathname: '/', search: `?q=${encodeURIComponent(value.toString())}` });
     }
   };
+
+  const { conditionTraits, physicalAttributes } = useMemo(() => {
+    if (!cd || !cd.attributes) return { conditionTraits: [], physicalAttributes: [] };
+    const condList = cd.format === 'vinyl' ? VINYL_CONDITION : CD_CONDITION;
+    
+    const cond = cd.attributes.filter(a => condList.includes(a));
+    const phys = cd.attributes.filter(a => !condList.includes(a));
+    return { conditionTraits: cond, physicalAttributes: phys };
+  }, [cd]);
 
   if (!cd) return <div className="text-center p-8"><h2 className="text-2xl font-bold text-red-600">{albumType} Not Found</h2><Link to="/" className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg"> <ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>;
 
@@ -120,11 +132,24 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
               </div>
 
-              {(cd.attributes && cd.attributes.length > 0) && (
+              {conditionTraits.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">Condition & Physical Traits</p>
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">CONDITION</p>
                   <div className="flex flex-wrap gap-2">
-                    {cd.attributes.map(attr => (
+                    {conditionTraits.map(attr => (
+                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                        {attr}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {physicalAttributes.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">PHYSICAL ATTRIBUTES</p>
+                  <div className="flex flex-wrap gap-2">
+                    {physicalAttributes.map(attr => (
                       <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
                         {attr}
                       </span>

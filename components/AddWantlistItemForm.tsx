@@ -23,10 +23,10 @@ interface AddWantlistItemFormProps {
 }
 
 const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
-const VINYL_ATTRIBUTES = ["Gatefold", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Insert"];
+const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Import", "Insert", "Signed"];
 
 const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
-const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "SACD", "Remaster", "Promo"];
+const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Remaster", "Promo", "Signed"];
 
 const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl }) => {
   const [artist, setArtist] = useState('');
@@ -371,7 +371,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                                 disabled={isProcessing}
                                 className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
                             >
-                                <CameraIcon className="h-5 w-5" />
+                                <CameraIcon className="h-4 w-4" />
                                 Scan Album
                             </button>
                         )}
@@ -416,7 +416,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               </div>
 
               <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Condition</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">CONDITION</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {condList.map(attr => (
                     <label key={attr} className="flex items-center gap-2 cursor-pointer group">
@@ -433,7 +433,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               </div>
 
               <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Physical Attributes</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">PHYSICAL ATTRIBUTES</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {attrList.map(attr => (
                     <label key={attr} className="flex items-center gap-2 cursor-pointer group">

@@ -1,23 +1,31 @@
+
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
+import { getSortableName } from '../utils';
 
 interface ArtistsViewProps {
   cds: CD[];
   collectionMode: CollectionMode;
+  sortExceptions: string[];
 }
 
-const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
+const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode, sortExceptions }) => {
   const artists = useMemo(() => {
     // Filter for CDs that have a valid, non-empty artist string to prevent errors.
     const artistSet = new Set<string>(
         cds.filter(cd => cd && typeof cd.artist === 'string' && cd.artist)
            .map(cd => cd.artist)
     );
-    // Now that we're guaranteed to have strings, we can sort safely.
-    return [...artistSet].sort((a, b) => a.localeCompare(b));
-  }, [cds]);
+    
+    // Sort using the smart sort helper
+    return [...artistSet].sort((a, b) => {
+      const sortA = getSortableName(a, true, sortExceptions);
+      const sortB = getSortableName(b, true, sortExceptions);
+      return sortA.localeCompare(sortB);
+    });
+  }, [cds, sortExceptions]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
 
@@ -46,7 +54,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
                 <Link
                 key={artist}
                 to={`/artist/${encodeURIComponent(artist)}`}
-                className="block text-zinc-700 p-2 rounded-lg truncate"
+                className="block text-zinc-700 p-2 rounded-lg hover:bg-zinc-50 transition-colors truncate"
                 title={artist}
                 >
                 {artist}

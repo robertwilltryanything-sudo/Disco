@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, WantlistItem, CollectionMode } from './types';
@@ -71,6 +72,11 @@ const AppContent: React.FC = () => {
       return Array.isArray(data) ? data.map(normalizeData<WantlistItem>) : [];
   });
 
+  const [sortExceptions, setSortExceptions] = useState<string[]>(() => {
+      const saved = localStorage.getItem('disco_sort_exceptions');
+      return saved ? JSON.parse(saved) : [];
+  });
+
   const currentCollection = useMemo(() => 
     collection.filter(item => (item.format || 'cd') === collectionMode), 
   [collection, collectionMode]);
@@ -128,7 +134,7 @@ const AppContent: React.FC = () => {
     setIsPeekingCloud(true);
     const data = await driveLoadData(); // Peek at cloud to show comparison
     setIsPeekingCloud(false);
-    setPendingCloudData(data || { collection: [], wantlist: [], lastUpdated: '' });
+    setPendingCloudData(data || { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' });
     setSyncConfirmType('push');
     setIsSyncConfirmOpen(true);
   }, [driveLoadData]);
@@ -138,17 +144,19 @@ const AppContent: React.FC = () => {
           if (pendingCloudData) {
               setCollection(pendingCloudData.collection || []);
               setWantlist(pendingCloudData.wantlist || []);
+              setSortExceptions(pendingCloudData.sort_exceptions || []);
           }
       } else {
           await driveSaveData({ 
               collection, 
-              wantlist, 
+              wantlist,
+              sort_exceptions: sortExceptions,
               lastUpdated: new Date().toISOString() 
           });
       }
       setIsSyncConfirmOpen(false);
       setPendingCloudData(null);
-  }, [syncConfirmType, pendingCloudData, collection, wantlist, driveSaveData]);
+  }, [syncConfirmType, pendingCloudData, collection, wantlist, sortExceptions, driveSaveData]);
 
   useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
@@ -156,7 +164,8 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('disco_collection', JSON.stringify(collection));
     localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
-  }, [collection, wantlist]);
+    localStorage.setItem('disco_sort_exceptions', JSON.stringify(sortExceptions));
+  }, [collection, wantlist, sortExceptions]);
 
   const handleToggleMode = useCallback(() => { setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd'); }, []);
   
@@ -177,6 +186,9 @@ const AppContent: React.FC = () => {
             const importedData = JSON.parse(content);
             const rawItems = Array.isArray(importedData) ? importedData : (importedData.collection || []);
             setPendingImport(rawItems.map(normalizeData<CD>));
+            if (importedData.sort_exceptions) {
+                setSortExceptions(prev => [...new Set([...prev, ...importedData.sort_exceptions])]);
+            }
           } catch (error) { alert("Failed to parse file."); }
         };
         reader.readAsText(file);
@@ -197,7 +209,7 @@ const AppContent: React.FC = () => {
   }, [pendingImport, collection]);
 
   const handleExport = useCallback(() => {
-    const dataStr = JSON.stringify({ collection, wantlist, lastUpdated: new Date().toISOString() }, null, 2);
+    const dataStr = JSON.stringify({ collection, wantlist, sort_exceptions: sortExceptions, lastUpdated: new Date().toISOString() }, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -205,7 +217,7 @@ const AppContent: React.FC = () => {
     a.download = `disco_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [collection, wantlist]);
+  }, [collection, wantlist, sortExceptions]);
 
   const fetchAndApplyAlbumDetails = async (cd: CD) => {
     if (!cd.genre || !cd.year) {
@@ -329,9 +341,9 @@ const AppContent: React.FC = () => {
              </div>
         )}
         <Routes>
-          <Route path="/" element={<ListView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={handleSaveWantlistItem} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
+          <Route path="/" element={<ListView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={handleSaveWantlistItem} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} sortExceptions={sortExceptions} />} />
           <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} collectionMode={collectionMode} />} />
-          <Route path="/artists" element={<ArtistsView cds={currentCollection} collectionMode={collectionMode} />} />
+          <Route path="/artists" element={<ArtistsView cds={currentCollection} collectionMode={collectionMode} sortExceptions={sortExceptions} />} />
           <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={handleSaveWantlistItem} collectionMode={collectionMode} />} />
           <Route path="/stats" element={<DashboardView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} collectionMode={collectionMode} />} />
@@ -355,7 +367,16 @@ const AppContent: React.FC = () => {
       )}
       {duplicateCheckResult && <ConfirmDuplicateModal isOpen={true} onClose={() => setDuplicateCheckResult(null)} onConfirm={(version) => handleSaveCD({ ...duplicateCheckResult.newCd, version })} newCdData={duplicateCheckResult.newCd} existingCd={duplicateCheckResult.existingCd} />}
       <ImportConfirmModal isOpen={!!pendingImport} onClose={() => setPendingImport(null)} onMerge={() => confirmImport('merge')} onReplace={() => confirmImport('replace')} importCount={pendingImport?.length || 0} />
-      <SyncSettingsModal isOpen={isSyncSettingsOpen} onClose={() => setIsSyncSettingsOpen(false)} currentProvider={syncProvider} onProviderChange={setSyncProvider} syncMode="manual" onSyncModeChange={() => {}} />
+      <SyncSettingsModal 
+        isOpen={isSyncSettingsOpen} 
+        onClose={() => setIsSyncSettingsOpen(false)} 
+        currentProvider={syncProvider} 
+        onProviderChange={setSyncProvider} 
+        syncMode="manual" 
+        onSyncModeChange={() => {}} 
+        sortExceptions={sortExceptions}
+        onUpdateSortExceptions={setSortExceptions}
+      />
       <SyncConfirmationModal 
         isOpen={isSyncConfirmOpen}
         onClose={() => setIsSyncConfirmOpen(false)}

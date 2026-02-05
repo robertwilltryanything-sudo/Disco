@@ -16,6 +16,89 @@ export const capitalizeWords = (str: unknown): string => {
 };
 
 /**
+ * Common bands that consist of exactly two words but should NOT be flipped
+ * as "Last Name, First Name".
+ */
+const DEFAULT_BANDS_TO_NOT_FLIP = new Set([
+  'pink floyd',
+  'led zeppelin',
+  'iron maiden',
+  'deep purple',
+  'black sabbath',
+  'steely dan',
+  'jethro tull',
+  'fleetwood mac',
+  'beastie boys',
+  'beach boys',
+  'pet shop boys',
+  'talking heads',
+  'pearl jam',
+  'radiohead',
+  'artic monkeys',
+  'daft punk',
+  'velvet underground',
+  'sonic youth',
+  'dire straits',
+  'sex pistols',
+  'tame impala',
+  'foo fighters',
+  'green day',
+  'linkin park',
+  'iron butterfly',
+  'grateful dead',
+  'jefferson airplane',
+  'modern talking',
+  'culture club',
+  'depeche mode',
+  'duran duran',
+  'soft cell',
+  'tears fears',
+  'thompson twins',
+  'bananarama',
+  'simple minds',
+  'joy division',
+  'new order',
+  'the smiths',
+  'the cure',
+  'the clash',
+  'the jam',
+  'the police'
+]);
+
+/**
+ * Returns a sortable version of a name (Artist or Title).
+ * 1. Strips leading "The ", "A ", or "An ".
+ * 2. For artists: if the result is exactly two words and NOT in the band exception list, flips them.
+ */
+export const getSortableName = (name: string, isArtist = false, customExceptions: string[] = []): string => {
+  if (!name) return '';
+  
+  // 1. Remove leading articles for sorting
+  let cleaned = name.trim().replace(/^(The|A|An)\s+/i, '');
+  
+  if (isArtist) {
+    const lowerCleaned = cleaned.toLowerCase();
+    
+    // Check against defaults AND user-defined exceptions
+    if (DEFAULT_BANDS_TO_NOT_FLIP.has(lowerCleaned) || customExceptions.some(e => e.toLowerCase() === lowerCleaned)) {
+        return lowerCleaned;
+    }
+
+    // 2. Simple person name heuristic: if exactly 2 words, flip them.
+    // This sorts "Jimi Hendrix" as "Hendrix, Jimi"
+    const parts = cleaned.split(/\s+/);
+    if (parts.length === 2) {
+      // One final check: if it contains numbers or special chars, it's probably a band (e.g. "Maroon 5")
+      if (/^[a-zA-Z\s]+$/.test(cleaned)) {
+        return `${parts[1]}, ${parts[0]}`.toLowerCase();
+      }
+    }
+  }
+  
+  return cleaned.toLowerCase();
+};
+
+/**
  * Returns a deterministic Tailwind background color class based on the input string,
  * using the dashboard's color palette.
  */

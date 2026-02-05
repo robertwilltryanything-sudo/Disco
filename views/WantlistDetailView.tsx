@@ -20,6 +20,9 @@ interface WantlistDetailViewProps {
   collectionMode: CollectionMode;
 }
 
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
+
 const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onMoveToCollection, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -91,6 +94,15 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     }
   }, [item, onDelete, navigate]);
 
+  const { conditionTraits, physicalAttributes } = useMemo(() => {
+    if (!item || !item.attributes) return { conditionTraits: [], physicalAttributes: [] };
+    const condList = item.format === 'vinyl' ? VINYL_CONDITION : CD_CONDITION;
+    
+    const cond = item.attributes.filter(a => condList.includes(a));
+    const phys = item.attributes.filter(a => !condList.includes(a));
+    return { conditionTraits: cond, physicalAttributes: phys };
+  }, [item]);
+
   if (!item) {
     return (
       <div className="text-center p-8">
@@ -146,11 +158,24 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                   </div>
               )}
 
-              {(item.attributes && item.attributes.length > 0) && (
+              {conditionTraits.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">Target Traits & Attributes</p>
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">CONDITION</p>
                   <div className="flex flex-wrap gap-2">
-                    {item.attributes.map(attr => (
+                    {conditionTraits.map(attr => (
+                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                        {attr}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {physicalAttributes.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">PHYSICAL ATTRIBUTES</p>
+                  <div className="flex flex-wrap gap-2">
+                    {physicalAttributes.map(attr => (
                       <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
                         {attr}
                       </span>

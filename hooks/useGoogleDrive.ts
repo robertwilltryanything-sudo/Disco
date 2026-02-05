@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
@@ -5,6 +6,7 @@ import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
 export interface UnifiedStorage {
     collection: CD[];
     wantlist: WantlistItem[];
+    sort_exceptions?: string[];
     lastUpdated: string;
 }
 
@@ -183,13 +185,13 @@ export const useGoogleDrive = () => {
       
       if (!body || body.trim() === '') {
           // File is empty (e.g. newly created)
-          data = { collection: [], wantlist: [], lastUpdated: '' };
+          data = { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' };
       } else {
           try {
               data = typeof body === 'string' ? JSON.parse(body) : body;
           } catch (pErr) {
               console.error("JSON Parse error on cloud body:", pErr);
-              data = { collection: [], wantlist: [], lastUpdated: '' };
+              data = { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' };
           }
       }
 
@@ -198,6 +200,7 @@ export const useGoogleDrive = () => {
       const normalizedData = {
           collection: (Array.isArray(data) ? data : data.collection) || [],
           wantlist: (data.wantlist) || [],
+          sort_exceptions: (data.sort_exceptions) || [],
           lastUpdated: metadata.result.modifiedTime || new Date().toISOString()
       };
 
@@ -261,13 +264,15 @@ export const useGoogleDrive = () => {
       
       let data: any = null;
       if (!response.body || response.body.trim() === '') {
-          data = { collection: [], wantlist: [], lastUpdated: '' };
+          data = { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' };
       } else {
           data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
       }
       
       updateSyncStatus('synced');
-      return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : (data as UnifiedStorage);
+      return Array.isArray(data) 
+        ? { collection: data, wantlist: [], sort_exceptions: [], lastUpdated: new Date().toISOString() } 
+        : (data as UnifiedStorage);
     } catch (e) {
       handleApiError(e, 'load revision');
       return null;

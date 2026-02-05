@@ -34,7 +34,8 @@ export const useSimpleSync = () => {
                 const text = await response.text();
                 if (!text) {
                     setSyncStatus('synced');
-                    return { collection: [], lastUpdated: null };
+                    // Add missing 'wantlist' property to comply with CollectionData interface
+                    return { collection: [], wantlist: [], lastUpdated: null };
                 }
 
                 const data = JSON.parse(text);
@@ -50,18 +51,21 @@ export const useSimpleSync = () => {
                     console.log("Loaded collection in legacy format. It will be updated on the next save.");
                     setSyncStatus('synced');
                     // Provide a null timestamp to indicate it's a legacy format
-                    return { collection: data as CD[], lastUpdated: null };
+                    // Add missing 'wantlist' property to comply with CollectionData interface
+                    return { collection: data as CD[], wantlist: [], lastUpdated: null };
                 }
 
                 console.warn("Simple Sync data is in an unexpected format.", data);
                 setSyncStatus('synced');
-                return { collection: [], lastUpdated: null };
+                // Add missing 'wantlist' property to comply with CollectionData interface
+                return { collection: [], wantlist: [], lastUpdated: null };
 
             }
             if (response.status === 404) {
                 console.warn('404 Not Found for Simple Sync URL. A new backup will be created on the first save.');
                 setSyncStatus('synced');
-                return { collection: [], lastUpdated: null };
+                // Add missing 'wantlist' property to comply with CollectionData interface
+                return { collection: [], wantlist: [], lastUpdated: null };
             }
             throw new Error(`Failed to load collection: ${response.statusText}`);
         } catch (e) {
