@@ -8,7 +8,6 @@ import { QuestionMarkCircleIcon } from './icons/QuestionMarkCircleIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
-import { capitalizeWords } from '../utils';
 
 interface SyncSettingsModalProps {
     isOpen: boolean;
