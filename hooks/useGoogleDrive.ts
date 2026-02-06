@@ -13,6 +13,14 @@ export interface UnifiedStorage {
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
 
+// Check if running as an iOS standalone Home Screen app
+const isIOSStandalone = () => {
+    return (
+        (window.navigator as any).standalone || 
+        window.matchMedia('(display-mode: standalone)').matches
+    );
+};
+
 declare global {
   interface Window {
     gapi: any;
@@ -32,6 +40,7 @@ export const useGoogleDrive = () => {
   const scriptsInitiatedRef = useRef(false);
   const authTimeoutRef = useRef<number | null>(null);
   const syncStatusRef = useRef<SyncStatus>('idle');
+  const isStandalone = useMemo(() => isIOSStandalone(), []);
   
   const updateSyncStatus = useCallback((newStatus: SyncStatus) => {
     syncStatusRef.current = newStatus;
@@ -53,25 +62,27 @@ export const useGoogleDrive = () => {
   const handleApiError = useCallback((e: any, context: string) => {
     console.error(`Google Drive API Error (${context}):`, e);
     
-    // Extract error details from various possible GAPI response formats
     const errorResult = e?.result?.error || e?.error || e;
     const errorCode = errorResult?.code || e?.status;
     const message = errorResult?.message || "Unknown error occurred";
 
     if (errorCode === 401 || errorCode === 403) {
-      // 403 can sometimes mean origin mismatch or insufficient scopes
       if (message.toLowerCase().includes('origin')) {
           setError("Domain mismatch. Ensure this URL is authorized in Google Console.");
       } else {
           clearAuthState();
-          setError("Session expired or unauthorized. Please sign in again.");
+          if (isStandalone) {
+              setError("Authentication failed. iOS Home Screen apps often block Google sign-in. Try using the app in Safari if problems persist.");
+          } else {
+              setError("Session expired or unauthorized. Please sign in again.");
+          }
       }
       updateSyncStatus('error');
     } else {
       setError(`Sync error (${context}): ${message}`);
       updateSyncStatus('error');
     }
-  }, [clearAuthState, updateSyncStatus]);
+  }, [clearAuthState, updateSyncStatus, isStandalone]);
 
   const initializeGis = useCallback(() => {
     if (!GOOGLE_CLIENT_ID) return;
@@ -87,7 +98,11 @@ export const useGoogleDrive = () => {
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
           } else if (tokenResponse && tokenResponse.error) {
-            setError(`Login failed: ${tokenResponse.error_description || tokenResponse.error}`);
+            let errorMsg = tokenResponse.error_description || tokenResponse.error;
+            if (isStandalone && tokenResponse.error === 'popup_closed_by_user') {
+                errorMsg = "The sign-in window was closed. On iPhone Home Screen, you must complete sign-in immediately without switching apps.";
+            }
+            setError(`Login failed: ${errorMsg}`);
             updateSyncStatus('error');
           } else {
             updateSyncStatus('idle');
@@ -95,7 +110,10 @@ export const useGoogleDrive = () => {
         },
       });
       setIsApiReady(true);
-      if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
+      
+      // Standalone PWAs have high failure rates for silent (prompt: '') token acquisition
+      // due to ITP. We skip the silent attempt if in standalone mode to avoid loops.
+      if (!isStandalone && localStorage.getItem(SIGNED_IN_KEY) === 'true') {
         try {
           window.tokenClient.requestAccessToken({ prompt: '' });
         } catch (e) {
@@ -105,7 +123,7 @@ export const useGoogleDrive = () => {
     } catch (e) {
       console.error("GIS Init Error:", e);
     }
-  }, [updateSyncStatus]);
+  }, [updateSyncStatus, isStandalone]);
 
   const initializeGapi = useCallback(async () => {
     try {
@@ -114,7 +132,7 @@ export const useGoogleDrive = () => {
       });
       initializeGis();
     } catch (e) {
-      console.error("GAPI Init Error:", e);
+      console.error("GAPI Error:", e);
     }
   }, [initializeGis]);
 
@@ -171,7 +189,6 @@ export const useGoogleDrive = () => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
-      
       const response = await window.gapi.client.request({
         path: `/drive/v3/files/${id}`,
         method: 'GET',
@@ -179,18 +196,16 @@ export const useGoogleDrive = () => {
         headers: { 'Cache-Control': 'no-cache' }
       });
 
-      // Robust parsing of the media content
       let data: any = null;
       const body = response.body;
       
       if (!body || body.trim() === '') {
-          // File is empty (e.g. newly created)
           data = { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' };
       } else {
           try {
               data = typeof body === 'string' ? JSON.parse(body) : body;
           } catch (pErr) {
-              console.error("JSON Parse error on cloud body:", pErr);
+              console.error("JSON Parse error:", pErr);
               data = { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' };
           }
       }
@@ -220,21 +235,15 @@ export const useGoogleDrive = () => {
     updateSyncStatus('saving');
     try {
       const id = await getOrCreateFileId();
-      
-      // We use the upload endpoint for PATCH to update media content
       const response = await window.gapi.client.request({
         path: `/upload/drive/v3/files/${id}`,
         method: 'PATCH',
         params: { uploadType: 'media' },
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
-      if (response.status >= 400) {
-          throw response;
-      }
+      if (response.status >= 400) throw response;
 
       const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
       const time = metadata.result.modifiedTime || new Date().toISOString();
@@ -260,7 +269,7 @@ export const useGoogleDrive = () => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
-      const response = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId, alt: 'media' });
+      const response = await window.gapi.client.revisions.get({ fileId: id, revisionId, alt: 'media' });
       
       let data: any = null;
       if (!response.body || response.body.trim() === '') {
@@ -288,6 +297,7 @@ export const useGoogleDrive = () => {
 
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData,
-    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus]);
+    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus,
+    isStandalone
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, isStandalone]);
 };

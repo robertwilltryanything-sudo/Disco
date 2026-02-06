@@ -115,7 +115,8 @@ const AppContent: React.FC = () => {
     error: driveError,
     lastSyncTime: driveLastSyncTime,
     isApiReady: driveReady,
-    resetSyncStatus: driveResetStatus
+    resetSyncStatus: driveResetStatus,
+    isStandalone
   } = useGoogleDrive();
 
   // Updated Sync Initiation: Peek first
@@ -319,6 +320,14 @@ const AppContent: React.FC = () => {
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
                 <p className="text-zinc-600 mt-2">Sign in to your Google account to enable manual Load/Save between devices.</p>
+                
+                {isStandalone && (
+                    <div className="mt-4 p-3 bg-zinc-50 border border-zinc-200 rounded text-[11px] text-zinc-500 leading-snug">
+                        <span className="font-bold block text-zinc-700 mb-1">💡 iPhone Home Screen Tip</span>
+                        Apple restricts Google popups in Home Screen mode. If sign-in fails or loops, try opening the site in regular Safari to sync, then return here.
+                    </div>
+                )}
+
                 {driveError && (
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 flex flex-col gap-2">
                         <p>{driveError}</p>
