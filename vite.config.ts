@@ -14,9 +14,9 @@ export default defineConfig(({ mode }) => {
     define: {
       // Read the VITE_API_KEY from the environment (Vercel settings) and make it available
       // in the app as process.env.API_KEY to align with Gemini guidelines.
-      'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY),
+      'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY || ""),
       // Expose VITE_GOOGLE_CLIENT_ID to client-side code so Google Drive sync can be configured.
-      'process.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID),
+      'process.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID || ""),
     }
   };
 });

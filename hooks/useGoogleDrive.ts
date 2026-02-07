@@ -10,7 +10,7 @@ export interface UnifiedStorage {
 
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
-const AUTH_TIMEOUT_MS = 60000; // 60 seconds safety timeout
+const AUTH_TIMEOUT_MS = 60000;
 
 declare global {
   interface Window {
@@ -58,10 +58,10 @@ export const useGoogleDrive = () => {
 
     if (errorCode === 401 || errorCode === 403) {
       if (message.toLowerCase().includes('origin')) {
-          setError("Domain mismatch. Ensure this URL is authorized in Google Console.");
+          setError("Authorized Origin Mismatch. Ensure this URL is in your Google Console settings.");
       } else {
           clearAuthState();
-          setError("Session expired or unauthorized. Please sign in again.");
+          setError("Auth session invalid. Please sign in again.");
       }
       updateSyncStatus('error');
     } else {
@@ -72,7 +72,17 @@ export const useGoogleDrive = () => {
 
   const loadScript = (src: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) return resolve();
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+          // If script exists, check if global objects are ready, otherwise wait a bit
+          const checkReady = () => {
+              if (src.includes('api.js') && window.gapi) return true;
+              if (src.includes('client') && window.google?.accounts) return true;
+              return false;
+          };
+          if (checkReady()) return resolve();
+      }
+
       const script = document.createElement('script');
       script.src = src;
       script.async = true;
@@ -84,9 +94,13 @@ export const useGoogleDrive = () => {
   };
 
   const initializeSync = useCallback(async () => {
-    if (!GOOGLE_CLIENT_ID) return;
+    if (!GOOGLE_CLIENT_ID) {
+        console.log("Google Sync: No Client ID provided, skipping init.");
+        return;
+    }
     
     try {
+      console.log("Google Sync: Loading scripts...");
       // 1. Load GAPI
       await loadScript('https://apis.google.com/js/api.js');
       await new Promise<void>((resolve) => window.gapi.load('client', resolve));
@@ -100,10 +114,15 @@ export const useGoogleDrive = () => {
       await loadScript('https://accounts.google.com/gsi/client');
 
       // 4. Initialize Token Client
+      if (!window.google?.accounts?.oauth2) {
+          throw new Error("Google Identity Services not fully loaded.");
+      }
+
       window.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: GOOGLE_DRIVE_SCOPES,
         callback: (tokenResponse: any) => {
+          console.log("Google Sync: Token response received");
           if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
           
           if (tokenResponse && tokenResponse.access_token) {
@@ -112,16 +131,17 @@ export const useGoogleDrive = () => {
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
           } else if (tokenResponse && tokenResponse.error) {
-            console.error("GIS Token Error:", tokenResponse.error);
+            console.error("Google Sync: GIS Token Error:", tokenResponse.error);
             setError(`Login failed: ${tokenResponse.error_description || tokenResponse.error}`);
             updateSyncStatus('error');
           } else {
-            // Likely user closed the popup
+            console.log("Google Sync: Login popup closed or cancelled");
             updateSyncStatus('idle');
           }
         },
       });
 
+      console.log("Google Sync: API ready.");
       setIsApiReady(true);
 
       // 5. Silent refresh if previously signed in
@@ -129,8 +149,8 @@ export const useGoogleDrive = () => {
         window.tokenClient.requestAccessToken({ prompt: '' });
       }
     } catch (e: any) {
-      console.error("Sync Initialization Failed:", e);
-      setError("Failed to initialize Google Drive components. Please check your internet connection.");
+      console.error("Google Sync: Initialization Failed:", e);
+      setError("Cloud sync components failed to load. Check your connection.");
       updateSyncStatus('error');
     }
   }, [updateSyncStatus]);
@@ -147,19 +167,19 @@ export const useGoogleDrive = () => {
 
   const signIn = useCallback(() => {
     if (!window.tokenClient) {
-      setError("Sync system not ready. Please refresh.");
+      setError("The sync system is still initializing. Please wait.");
       return;
     }
 
     updateSyncStatus('authenticating');
     setError(null);
 
-    // Set a safety timeout so the spinner doesn't stay forever if the popup fails
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
       if (syncStatusRef.current === 'authenticating') {
+        console.warn("Google Sync: Auth timeout reached");
         updateSyncStatus('idle');
-        setError("Authentication timed out. Please try again.");
+        setError("Authentication timed out. If no popup appeared, check your popup blocker.");
       }
     }, AUTH_TIMEOUT_MS);
 
@@ -217,7 +237,7 @@ export const useGoogleDrive = () => {
           try {
               data = typeof body === 'string' ? JSON.parse(body) : body;
           } catch (pErr) {
-              console.error("JSON Parse error on cloud body:", pErr);
+              console.error("Google Sync: JSON Parse error on cloud body:", pErr);
               data = { collection: [], wantlist: [], lastUpdated: '' };
           }
       }
@@ -285,7 +305,7 @@ export const useGoogleDrive = () => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
-      const response = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId, alt: 'media' });
+      const response = await window.gapi.client.revisions.get({ fileId: id, revisionId, alt: 'media' });
       
       let data: any = null;
       if (!response.body || (typeof response.body === 'string' && response.body.trim() === '')) {
