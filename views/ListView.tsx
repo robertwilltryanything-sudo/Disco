@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useCallback, useTransition } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CD, SortKey, SortOrder, WantlistItem, CollectionMode } from '../types';
@@ -11,7 +10,7 @@ import QuickStats from '../components/CollectionStats';
 import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import CDTable from '../components/CDTable';
-import { areStringsSimilar, getSortableName } from '../utils';
+import { areStringsSimilar } from '../utils';
 import MissingAlbumScanner from '../components/MissingAlbumScanner';
 
 interface ListViewProps {
@@ -21,12 +20,11 @@ interface ListViewProps {
   onRequestAdd: (artist?: string) => void;
   onRequestEdit: (cd: CD) => void;
   collectionMode: CollectionMode;
-  sortExceptions: string[];
 }
 
 const VIEW_MODE_KEY = 'disco_view_mode';
 
-const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onRequestAdd, onRequestEdit, collectionMode, sortExceptions }) => {
+const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onRequestAdd, onRequestEdit, collectionMode }) => {
   const [sortBy, setSortBy] = useState<SortKey>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
@@ -167,25 +165,15 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     
     const sorted = [...filtered]
       .sort((a, b) => {
-        let valA = a[sortBy];
-        let valB = b[sortBy];
-        
-        // Smart sorting for Artist and Title
-        if (sortBy === 'artist') {
-          valA = getSortableName(a.artist, true, sortExceptions);
-          valB = getSortableName(b.artist, true, sortExceptions);
-        } else if (sortBy === 'title') {
-          valA = getSortableName(a.title, false, sortExceptions);
-          valB = getSortableName(b.title, false, sortExceptions);
-        }
-
+        const valA = a[sortBy];
+        const valB = b[sortBy];
         if (valA === undefined || valA === null) return 1;
         if (valB === undefined || valB === null) return -1;
         let comparison = 0;
         if (typeof valA === 'string' && typeof valB === 'string') {
           comparison = valA.localeCompare(valB);
         } else if (typeof valA === 'number' && typeof valB === 'number') {
-          comparison = (valA as number) - (valB as number);
+          comparison = valA - valB;
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
@@ -200,7 +188,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
       }
     }
     return { filteredAndSortedCds: sorted, potentialArtistForScan: artistForScan };
-  }, [cds, urlSearchQuery, sortBy, sortOrder, sortExceptions]);
+  }, [cds, urlSearchQuery, sortBy, sortOrder]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
 

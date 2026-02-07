@@ -37,8 +37,6 @@ export interface WantlistItem {
 
 export interface CollectionData {
   collection: CD[];
-  wantlist: WantlistItem[];
-  sort_exceptions?: string[];
   lastUpdated: string | null;
 }
 

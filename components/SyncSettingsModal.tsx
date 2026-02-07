@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SyncProvider, DriveRevision } from '../types';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -16,8 +15,6 @@ interface SyncSettingsModalProps {
     onProviderChange: (provider: SyncProvider) => void;
     syncMode: string;
     onSyncModeChange: (mode: string) => void;
-    sortExceptions: string[];
-    onUpdateSortExceptions: (exceptions: string[]) => void;
 }
 
 const ProviderOption: React.FC<{
@@ -60,13 +57,10 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     onClose,
     currentProvider,
     onProviderChange,
-    sortExceptions,
-    onUpdateSortExceptions
 }) => {
     const [showDriveHelp, setShowDriveHelp] = useState(false);
     const [revisions, setRevisions] = useState<DriveRevision[]>([]);
     const [isLoadingRevisions, setIsLoadingRevisions] = useState(false);
-    const [newException, setNewException] = useState('');
     const googleDrive = useGoogleDrive();
 
     useEffect(() => {
@@ -87,25 +81,6 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
         }
     };
 
-    const handleAddException = useCallback(() => {
-        const val = newException.trim();
-        if (val && !sortExceptions.some(e => e.toLowerCase() === val.toLowerCase())) {
-            onUpdateSortExceptions([...sortExceptions, val]);
-        }
-        setNewException('');
-    }, [newException, sortExceptions, onUpdateSortExceptions]);
-
-    const handleRemoveException = (exc: string) => {
-        onUpdateSortExceptions(sortExceptions.filter(e => e !== exc));
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleAddException();
-        }
-    };
-
     if (!isOpen) return null;
 
     const isGoogleConfigured = !!process.env.VITE_GOOGLE_CLIENT_ID;
@@ -119,133 +94,82 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
         >
             <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-lg relative shadow-2xl my-8">
                 <div className="p-6 border-b border-zinc-200">
-                    <h2 id="sync-dialog-title" className="text-xl font-bold text-zinc-900">Settings</h2>
-                    <p className="text-sm text-zinc-600 mt-1">Manage cloud synchronization and sorting behavior.</p>
+                    <h2 id="sync-dialog-title" className="text-xl font-bold text-zinc-900">Sync & Backup Settings</h2>
+                    <p className="text-sm text-zinc-600 mt-1">Manage cloud synchronization for your collection.</p>
                 </div>
                 
-                <div className="p-6 space-y-6">
-                    {/* Cloud Provider Section */}
-                    <div>
-                        <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Sync & Backup</h3>
-                        <div className="space-y-3">
-                            <ProviderOption
-                                title="Google Drive Sync"
-                                description={isGoogleConfigured ? "Manual Load/Save to your private Drive storage." : "Configuration required in Google Cloud Console."}
-                                isSelected={currentProvider === 'google_drive'}
-                                isDisabled={!isGoogleConfigured}
-                                onSelect={() => onProviderChange('google_drive')}
-                            />
+                <div className="p-6 space-y-4">
+                    <ProviderOption
+                        title="Google Drive Sync"
+                        description={isGoogleConfigured ? "Manual Load/Save to your private Drive storage." : "Configuration required in Google Cloud Console."}
+                        isSelected={currentProvider === 'google_drive'}
+                        isDisabled={!isGoogleConfigured}
+                        onSelect={() => onProviderChange('google_drive')}
+                    />
 
-                            {currentProvider === 'google_drive' && googleDrive.isSignedIn && (
-                                <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
-                                    <h4 className="text-sm font-bold text-zinc-800 flex items-center gap-2 mb-3">
-                                        <ClockIcon className="w-4 h-4" />
-                                        Version History (Cloud)
-                                    </h4>
-                                    
-                                    {isLoadingRevisions ? (
-                                        <div className="flex items-center gap-2 py-2 text-zinc-500 text-xs">
-                                            <SpinnerIcon className="w-3 h-3 animate-spin" />
-                                            <span>Fetching history...</span>
-                                        </div>
-                                    ) : revisions.length > 0 ? (
-                                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                                            {revisions.map((rev) => (
-                                                <div key={rev.id} className="flex items-center justify-between p-2 bg-white border border-zinc-200 rounded text-xs">
-                                                    <span className="text-zinc-600">
-                                                        {new Date(rev.modifiedTime).toLocaleString()}
-                                                    </span>
-                                                    <button 
-                                                        onClick={() => handleRestore(rev.id)}
-                                                        className="text-blue-600 font-bold hover:underline"
-                                                    >
-                                                        Restore
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-zinc-500 italic">No cloud history found.</p>
-                                    )}
-                                </div>
-                            )}
-
-                            {!isGoogleConfigured && (
-                                <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
-                                    <div className="flex items-start gap-3">
-                                        <GlobeIcon className="w-5 h-5 text-zinc-400 mt-0.5" />
-                                        <div className="flex-1">
-                                            <h4 className="text-sm font-bold text-zinc-800">Setup Google Sync</h4>
-                                            <button 
-                                                onClick={() => setShowDriveHelp(!showDriveHelp)}
-                                                className="mt-2 text-[10px] font-bold text-blue-600 flex items-center gap-1 hover:underline"
-                                            >
-                                                <QuestionMarkCircleIcon className="w-3 h-3" />
-                                                {showDriveHelp ? 'Hide Setup Tips' : 'Show Setup Tips'}
-                                            </button>
-                                            {showDriveHelp && (
-                                                <div className="mt-3 p-3 bg-white border border-zinc-200 rounded text-[11px] text-zinc-700 space-y-3 leading-tight shadow-inner">
-                                                    <p><span className="font-bold">1. Origins:</span> Add <span className="italic font-medium">{window.location.origin}</span> to the <span className="font-bold">Authorized JavaScript origins</span> list in GCP.</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                    {currentProvider === 'google_drive' && googleDrive.isSignedIn && (
+                        <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+                            <h4 className="text-sm font-bold text-zinc-800 flex items-center gap-2 mb-3">
+                                <ClockIcon className="w-4 h-4" />
+                                Version History (Cloud)
+                            </h4>
                             
-                            <ProviderOption
-                                title="No Sync (Local Only)"
-                                description="Data stays on this device only. Use manual export for backups."
-                                isSelected={currentProvider === 'none'}
-                                onSelect={() => onProviderChange('none')}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Sorting Exceptions Section */}
-                    <div>
-                        <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3">Sort Exceptions</h3>
-                        <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg space-y-4">
-                            <div>
-                                <p className="text-xs text-zinc-600 mb-3 leading-relaxed">
-                                    By default, DiscO flips names like "David Bowie" to "Bowie, David". Add band names here that should <strong className="text-zinc-900">not</strong> be flipped.
-                                </p>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Pink Floyd"
-                                        value={newException}
-                                        onChange={(e) => setNewException(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        className="flex-grow bg-white border border-zinc-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                                    />
-                                    <button
-                                        onClick={handleAddException}
-                                        className="bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-black transition-colors"
-                                    >
-                                        Add
-                                    </button>
+                            {isLoadingRevisions ? (
+                                <div className="flex items-center gap-2 py-2 text-zinc-500 text-xs">
+                                    <SpinnerIcon className="w-3 h-3 animate-spin" />
+                                    <span>Fetching history...</span>
                                 </div>
-                            </div>
-
-                            {sortExceptions.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                    {sortExceptions.map(exc => (
-                                        <div key={exc} className="flex items-center gap-1.5 bg-white border border-zinc-300 rounded-full px-3 py-1 text-xs font-bold text-zinc-700">
-                                            <span>{exc}</span>
+                            ) : revisions.length > 0 ? (
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {revisions.map((rev) => (
+                                        <div key={rev.id} className="flex items-center justify-between p-2 bg-white border border-zinc-200 rounded text-xs">
+                                            <span className="text-zinc-600">
+                                                {new Date(rev.modifiedTime).toLocaleString()}
+                                            </span>
                                             <button 
-                                                onClick={() => handleRemoveException(exc)}
-                                                className="text-zinc-400 hover:text-red-500"
-                                                aria-label={`Remove ${exc}`}
+                                                onClick={() => handleRestore(rev.id)}
+                                                className="text-blue-600 font-bold hover:underline"
                                             >
-                                                <XIcon className="w-3 h-3" />
+                                                Restore
                                             </button>
                                         </div>
                                     ))}
                                 </div>
+                            ) : (
+                                <p className="text-xs text-zinc-500 italic">No cloud history found.</p>
                             )}
                         </div>
-                    </div>
+                    )}
+
+                    {!isGoogleConfigured && (
+                        <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+                            <div className="flex items-start gap-3">
+                                <GlobeIcon className="w-5 h-5 text-zinc-400 mt-0.5" />
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-bold text-zinc-800">Setup Google Sync</h4>
+                                    <button 
+                                        onClick={() => setShowDriveHelp(!showDriveHelp)}
+                                        className="mt-2 text-[10px] font-bold text-blue-600 flex items-center gap-1 hover:underline"
+                                    >
+                                        <QuestionMarkCircleIcon className="w-3 h-3" />
+                                        {showDriveHelp ? 'Hide Setup Tips' : 'Show Setup Tips'}
+                                    </button>
+                                    {showDriveHelp && (
+                                        <div className="mt-3 p-3 bg-white border border-zinc-200 rounded text-[11px] text-zinc-700 space-y-3 leading-tight shadow-inner">
+                                            <p><span className="font-bold">1. Origins:</span> Add <span className="italic font-medium">{window.location.origin}</span> to the <span className="font-bold">Authorized JavaScript origins</span> list in GCP.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <ProviderOption
+                        title="No Sync (Local Only)"
+                        description="Data stays on this device only. Use manual export for backups."
+                        isSelected={currentProvider === 'none'}
+                        onSelect={() => onProviderChange('none')}
+                    />
                 </div>
                 
                 <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end">

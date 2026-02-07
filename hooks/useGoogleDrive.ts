@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
 import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
@@ -6,20 +5,12 @@ import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
 export interface UnifiedStorage {
     collection: CD[];
     wantlist: WantlistItem[];
-    sort_exceptions?: string[];
     lastUpdated: string;
 }
 
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
-
-// Check if running as an iOS standalone Home Screen app
-const isIOSStandalone = () => {
-    return (
-        (window.navigator as any).standalone || 
-        window.matchMedia('(display-mode: standalone)').matches
-    );
-};
+const AUTH_TIMEOUT_MS = 60000; // 60 seconds safety timeout
 
 declare global {
   interface Window {
@@ -37,10 +28,9 @@ export const useGoogleDrive = () => {
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => localStorage.getItem(LAST_SYNC_TIME_KEY));
 
   const fileIdRef = useRef<string | null>(null);
-  const scriptsInitiatedRef = useRef(false);
+  const scriptsLoadingRef = useRef(false);
   const authTimeoutRef = useRef<number | null>(null);
   const syncStatusRef = useRef<SyncStatus>('idle');
-  const isStandalone = useMemo(() => isIOSStandalone(), []);
   
   const updateSyncStatus = useCallback((newStatus: SyncStatus) => {
     syncStatusRef.current = newStatus;
@@ -71,93 +61,114 @@ export const useGoogleDrive = () => {
           setError("Domain mismatch. Ensure this URL is authorized in Google Console.");
       } else {
           clearAuthState();
-          if (isStandalone) {
-              setError("Authentication failed. iOS Home Screen apps often block Google sign-in. Try using the app in Safari if problems persist.");
-          } else {
-              setError("Session expired or unauthorized. Please sign in again.");
-          }
+          setError("Session expired or unauthorized. Please sign in again.");
       }
       updateSyncStatus('error');
     } else {
       setError(`Sync error (${context}): ${message}`);
       updateSyncStatus('error');
     }
-  }, [clearAuthState, updateSyncStatus, isStandalone]);
+  }, [clearAuthState, updateSyncStatus]);
 
-  const initializeGis = useCallback(() => {
+  const loadScript = (src: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) return resolve();
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+      document.body.appendChild(script);
+    });
+  };
+
+  const initializeSync = useCallback(async () => {
     if (!GOOGLE_CLIENT_ID) return;
+    
     try {
+      // 1. Load GAPI
+      await loadScript('https://apis.google.com/js/api.js');
+      await new Promise<void>((resolve) => window.gapi.load('client', resolve));
+      
+      // 2. Initialize GAPI Client
+      await window.gapi.client.init({
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+      });
+
+      // 3. Load GIS
+      await loadScript('https://accounts.google.com/gsi/client');
+
+      // 4. Initialize Token Client
       window.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: GOOGLE_DRIVE_SCOPES,
         callback: (tokenResponse: any) => {
           if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+          
           if (tokenResponse && tokenResponse.access_token) {
             setIsSignedIn(true);
             updateSyncStatus('idle');
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
           } else if (tokenResponse && tokenResponse.error) {
-            let errorMsg = tokenResponse.error_description || tokenResponse.error;
-            if (isStandalone && tokenResponse.error === 'popup_closed_by_user') {
-                errorMsg = "The sign-in window was closed. On iPhone Home Screen, you must complete sign-in immediately without switching apps.";
-            }
-            setError(`Login failed: ${errorMsg}`);
+            console.error("GIS Token Error:", tokenResponse.error);
+            setError(`Login failed: ${tokenResponse.error_description || tokenResponse.error}`);
             updateSyncStatus('error');
           } else {
+            // Likely user closed the popup
             updateSyncStatus('idle');
           }
         },
       });
-      setIsApiReady(true);
-      
-      // Standalone PWAs have high failure rates for silent (prompt: '') token acquisition
-      // due to ITP. We skip the silent attempt if in standalone mode to avoid loops.
-      if (!isStandalone && localStorage.getItem(SIGNED_IN_KEY) === 'true') {
-        try {
-          window.tokenClient.requestAccessToken({ prompt: '' });
-        } catch (e) {
-          localStorage.removeItem(SIGNED_IN_KEY);
-        }
-      }
-    } catch (e) {
-      console.error("GIS Init Error:", e);
-    }
-  }, [updateSyncStatus, isStandalone]);
 
-  const initializeGapi = useCallback(async () => {
-    try {
-      await window.gapi.client.init({
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-      });
-      initializeGis();
-    } catch (e) {
-      console.error("GAPI Error:", e);
+      setIsApiReady(true);
+
+      // 5. Silent refresh if previously signed in
+      if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
+        window.tokenClient.requestAccessToken({ prompt: '' });
+      }
+    } catch (e: any) {
+      console.error("Sync Initialization Failed:", e);
+      setError("Failed to initialize Google Drive components. Please check your internet connection.");
+      updateSyncStatus('error');
     }
-  }, [initializeGis]);
+  }, [updateSyncStatus]);
 
   useEffect(() => {
-    if (scriptsInitiatedRef.current || !GOOGLE_CLIENT_ID) return;
-    scriptsInitiatedRef.current = true;
-    const gapiScript = document.createElement('script');
-    gapiScript.src = 'https://apis.google.com/js/api.js';
-    gapiScript.onload = () => window.gapi.load('client', initializeGapi);
-    document.body.appendChild(gapiScript);
-    const gisScript = document.createElement('script');
-    gisScript.src = 'https://accounts.google.com/gsi/client';
-    document.body.appendChild(gisScript);
-    return () => { if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current); };
-  }, [initializeGapi]);
+    if (scriptsLoadingRef.current) return;
+    scriptsLoadingRef.current = true;
+    initializeSync();
+    
+    return () => { 
+      if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current); 
+    };
+  }, [initializeSync]);
 
   const signIn = useCallback(() => {
     if (!window.tokenClient) {
       setError("Sync system not ready. Please refresh.");
       return;
     }
+
     updateSyncStatus('authenticating');
     setError(null);
-    window.tokenClient.requestAccessToken({ prompt: 'select_account' });
-  }, [updateSyncStatus]);
+
+    // Set a safety timeout so the spinner doesn't stay forever if the popup fails
+    if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+    authTimeoutRef.current = window.setTimeout(() => {
+      if (syncStatusRef.current === 'authenticating') {
+        updateSyncStatus('idle');
+        setError("Authentication timed out. Please try again.");
+      }
+    }, AUTH_TIMEOUT_MS);
+
+    try {
+      window.tokenClient.requestAccessToken({ prompt: 'select_account' });
+    } catch (e) {
+      handleApiError(e, 'request access');
+    }
+  }, [updateSyncStatus, handleApiError]);
 
   const resetSyncStatus = useCallback(() => {
     updateSyncStatus('idle');
@@ -189,6 +200,7 @@ export const useGoogleDrive = () => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
+      
       const response = await window.gapi.client.request({
         path: `/drive/v3/files/${id}`,
         method: 'GET',
@@ -199,14 +211,14 @@ export const useGoogleDrive = () => {
       let data: any = null;
       const body = response.body;
       
-      if (!body || body.trim() === '') {
-          data = { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' };
+      if (!body || (typeof body === 'string' && body.trim() === '')) {
+          data = { collection: [], wantlist: [], lastUpdated: '' };
       } else {
           try {
               data = typeof body === 'string' ? JSON.parse(body) : body;
           } catch (pErr) {
-              console.error("JSON Parse error:", pErr);
-              data = { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' };
+              console.error("JSON Parse error on cloud body:", pErr);
+              data = { collection: [], wantlist: [], lastUpdated: '' };
           }
       }
 
@@ -215,7 +227,6 @@ export const useGoogleDrive = () => {
       const normalizedData = {
           collection: (Array.isArray(data) ? data : data.collection) || [],
           wantlist: (data.wantlist) || [],
-          sort_exceptions: (data.sort_exceptions) || [],
           lastUpdated: metadata.result.modifiedTime || new Date().toISOString()
       };
 
@@ -235,15 +246,20 @@ export const useGoogleDrive = () => {
     updateSyncStatus('saving');
     try {
       const id = await getOrCreateFileId();
+      
       const response = await window.gapi.client.request({
         path: `/upload/drive/v3/files/${id}`,
         method: 'PATCH',
         params: { uploadType: 'media' },
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify(data),
       });
 
-      if (response.status >= 400) throw response;
+      if (response.status >= 400) {
+          throw response;
+      }
 
       const metadata = await window.gapi.client.drive.files.get({ fileId: id, fields: 'modifiedTime' });
       const time = metadata.result.modifiedTime || new Date().toISOString();
@@ -269,19 +285,17 @@ export const useGoogleDrive = () => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
-      const response = await window.gapi.client.revisions.get({ fileId: id, revisionId, alt: 'media' });
+      const response = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId, alt: 'media' });
       
       let data: any = null;
-      if (!response.body || response.body.trim() === '') {
-          data = { collection: [], wantlist: [], sort_exceptions: [], lastUpdated: '' };
+      if (!response.body || (typeof response.body === 'string' && response.body.trim() === '')) {
+          data = { collection: [], wantlist: [], lastUpdated: '' };
       } else {
           data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
       }
       
       updateSyncStatus('synced');
-      return Array.isArray(data) 
-        ? { collection: data, wantlist: [], sort_exceptions: [], lastUpdated: new Date().toISOString() } 
-        : (data as UnifiedStorage);
+      return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: new Date().toISOString() } : (data as UnifiedStorage);
     } catch (e) {
       handleApiError(e, 'load revision');
       return null;
@@ -297,7 +311,6 @@ export const useGoogleDrive = () => {
 
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData,
-    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus,
-    isStandalone
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, isStandalone]);
+    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus]);
 };
