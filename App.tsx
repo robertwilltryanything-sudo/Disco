@@ -109,7 +109,8 @@ const AppContent: React.FC = () => {
     error: driveError,
     lastSyncTime: driveLastSyncTime,
     isApiReady: driveReady,
-    resetSyncStatus: driveResetStatus
+    resetSyncStatus: driveResetStatus,
+    pickImage: drivePickImage
   } = useGoogleDrive();
 
   // Updated Sync Initiation: Peek first
@@ -342,14 +343,29 @@ const AppContent: React.FC = () => {
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="w-full max-w-3xl my-8 shadow-2xl">
-            <AddCDForm onSave={handleSaveCD} onCancel={() => { setIsAddModalOpen(false); setCdToEdit(null); setPrefillData(null); }} cdToEdit={cdToEdit} prefill={prefillData} isVinyl={collectionMode === 'vinyl'} />
+            <AddCDForm 
+              onSave={handleSaveCD} 
+              onCancel={() => { setIsAddModalOpen(false); setCdToEdit(null); setPrefillData(null); }} 
+              cdToEdit={cdToEdit} 
+              prefill={prefillData} 
+              isVinyl={collectionMode === 'vinyl'} 
+              driveSignedIn={driveSignedIn}
+              onPickFromDrive={drivePickImage}
+            />
           </div>
         </div>
       )}
       {isAddWantlistModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="w-full max-w-3xl my-8 shadow-2xl">
-                <AddWantlistItemForm onSave={handleSaveWantlistItem} onCancel={() => { setIsAddWantlistModalOpen(false); setWantlistItemToEdit(null); }} itemToEdit={wantlistItemToEdit} isVinyl={collectionMode === 'vinyl'} />
+                <AddWantlistItemForm 
+                  onSave={handleSaveWantlistItem} 
+                  onCancel={() => { setIsAddWantlistModalOpen(false); setWantlistItemToEdit(null); }} 
+                  itemToEdit={wantlistItemToEdit} 
+                  isVinyl={collectionMode === 'vinyl'} 
+                  driveSignedIn={driveSignedIn}
+                  onPickFromDrive={drivePickImage}
+                />
             </div>
         </div>
       )}

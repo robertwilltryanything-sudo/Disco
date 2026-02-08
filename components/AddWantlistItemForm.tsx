@@ -15,13 +15,14 @@ import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { capitalizeWords } from '../utils';
-import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 interface AddWantlistItemFormProps {
   onSave: (item: Omit<WantlistItem, 'id'> & { id?: string }) => Promise<void>;
   itemToEdit: WantlistItem | null;
   onCancel: () => void;
   isVinyl?: boolean;
+  driveSignedIn?: boolean;
+  onPickFromDrive?: () => Promise<string | null>;
 }
 
 const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing", "Tear Front"];
@@ -30,7 +31,7 @@ const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Se
 const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained", "Tear Front"];
 const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Promo", "Signed"];
 
-const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl }) => {
+const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl, driveSignedIn, onPickFromDrive }) => {
   const [artist, setArtist] = useState('');
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
@@ -53,8 +54,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
-
-  const { pickImage, isSignedIn: driveSignedIn } = useGoogleDrive();
 
   useEffect(() => {
     if (itemToEdit) {
@@ -202,14 +201,14 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   }, [artist, title]);
 
   const handlePickFromDrive = useCallback(async () => {
-    if (!driveSignedIn) {
+    if (!driveSignedIn || !onPickFromDrive) {
         setFormErrorTitle("Drive Connection Required");
         setFormError("Please sign in to Google Drive from the main menu (Top Right) to browse your files.");
         return;
     }
-    const url = await pickImage();
+    const url = await onPickFromDrive();
     if (url) setCoverArtUrl(url);
-  }, [pickImage, driveSignedIn]);
+  }, [onPickFromDrive, driveSignedIn]);
 
   const handleSelectCoverArt = useCallback(async (url: string) => {
     setCoverArtUrl(url);
