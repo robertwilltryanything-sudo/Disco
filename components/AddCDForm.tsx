@@ -9,13 +9,11 @@ import { CameraIcon } from './icons/CameraIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { LinkIcon } from './icons/LinkIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
-import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { capitalizeWords } from '../utils';
-import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
@@ -54,8 +52,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
-
-  const { pickImage, isSignedIn: driveSignedIn } = useGoogleDrive();
 
   const resetForm = useCallback(() => {
     setArtist('');
@@ -235,19 +231,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     }
   }, [artist, title]);
 
-  const handlePickFromDrive = useCallback(async () => {
-    if (!driveSignedIn) {
-        setFormErrorTitle("Drive Connection Required");
-        setFormError("Please sign in to Google Drive from the main menu to browse your files.");
-        return;
-    }
-    
-    const url = await pickImage();
-    if (url) {
-        setCoverArtUrl(url);
-    }
-  }, [pickImage, driveSignedIn]);
-
   const handleSelectCoverArt = useCallback(async (url: string) => {
     setCoverArtUrl(url);
     setIsSelectorOpen(false);
@@ -402,7 +385,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className={!cdToEdit ? "grid grid-cols-2 gap-2" : ""}>
                         <button
                             type="button"
                             onClick={handleFindArt}
@@ -412,27 +395,18 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                             <GlobeIcon className="h-4 w-4" />
                             Find Art
                         </button>
-                        <button
-                            type="button"
-                            onClick={handlePickFromDrive}
-                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
-                        >
-                            <GoogleDriveIcon className="h-4 w-4" />
-                            Drive
-                        </button>
+                        {!cdToEdit && (
+                            <button
+                                type="button"
+                                onClick={() => setIsScannerOpen(true)}
+                                disabled={isProcessing}
+                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
+                            >
+                                <CameraIcon className="h-4 w-4" />
+                                Scan Album
+                            </button>
+                        )}
                     </div>
-                    
-                    {!cdToEdit && (
-                        <button
-                            type="button"
-                            onClick={() => setIsScannerOpen(true)}
-                            disabled={isProcessing}
-                            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
-                        >
-                            <CameraIcon className="h-4 w-4" />
-                            Scan Album
-                        </button>
-                    )}
                 </div>
             </div>
             <div className="flex-1 w-full space-y-4">

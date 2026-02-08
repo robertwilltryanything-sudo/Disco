@@ -100,22 +100,11 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
 
     const storageKey = `disco_featured_album_${collectionMode}`;
     const now = new Date();
-    
-    // Calculate the most recent "Sunday at Noon" threshold
-    const currentDay = now.getDay(); // 0 is Sunday
-    const lastSundayNoon = new Date(now);
-    lastSundayNoon.setDate(now.getDate() - currentDay);
-    lastSundayNoon.setHours(12, 0, 0, 0);
-
-    // If it's Sunday but before 12:00 PM, the relevant threshold is actually the PREVIOUS Sunday
-    if (currentDay === 0 && now.getHours() < 12) {
-        lastSundayNoon.setDate(lastSundayNoon.getDate() - 7);
-    }
-
-    const thresholdTime = lastSundayNoon.getTime();
+    const today = now.toISOString().split('T')[0];
+    const isSunday = now.getDay() === 0;
 
     const storedDataRaw = localStorage.getItem(storageKey);
-    let storedData: { cdId: string; timestamp: number } | null = null;
+    let storedData: { cdId: string; date: string } | null = null;
     
     if (storedDataRaw) {
       try {
@@ -128,14 +117,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     const currentFeaturedInCollection = storedData ? cds.find(cd => cd.id === storedData.cdId) : null;
     
     // Rotation logic:
-    // 1. If no featured album exists in storage.
-    // 2. If the last rotation happened BEFORE the most recent Sunday at noon threshold.
+    // 1. If no featured album exists.
+    // 2. If it is Sunday AND we haven't already performed a rotation TODAY.
     // 3. If the currently featured album was deleted from the collection.
-    const needsRotation = !storedData || storedData.timestamp < thresholdTime || !currentFeaturedInCollection;
+    const needsRotation = !storedData || (isSunday && storedData.date !== today) || !currentFeaturedInCollection;
 
     if (needsRotation) {
         let pool = cds;
-        // Try to avoid picking the same one if we are just rotating normally
         if (storedData && cds.length > 1) {
             pool = cds.filter(cd => cd.id !== storedData?.cdId);
         }
@@ -145,7 +133,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
         if (newSelection) {
             localStorage.setItem(storageKey, JSON.stringify({
                 cdId: newSelection.id,
-                timestamp: now.getTime(), // Store the exact time we rotated
+                date: today,
             }));
             if (featuredCd?.id !== newSelection.id) {
                 setFeaturedCd(newSelection);
