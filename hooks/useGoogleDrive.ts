@@ -304,7 +304,8 @@ export const useGoogleDrive = () => {
           .setCallback((data: any) => {
             if (data.action === window.google.picker.Action.PICKED) {
               const fileId = data.docs[0].id;
-              resolve(`https://lh3.googleusercontent.com/u/0/d/${fileId}`);
+              // Use the most direct authenticated thumbnail URL pattern for Drive files
+              resolve(`https://drive.google.com/thumbnail?id=${fileId}&sz=w800`);
             } else if (data.action === window.google.picker.Action.CANCEL) {
               resolve(null);
             }
