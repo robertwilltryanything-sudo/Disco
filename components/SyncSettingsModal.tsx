@@ -59,6 +59,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     onProviderChange,
 }) => {
     const [showDriveHelp, setShowDriveHelp] = useState(false);
+    // Explicitly type the state to fix TS2339 errors
     const [revisions, setRevisions] = useState<DriveRevision[]>([]);
     const [isLoadingRevisions, setIsLoadingRevisions] = useState(false);
     const googleDrive = useGoogleDrive();
@@ -71,7 +72,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                 setIsLoadingRevisions(false);
             });
         }
-    }, [isOpen, currentProvider, googleDrive.isSignedIn]);
+    }, [isOpen, currentProvider, googleDrive.isSignedIn, googleDrive]);
 
     const handleRestore = async (revId: string) => {
         if (!window.confirm("Restore this version? Your current local changes will be replaced.")) return;

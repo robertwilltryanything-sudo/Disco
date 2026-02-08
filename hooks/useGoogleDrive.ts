@@ -173,6 +173,15 @@ export const useGoogleDrive = () => {
     }
     updateSyncStatus('authenticating');
     setError(null);
+
+    if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+    authTimeoutRef.current = window.setTimeout(() => {
+      if (syncStatusRef.current === 'authenticating') {
+        updateSyncStatus('idle');
+        setError("Sign-in timed out. Check for blocked popups.");
+      }
+    }, AUTH_TIMEOUT_MS);
+
     try {
       window.tokenClient.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
@@ -247,6 +256,33 @@ export const useGoogleDrive = () => {
     }
   }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus]);
 
+  const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {
+    if (!isSignedIn) return [];
+    try {
+      const id = await getOrCreateFileId();
+      const response = await window.gapi.client.drive.revisions.list({ fileId: id, fields: 'revisions(id, modifiedTime)' });
+      return response.result.revisions || [];
+    } catch (e) { 
+      return []; 
+    }
+  }, [isSignedIn, getOrCreateFileId]);
+
+  const loadRevision = useCallback(async (revisionId: string): Promise<UnifiedStorage | null> => {
+    if (!isSignedIn) return null;
+    updateSyncStatus('loading');
+    try {
+      const id = await getOrCreateFileId();
+      const response = await window.gapi.client.revisions.get({ fileId: id, revisionId, alt: 'media' });
+      const data = typeof response.body === 'string' ? JSON.parse(response.body) : response.result;
+      const metadata = await window.gapi.client.drive.revisions.get({ fileId: id, revisionId, fields: 'modifiedTime' });
+      updateSyncStatus('synced');
+      return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: metadata.result.modifiedTime || new Date().toISOString() } : (data as UnifiedStorage);
+    } catch (e) {
+      handleApiError(e, 'load_revision');
+      return null;
+    }
+  }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus]);
+
   const pickImage = useCallback((): Promise<string | null> => {
     return new Promise((resolve) => {
       if (!isSignedIn || !window.google || !window.gapi) {
@@ -264,11 +300,10 @@ export const useGoogleDrive = () => {
         const picker = new window.google.picker.PickerBuilder()
           .addView(view)
           .setOAuthToken(token)
-          .setDeveloperKey(process.env.API_KEY) // Use the standard project key
+          .setDeveloperKey(process.env.API_KEY)
           .setCallback((data: any) => {
             if (data.action === window.google.picker.Action.PICKED) {
               const fileId = data.docs[0].id;
-              // Construct a URL that works for authenticated browser sessions
               resolve(`https://lh3.googleusercontent.com/u/0/d/${fileId}`);
             } else if (data.action === window.google.picker.Action.CANCEL) {
               resolve(null);
@@ -290,9 +325,15 @@ export const useGoogleDrive = () => {
     }
   }, [clearAuthState]);
 
+  const resetSyncStatus = useCallback(() => {
+    initStartedRef.current = false;
+    updateSyncStatus('idle');
+    setError(null);
+    initializeSync(); 
+  }, [updateSyncStatus, initializeSync]);
+
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData,
-    getRevisions: () => Promise.resolve([]), loadRevision: () => Promise.resolve(null), 
-    syncStatus, error, lastSyncTime, resetSyncStatus: () => {}, pickImage
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, syncStatus, error, lastSyncTime, pickImage]);
+    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, pickImage
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, pickImage]);
 };
