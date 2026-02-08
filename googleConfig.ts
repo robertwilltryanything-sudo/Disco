@@ -10,8 +10,12 @@ if (!clientId) {
 
 export const GOOGLE_CLIENT_ID = clientId;
 
-// The scope for the Google Drive API.
-export const GOOGLE_DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+// The scopes for the Google Drive API. 
+// Added drive.readonly to allow picking images from the user's entire Drive.
+export const GOOGLE_DRIVE_SCOPES = [
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/drive.readonly'
+].join(' ');
 
 // The name of the file where the collection data will be stored in Google Drive.
 export const COLLECTION_FILENAME = 'disco_collection_data.json';
