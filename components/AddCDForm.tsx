@@ -405,7 +405,11 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                             type="button"
                             onClick={() => setIsDrivePickerOpen(true)}
                             disabled={!drive.isSignedIn}
-                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50"
+                            className={`w-full flex items-center justify-center gap-2 border font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all text-sm ${
+                                drive.isSignedIn 
+                                ? 'bg-zinc-800 border-zinc-800 text-white hover:bg-black focus:ring-zinc-800' 
+                                : 'bg-white border-zinc-300 text-zinc-400 opacity-50 cursor-not-allowed'
+                            }`}
                             title={drive.isSignedIn ? "Browse your Google Drive" : "Sign in to Drive to browse images"}
                         >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
