@@ -91,41 +91,48 @@ export const useGoogleDrive = () => {
       script.defer = true;
       script.onload = () => {
         // Verification delay to ensure global is bound
-        setTimeout(() => resolve(), 100);
+        setTimeout(() => resolve(), 200);
       };
       script.onerror = () => {
-        reject(new Error(`Script blocked or failed: ${src}. Check your browser privacy settings or ad-blocker.`));
+        reject(new Error(`The script at ${src} was blocked. This is often caused by an ad-blocker or strict privacy settings.`));
       };
       document.body.appendChild(script);
     });
   };
 
   const initializeSync = useCallback(async () => {
+    // Only attempt init if we have a client ID and haven't started yet
     if (!GOOGLE_CLIENT_ID || initStartedRef.current) return;
     initStartedRef.current = true;
     
     try {
       setError(null);
       
-      // Parallel load both required libraries
+      // Step 1: Parallel load both required libraries
       await Promise.all([
         loadScript('https://apis.google.com/js/api.js', 'gapi'),
         loadScript('https://accounts.google.com/gsi/client', 'google.accounts.oauth2')
       ]);
       
-      // Initialize GAPI client for Drive REST access
+      // Step 2: Initialize GAPI client for Drive REST access
       await new Promise<void>((resolve, reject) => {
+        if (!window.gapi) return reject(new Error("GAPI library missing"));
         window.gapi.load('client', {
           callback: resolve,
-          onerror: (err: any) => reject(new Error("GAPI load failed"))
+          onerror: () => reject(new Error("Failed to load Google API client component"))
         });
       });
       
+      // Step 3: Initialize the discovery of the Drive API
       await window.gapi.client.init({
         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       });
 
-      // Setup the Token Client (GIS)
+      // Step 4: Setup the Token Client (New Google Identity Services)
+      if (!window.google?.accounts?.oauth2) {
+        throw new Error("Google Identity Services failed to initialize.");
+      }
+
       window.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: GOOGLE_DRIVE_SCOPES,
@@ -133,6 +140,7 @@ export const useGoogleDrive = () => {
           if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
           
           if (tokenResponse && tokenResponse.access_token) {
+            // CRITICAL BRIDGE: Pass the auth token to the GAPI client
             window.gapi.client.setToken(tokenResponse);
             setIsSignedIn(true);
             updateSyncStatus('idle');
@@ -148,14 +156,15 @@ export const useGoogleDrive = () => {
 
       setIsApiReady(true);
 
-      // Silent Re-auth check
+      // Step 5: Silent Re-auth check (if user previously signed in)
       if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
         window.tokenClient.requestAccessToken({ prompt: '' });
       }
     } catch (e: any) {
       console.error("Sync Initialization Failed:", e);
-      initStartedRef.current = false; // Allow retry
-      setError(e.message || "Google infrastructure failed to load. Ensure you aren't blocking Google scripts.");
+      initStartedRef.current = false; // Allow retry if user clicks reset
+      const errorMsg = e.message || "Google infrastructure failed to load.";
+      setError(`${errorMsg} Please check your ad-blocker or internet connection.`);
       updateSyncStatus('error');
     }
   }, [updateSyncStatus, handleApiError]);
@@ -169,7 +178,7 @@ export const useGoogleDrive = () => {
 
   const signIn = useCallback(() => {
     if (!window.tokenClient) {
-      setError("Auth client not ready yet. Please refresh the page.");
+      setError("Authentication system is not ready. Please try again in a few seconds.");
       return;
     }
 
@@ -180,7 +189,7 @@ export const useGoogleDrive = () => {
     authTimeoutRef.current = window.setTimeout(() => {
       if (syncStatusRef.current === 'authenticating') {
         updateSyncStatus('idle');
-        setError("Sign-in timed out. Ensure popups are allowed and that you are logged into your Google account.");
+        setError("Sign-in timed out. Please check if your browser blocked the Google login popup.");
       }
     }, AUTH_TIMEOUT_MS);
 
@@ -195,7 +204,7 @@ export const useGoogleDrive = () => {
     initStartedRef.current = false;
     updateSyncStatus('idle');
     setError(null);
-    initializeSync(); // Re-attempt init
+    initializeSync(); 
   }, [updateSyncStatus, initializeSync]);
 
   const getOrCreateFileId = useCallback(async () => {
