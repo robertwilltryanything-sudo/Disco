@@ -71,7 +71,6 @@ export const useGoogleDrive = () => {
 
   const loadScript = (src: string, globalCheck: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      // Check if global already exists and is usable
       const parts = globalCheck.split('.');
       let current: any = window;
       let exists = true;
@@ -90,7 +89,6 @@ export const useGoogleDrive = () => {
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        // Verification delay to ensure global is bound
         setTimeout(() => resolve(), 200);
       };
       script.onerror = () => {
@@ -101,20 +99,16 @@ export const useGoogleDrive = () => {
   };
 
   const initializeSync = useCallback(async () => {
-    // Only attempt init if we have a client ID and haven't started yet
     if (!GOOGLE_CLIENT_ID || initStartedRef.current) return;
     initStartedRef.current = true;
     
     try {
       setError(null);
-      
-      // Step 1: Parallel load both required libraries
       await Promise.all([
         loadScript('https://apis.google.com/js/api.js', 'gapi'),
         loadScript('https://accounts.google.com/gsi/client', 'google.accounts.oauth2')
       ]);
       
-      // Step 2: Initialize GAPI client for Drive REST access
       await new Promise<void>((resolve, reject) => {
         if (!window.gapi) return reject(new Error("GAPI library missing"));
         window.gapi.load('client', {
@@ -123,12 +117,10 @@ export const useGoogleDrive = () => {
         });
       });
       
-      // Step 3: Initialize the discovery of the Drive API
       await window.gapi.client.init({
         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       });
 
-      // Step 4: Setup the Token Client (New Google Identity Services)
       if (!window.google?.accounts?.oauth2) {
         throw new Error("Google Identity Services failed to initialize.");
       }
@@ -140,7 +132,6 @@ export const useGoogleDrive = () => {
           if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
           
           if (tokenResponse && tokenResponse.access_token) {
-            // CRITICAL BRIDGE: Pass the auth token to the GAPI client
             window.gapi.client.setToken(tokenResponse);
             setIsSignedIn(true);
             updateSyncStatus('idle');
@@ -156,13 +147,12 @@ export const useGoogleDrive = () => {
 
       setIsApiReady(true);
 
-      // Step 5: Silent Re-auth check (if user previously signed in)
       if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
         window.tokenClient.requestAccessToken({ prompt: '' });
       }
     } catch (e: any) {
       console.error("Sync Initialization Failed:", e);
-      initStartedRef.current = false; // Allow retry if user clicks reset
+      initStartedRef.current = false;
       const errorMsg = e.message || "Google infrastructure failed to load.";
       setError(`${errorMsg} Please check your ad-blocker or internet connection.`);
       updateSyncStatus('error');
@@ -310,6 +300,43 @@ export const useGoogleDrive = () => {
     }
   }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus]);
 
+  const pickImage = useCallback((): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (!isSignedIn || !window.google || !window.gapi) {
+        resolve(null);
+        return;
+      }
+
+      window.gapi.load('picker', () => {
+        const token = window.gapi.client.getToken()?.access_token;
+        if (!token) {
+          resolve(null);
+          return;
+        }
+
+        const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS_IMAGES);
+        view.setMode(window.google.picker.DocsViewMode.GRID);
+
+        const picker = new window.google.picker.PickerBuilder()
+          .addView(view)
+          .setOAuthToken(token)
+          .setDeveloperKey(process.env.API_KEY)
+          .setCallback((data: any) => {
+            if (data.action === window.google.picker.Action.PICKED) {
+              const fileId = data.docs[0].id;
+              // Use direct link for Google Drive images (requires valid token usually, or being shared)
+              resolve(`https://lh3.googleusercontent.com/u/0/d/${fileId}`);
+            } else if (data.action === window.google.picker.Action.CANCEL) {
+              resolve(null);
+            }
+          })
+          .setTitle('Select Album Artwork')
+          .build();
+        picker.setVisible(true);
+      });
+    });
+  }, [isSignedIn]);
+
   const signOut = useCallback(() => {
     const token = window.gapi?.client?.getToken();
     if (token && window.google?.accounts?.oauth2) {
@@ -321,6 +348,6 @@ export const useGoogleDrive = () => {
 
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData,
-    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus]);
+    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, pickImage
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, pickImage]);
 };
