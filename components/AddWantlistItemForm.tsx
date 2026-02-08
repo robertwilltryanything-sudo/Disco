@@ -9,11 +9,13 @@ import { CameraIcon } from './icons/CameraIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { LinkIcon } from './icons/LinkIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
+import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { capitalizeWords } from '../utils';
+import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 interface AddWantlistItemFormProps {
   onSave: (item: Omit<WantlistItem, 'id'> & { id?: string }) => Promise<void>;
@@ -51,6 +53,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
+
+  const { pickImage, isSignedIn: driveSignedIn } = useGoogleDrive();
 
   useEffect(() => {
     if (itemToEdit) {
@@ -122,7 +126,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         }
     } catch (error: any) {
         console.error("Error during save process:", error);
-        const errorMsg = error.details || error.message || "An unexpected error occurred while saving to your wantlist. Please check your connection.";
+        const errorMsg = error.details || error.message || "An unexpected error occurred.";
         setFormError(errorMsg);
     } finally {
         setIsProcessing(false);
@@ -149,7 +153,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           }
       } catch (error: any) {
           console.error("Error getting album info:", error);
-          setFormError(error.message || "An error occurred while scanning the album cover.");
+          setFormError(error.message || "An error occurred.");
       } finally {
           setIsProcessing(false);
       }
@@ -163,7 +167,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setFormError(null);
       } else {
         setFormErrorTitle("Invalid URL");
-        setFormError("Please enter a valid, direct image URL (e.g., ending in .jpg, .png).");
+        setFormError("Please enter a valid image URL.");
       }
     }
   }, [manualUrl]);
@@ -171,7 +175,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const handleFindArt = useCallback(async () => {
     if (!artist || !title) {
       setFormErrorTitle("Search Error");
-      setFormError("Please enter an Artist and Title before searching for art.");
+      setFormError("Please enter Artist and Title.");
       return;
     }
     setIsProcessing(true);
@@ -180,25 +184,32 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     setFormErrorTitle("Search Error");
     try {
       const imageUrls = await findCoverArt(artist, title);
-
       if (imageUrls && imageUrls.length > 0) {
-        if (imageUrls.length === 1) {
-          setCoverArtUrl(imageUrls[0]);
-        } else {
+        if (imageUrls.length === 1) setCoverArtUrl(imageUrls[0]);
+        else {
           setCoverArtOptions(imageUrls);
           setIsSelectorOpen(true);
         }
       } else {
-        setFormErrorTitle("Cover Art Not Found");
-        setFormError("Could find cover art online for this specific Artist/Title combination.");
+        setFormErrorTitle("Not Found");
+        setFormError("No cover art found online.");
       }
     } catch (error: any) {
-      console.error("Error finding art online:", error);
-      setFormError(error.message || "An error occurred while searching for cover art.");
+      setFormError(error.message || "An error occurred.");
     } finally {
       setIsProcessing(false);
     }
   }, [artist, title]);
+
+  const handlePickFromDrive = useCallback(async () => {
+    if (!driveSignedIn) {
+        setFormErrorTitle("Drive Connection Required");
+        setFormError("Please sign in to Google Drive from the main menu (Top Right) to browse your files.");
+        return;
+    }
+    const url = await pickImage();
+    if (url) setCoverArtUrl(url);
+  }, [pickImage, driveSignedIn]);
 
   const handleSelectCoverArt = useCallback(async (url: string) => {
     setCoverArtUrl(url);
@@ -217,8 +228,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           created_at: itemToEdit?.created_at,
         });
       } catch (error: any) {
-        console.error("Error saving after art selection:", error);
-        setFormError(error.message || "An error occurred while saving.");
+        setFormError(error.message || "An error occurred.");
       } finally {
         setIsProcessing(false);
         setIsSubmittingWithArtSelection(false);
@@ -229,7 +239,6 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const handleCloseSelector = useCallback(async () => {
     setIsSelectorOpen(false);
     setCoverArtOptions([]);
-
     if (isSubmittingWithArtSelection) {
       try {
           setFormErrorTitle("Error Saving to Wantlist");
@@ -242,7 +251,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             created_at: itemToEdit?.created_at,
           });
       } catch (error: any) {
-        setFormError(error.message || "An error occurred while saving.");
+        setFormError(error.message || "An error occurred.");
       } finally {
         setIsProcessing(false);
         setIsSubmittingWithArtSelection(false);
@@ -354,7 +363,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                         </button>
                     </div>
 
-                    <div className={!itemToEdit ? "grid grid-cols-2 gap-2" : ""}>
+                    <div className="grid grid-cols-2 gap-2">
                         <button
                             type="button"
                             onClick={handleFindArt}
@@ -364,18 +373,27 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                             <GlobeIcon className="h-4 w-4" />
                             Find Art
                         </button>
-                        {!itemToEdit && (
-                            <button
-                                type="button"
-                                onClick={() => setIsScannerOpen(true)}
-                                disabled={isProcessing}
-                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
-                            >
-                                <CameraIcon className="h-4 w-4" />
-                                Scan Album
-                            </button>
-                        )}
+                        <button
+                            type="button"
+                            onClick={handlePickFromDrive}
+                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
+                        >
+                            <GoogleDriveIcon className="h-4 w-4" />
+                            Drive
+                        </button>
                     </div>
+                    
+                    {!itemToEdit && (
+                        <button
+                            type="button"
+                            onClick={() => setIsScannerOpen(true)}
+                            disabled={isProcessing}
+                            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
+                        >
+                            <CameraIcon className="h-4 w-4" />
+                            Scan Album
+                        </button>
+                    )}
                 </div>
             </div>
             <div className="flex-1 w-full space-y-4">
