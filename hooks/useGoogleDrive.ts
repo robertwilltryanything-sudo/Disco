@@ -8,6 +8,13 @@ export interface UnifiedStorage {
     lastUpdated: string;
 }
 
+export interface DriveFile {
+  id: string;
+  name: string;
+  thumbnailLink?: string;
+  mimeType: string;
+}
+
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
 const AUTH_TIMEOUT_MS = 30000;
@@ -283,39 +290,24 @@ export const useGoogleDrive = () => {
     }
   }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus]);
 
-  const pickImage = useCallback((): Promise<string | null> => {
-    return new Promise((resolve) => {
-      if (!isSignedIn || !window.google || !window.gapi) {
-        resolve(null);
-        return;
-      }
-
-      window.gapi.load('picker', () => {
-        const token = window.gapi.client.getToken()?.access_token;
-        if (!token) { resolve(null); return; }
-
-        const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS_IMAGES);
-        view.setMode(window.google.picker.DocsViewMode.GRID);
-
-        const picker = new window.google.picker.PickerBuilder()
-          .addView(view)
-          .setOAuthToken(token)
-          .setDeveloperKey(process.env.API_KEY)
-          .setCallback((data: any) => {
-            if (data.action === window.google.picker.Action.PICKED) {
-              const fileId = data.docs[0].id;
-              // Use the most direct authenticated thumbnail URL pattern for Drive files
-              resolve(`https://drive.google.com/thumbnail?id=${fileId}&sz=w800`);
-            } else if (data.action === window.google.picker.Action.CANCEL) {
-              resolve(null);
-            }
-          })
-          .setTitle('Select Album Artwork')
-          .build();
-        picker.setVisible(true);
+  const fetchDriveImages = useCallback(async (pageToken?: string): Promise<{files: DriveFile[], nextPageToken?: string}> => {
+    if (!isSignedIn) return { files: [] };
+    try {
+      const response = await window.gapi.client.drive.files.list({
+        q: "mimeType contains 'image/' and trashed = false",
+        fields: 'nextPageToken, files(id, name, thumbnailLink, mimeType)',
+        pageSize: 40,
+        pageToken: pageToken
       });
-    });
-  }, [isSignedIn]);
+      return {
+        files: response.result.files || [],
+        nextPageToken: response.result.nextPageToken
+      };
+    } catch (e) {
+      handleApiError(e, 'fetch_images');
+      return { files: [] };
+    }
+  }, [isSignedIn, handleApiError]);
 
   const signOut = useCallback(() => {
     const token = window.gapi?.client?.getToken();
@@ -335,6 +327,6 @@ export const useGoogleDrive = () => {
 
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData,
-    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, pickImage
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, pickImage]);
+    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages]);
 };

@@ -23,6 +23,7 @@ import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import { SpinnerIcon } from './components/icons/SpinnerIcon';
 import SyncConfirmationModal from './components/SyncConfirmationModal';
+import DriveImagePickerModal from './components/DriveImagePickerModal';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
@@ -88,6 +89,10 @@ const AppContent: React.FC = () => {
   const [pendingImport, setPendingImport] = useState<CD[] | null>(null);
   const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
 
+  // Drive Picker States
+  const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
+  const [onDriveImageSelected, setOnDriveImageSelected] = useState<((url: string) => void) | null>(null);
+
   // Sync Safety States
   const [isSyncConfirmOpen, setIsSyncConfirmOpen] = useState(false);
   const [syncConfirmType, setSyncConfirmType] = useState<'push' | 'pull'>('push');
@@ -110,8 +115,19 @@ const AppContent: React.FC = () => {
     lastSyncTime: driveLastSyncTime,
     isApiReady: driveReady,
     resetSyncStatus: driveResetStatus,
-    pickImage: drivePickImage
+    fetchDriveImages: driveFetchImages
   } = useGoogleDrive();
+
+  // Pick Image Trigger
+  const initiateDrivePick = useCallback((): Promise<string | null> => {
+    return new Promise((resolve) => {
+      setOnDriveImageSelected(() => (url: string) => {
+        setIsDrivePickerOpen(false);
+        resolve(url);
+      });
+      setIsDrivePickerOpen(true);
+    });
+  }, []);
 
   // Updated Sync Initiation: Peek first
   const initiateCloudPull = useCallback(async () => {
@@ -350,7 +366,7 @@ const AppContent: React.FC = () => {
               prefill={prefillData} 
               isVinyl={collectionMode === 'vinyl'} 
               driveSignedIn={driveSignedIn}
-              onPickFromDrive={drivePickImage}
+              onPickFromDrive={initiateDrivePick}
             />
           </div>
         </div>
@@ -364,7 +380,7 @@ const AppContent: React.FC = () => {
                   itemToEdit={wantlistItemToEdit} 
                   isVinyl={collectionMode === 'vinyl'} 
                   driveSignedIn={driveSignedIn}
-                  onPickFromDrive={drivePickImage}
+                  onPickFromDrive={initiateDrivePick}
                 />
             </div>
         </div>
@@ -387,6 +403,19 @@ const AppContent: React.FC = () => {
             lastUpdated: pendingCloudData?.lastUpdated || null
         }}
       />
+      
+      <DriveImagePickerModal 
+        isOpen={isDrivePickerOpen}
+        onClose={() => {
+            setIsDrivePickerOpen(false);
+            if (onDriveImageSelected) setOnDriveImageSelected(null);
+        }}
+        onSelect={(url) => {
+            if (onDriveImageSelected) onDriveImageSelected(url);
+        }}
+        fetchImages={driveFetchImages}
+      />
+
       <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} />
       <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30"><PlusIcon className="h-6 w-6" /></button>
     </div>
