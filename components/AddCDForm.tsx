@@ -10,12 +10,10 @@ import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { LinkIcon } from './icons/LinkIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
 import CoverArtSelectorModal from './CoverArtSelectorModal';
-import DriveImagePickerModal from './DriveImagePickerModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { capitalizeWords } from '../utils';
-import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
@@ -52,11 +50,8 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [formErrorTitle, setFormErrorTitle] = useState('Error');
   
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
-  const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
-
-  const drive = useGoogleDrive();
 
   const resetForm = useCallback(() => {
     setArtist('');
@@ -194,12 +189,12 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const handleSetArtFromUrl = useCallback(() => {
     if (manualUrl.trim()) {
       const url = manualUrl.trim();
-      if (url.startsWith('http')) {
+      if (url.startsWith('http') && /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url)) {
         setCoverArtUrl(url);
         setFormError(null);
       } else {
         setFormErrorTitle("Invalid Image URL");
-        setFormError("Please enter a direct link to an image.");
+        setFormError("Please enter a direct link to an image (e.g. ending in .jpg or .png).");
       }
     }
   }, [manualUrl]);
@@ -239,7 +234,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const handleSelectCoverArt = useCallback(async (url: string) => {
     setCoverArtUrl(url);
     setIsSelectorOpen(false);
-    setIsDrivePickerOpen(false);
     setCoverArtOptions([]);
     
     if (isSubmittingWithArtSelection) {
@@ -330,7 +324,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
 
         <h2 className="text-xl font-bold text-zinc-900 pr-10">{cdToEdit ? `Edit ${albumType}` : `Add New ${albumType}`}</h2>
         
-        {isProcessing && !isSelectorOpen && !isDrivePickerOpen && (
+        {isProcessing && !isSelectorOpen && (
             <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <SpinnerIcon className="h-6 w-6 mr-3 text-blue-600" />
                 <p className="text-blue-700">{processingStatus}</p>
@@ -351,18 +345,18 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 <div className="relative w-full group">
                   {cover_art_url ? (
                       <>
-                        <img src={cover_art_url} alt="Album cover preview" className="w-full h-auto aspect-square object-cover rounded-lg shadow-md border border-zinc-200" />
+                        <img src={cover_art_url} alt="Album cover preview" className="w-full h-auto aspect-square object-cover rounded-lg" />
                         <button
                             type="button"
                             onClick={handleRemoveArt}
-                            className="absolute top-2 right-2 p-2 rounded-full bg-black/60 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                            className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-40 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                             aria-label="Remove cover art"
                         >
                             <TrashIcon className="w-5 h-5" />
                         </button>
                       </>
                   ) : (
-                      <div className="w-full h-auto aspect-square bg-zinc-200 flex items-center justify-center rounded-lg border border-dashed border-zinc-300">
+                      <div className="w-full h-auto aspect-square bg-zinc-200 flex items-center justify-center rounded-lg">
                           <MusicNoteIcon className="w-16 h-16 text-zinc-400" />
                       </div>
                   )}
@@ -391,43 +385,28 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className={!cdToEdit ? "grid grid-cols-2 gap-2" : ""}>
                         <button
                             type="button"
                             onClick={handleFindArt}
-                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={!artist || !title}
                         >
                             <GlobeIcon className="h-4 w-4" />
                             Find Art
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => setIsDrivePickerOpen(true)}
-                            disabled={!drive.isSignedIn}
-                            className={`w-full flex items-center justify-center gap-2 border font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all text-sm ${
-                                drive.isSignedIn 
-                                ? 'bg-zinc-800 border-zinc-800 text-white hover:bg-black focus:ring-zinc-800' 
-                                : 'bg-white border-zinc-300 text-zinc-400 opacity-50 cursor-not-allowed'
-                            }`}
-                            title={drive.isSignedIn ? "Browse your Google Drive" : "Sign in to Drive to browse images"}
-                        >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
-                            My Drive
-                        </button>
+                        {!cdToEdit && (
+                            <button
+                                type="button"
+                                onClick={() => setIsScannerOpen(true)}
+                                disabled={isProcessing}
+                                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
+                            >
+                                <CameraIcon className="h-4 w-4" />
+                                Scan Album
+                            </button>
+                        )}
                     </div>
-                    
-                    {!cdToEdit && (
-                        <button
-                            type="button"
-                            onClick={() => setIsScannerOpen(true)}
-                            disabled={isProcessing}
-                            className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2.5 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 disabled:opacity-50 text-sm"
-                        >
-                            <CameraIcon className="h-4 w-4" />
-                            Scan Physical Album
-                        </button>
-                    )}
                 </div>
             </div>
             <div className="flex-1 w-full space-y-4">
@@ -600,11 +579,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         onClose={handleCloseSelector}
         onSelect={handleSelectCoverArt}
         images={coverArtOptions}
-      />
-      <DriveImagePickerModal 
-        isOpen={isDrivePickerOpen}
-        onClose={() => setIsDrivePickerOpen(false)}
-        onSelect={handleSelectCoverArt}
       />
     </>
   );
