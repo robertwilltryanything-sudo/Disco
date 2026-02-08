@@ -99,7 +99,9 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     }
 
     const storageKey = `disco_featured_album_${collectionMode}`;
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const isSunday = now.getDay() === 0;
 
     const storedDataRaw = localStorage.getItem(storageKey);
     let storedData: { cdId: string; date: string } | null = null;
@@ -113,7 +115,12 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     }
     
     const currentFeaturedInCollection = storedData ? cds.find(cd => cd.id === storedData.cdId) : null;
-    const needsRotation = !storedData || storedData.date !== today || !currentFeaturedInCollection;
+    
+    // Rotation logic:
+    // 1. If no featured album exists.
+    // 2. If it is Sunday AND we haven't already performed a rotation TODAY.
+    // 3. If the currently featured album was deleted from the collection.
+    const needsRotation = !storedData || (isSunday && storedData.date !== today) || !currentFeaturedInCollection;
 
     if (needsRotation) {
         let pool = cds;
@@ -167,14 +174,50 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
       .sort((a, b) => {
         const valA = a[sortBy];
         const valB = b[sortBy];
+        
         if (valA === undefined || valA === null) return 1;
         if (valB === undefined || valB === null) return -1;
+
         let comparison = 0;
         if (typeof valA === 'string' && typeof valB === 'string') {
           comparison = valA.localeCompare(valB);
         } else if (typeof valA === 'number' && typeof valB === 'number') {
           comparison = valA - valB;
         }
+
+        // Multi-level sorting logic
+        if (comparison === 0) {
+            // Secondary Sort Keys
+            if (sortBy === 'artist') {
+                // Artist -> Year -> Title
+                comparison = (a.year || 0) - (b.year || 0);
+                if (comparison === 0) {
+                    comparison = (a.title || '').localeCompare(b.title || '');
+                }
+            } else if (sortBy === 'genre' || sortBy === 'record_label') {
+                // Genre/Label -> Artist -> Year -> Title
+                comparison = (a.artist || '').localeCompare(b.artist || '');
+                if (comparison === 0) {
+                    comparison = (a.year || 0) - (b.year || 0);
+                    if (comparison === 0) {
+                        comparison = (a.title || '').localeCompare(b.title || '');
+                    }
+                }
+            } else if (sortBy === 'year') {
+                // Year -> Artist -> Title
+                comparison = (a.artist || '').localeCompare(b.artist || '');
+                if (comparison === 0) {
+                    comparison = (a.title || '').localeCompare(b.title || '');
+                }
+            } else if (sortBy === 'created_at') {
+                // CreatedAt -> Artist -> Year
+                comparison = (a.artist || '').localeCompare(b.artist || '');
+            } else {
+                // Default fallback
+                comparison = (a.artist || '').localeCompare(b.artist || '');
+            }
+        }
+
         return sortOrder === 'asc' ? comparison : -comparison;
       });
 

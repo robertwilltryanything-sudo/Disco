@@ -20,8 +20,8 @@ interface WantlistDetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
-const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing", "Tear Front"];
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained", "Tear Front"];
 
 const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onMoveToCollection, collectionMode }) => {
   const { id } = useParams<{ id: string }>();

@@ -20,8 +20,8 @@ interface DetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
-const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing", "Tear Front"];
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained", "Tear Front"];
 
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();

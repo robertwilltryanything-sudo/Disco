@@ -22,11 +22,11 @@ interface AddWantlistItemFormProps {
   isVinyl?: boolean;
 }
 
-const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing"];
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing", "Tear Front"];
 const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Color Vinyl", "Hype Sticker", "Sealed", "Obi Strip", "Import", "Insert", "Signed"];
 
-const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained"];
-const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Remaster", "Promo", "Signed"];
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained", "Tear Front"];
+const CD_ATTRIBUTES = ["Jewel Case", "Digipak", "Slipcase", "Sealed", "Obi Strip", "Import", "SACD", "Promo", "Signed"];
 
 const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl }) => {
   const [artist, setArtist] = useState('');
