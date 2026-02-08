@@ -10,8 +10,6 @@ import RecommendedCDItem from '../components/RecommendedCDItem';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
-// Import SpinnerIcon to fix the missing name error
-import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { getAlbumDetails } from '../gemini';
 import { getBrandColor } from '../utils';
 
@@ -30,7 +28,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
 
   const { cd, previousCd, nextCd } = useMemo(() => {
     const currentIndex = cds.findIndex(c => c.id === id);
@@ -51,10 +48,9 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const handleRefreshData = useCallback(async () => {
       if (!cd) return;
       setIsRefreshing(true);
-      setRefreshMessage(null);
       try {
           const details = await getAlbumDetails(cd.artist, cd.title);
-          if (details && (details.genre || details.year || details.record_label)) {
+          if (details) {
               const updatedCd: CD = {
                   ...cd,
                   genre: cd.genre || details.genre,
@@ -63,15 +59,8 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])],
               };
               await onUpdateCD(updatedCd);
-              setRefreshMessage("Info updated successfully!");
-              setTimeout(() => setRefreshMessage(null), 3000);
-          } else {
-              setRefreshMessage("No new information found for this album.");
-              setTimeout(() => setRefreshMessage(null), 3000);
           }
-      } catch (error) { 
-          alert("Could not fetch new details. This is usually due to API limits or network issues."); 
-      }
+      } catch (error) { alert("Could not fetch new details."); }
       finally { setIsRefreshing(false); }
   }, [cd, onUpdateCD]);
 
@@ -188,23 +177,9 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                 </div>
               )}
 
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-8 flex flex-wrap gap-3">
                   <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-bold py-2 px-4 rounded-lg text-sm hover:bg-zinc-200 transition-colors"><GlobeIcon className="h-4 w-4" />Wikipedia</a>
-                  <div className="relative">
-                    <button 
-                        onClick={handleRefreshData} 
-                        disabled={isRefreshing} 
-                        className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 font-bold py-2 px-4 rounded-lg disabled:opacity-50 text-sm hover:bg-blue-100 transition-colors"
-                    >
-                        {isRefreshing ? <SpinnerIcon className="w-4 h-4 animate-spin" /> : <SparklesIcon className="w-4 h-4" />}
-                        Update Info
-                    </button>
-                    {refreshMessage && (
-                        <div className="absolute top-full mt-2 left-0 bg-zinc-800 text-white text-[10px] py-1 px-3 rounded shadow-lg whitespace-nowrap z-10 animate-bounce">
-                            {refreshMessage}
-                        </div>
-                    )}
-                  </div>
+                  <button onClick={handleRefreshData} disabled={isRefreshing} className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 font-bold py-2 px-4 rounded-lg disabled:opacity-50 text-sm hover:bg-blue-100 transition-colors"><SparklesIcon className="w-4 h-4" />Update Info</button>
               </div>
             </div>
         </div>

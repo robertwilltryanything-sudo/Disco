@@ -92,17 +92,14 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: `Search your database for the album "${title}" by artist "${artist}". Provide the original release year, primary genre, record label, and 3 descriptive tags. If you cannot find the exact album, return your best guess based on the artist's style.`,
+            contents: `Details for album "${title}" by "${artist}": year, genre, label, and 2-3 tags. JSON format.`,
             config: {
-                systemInstruction: "You are a music encyclopedia. Provide accurate metadata. If details are uncertain, provide the most likely values based on the artist's history.",
                 responseMimeType: "application/json",
                 responseSchema: albumDetailsSchema,
                 thinkingConfig: { thinkingBudget: 0 }
             },
         });
-        const text = response.text;
-        if (!text || text === '{}') return null;
-        return JSON.parse(text);
+        return JSON.parse(response.text || '{}');
     } catch (error) {
         handleApiError(error, 'getAlbumDetails');
         return null;
