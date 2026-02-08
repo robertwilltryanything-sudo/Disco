@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { DriveFile } from '../hooks/useGoogleDrive';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { XIcon } from './icons/XIcon';
@@ -56,6 +56,16 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
     return files.filter(f => f.name.toLowerCase().includes(lowerQuery));
   }, [files, searchQuery]);
 
+  // Helper to get high-quality direct image URL from Google's thumbnail link
+  const getHighResUrl = (file: DriveFile) => {
+    if (file.thumbnailLink) {
+        // thumbnailLink usually ends with =s220. 
+        // Replacing it with =s1000 gives a high-quality direct link that bypasses cookie auth issues.
+        return file.thumbnailLink.split('=')[0] + '=s1000';
+    }
+    return `https://drive.google.com/thumbnail?id=${file.id}&sz=w1000`;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -105,7 +115,7 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
               {filteredFiles.map((file) => (
                 <button
                   key={file.id}
-                  onClick={() => onSelect(`https://drive.google.com/thumbnail?id=${file.id}&sz=w800`)}
+                  onClick={() => onSelect(getHighResUrl(file))}
                   className="group relative bg-white border border-zinc-200 rounded-xl overflow-hidden hover:ring-2 hover:ring-zinc-900 transition-all text-left shadow-sm"
                 >
                   <div className="aspect-square bg-zinc-100 flex items-center justify-center overflow-hidden">
@@ -115,6 +125,7 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
                         alt={file.name} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         loading="lazy"
+                        referrerPolicy="no-referrer"
                       />
                     ) : (
                       <GoogleDriveIcon className="w-8 h-8 text-zinc-200" />
@@ -152,8 +163,5 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
     </div>
   );
 };
-
-// Re-using useMemo from React
-import { useMemo } from 'react';
 
 export default DriveImagePickerModal;
