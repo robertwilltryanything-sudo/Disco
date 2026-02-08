@@ -10,7 +10,7 @@ export interface UnifiedStorage {
 
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
-const AUTH_TIMEOUT_MS = 20000; // 20 seconds is plenty for a responsive popup
+const AUTH_TIMEOUT_MS = 30000;
 
 declare global {
   interface Window {
@@ -69,18 +69,33 @@ export const useGoogleDrive = () => {
     }
   }, [clearAuthState, updateSyncStatus]);
 
-  const loadScript = (src: string): Promise<void> => {
+  const loadScript = (src: string, globalCheck: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) {
-        return resolve();
+      // Check if global already exists and is usable
+      const parts = globalCheck.split('.');
+      let current: any = window;
+      let exists = true;
+      for (const part of parts) {
+        if (!current[part]) {
+          exists = false;
+          break;
+        }
+        current = current[part];
       }
+      
+      if (exists) return resolve();
+
       const script = document.createElement('script');
       script.src = src;
       script.async = true;
       script.defer = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+      script.onload = () => {
+        // Verification delay to ensure global is bound
+        setTimeout(() => resolve(), 100);
+      };
+      script.onerror = () => {
+        reject(new Error(`Script blocked or failed: ${src}. Check your browser privacy settings or ad-blocker.`));
+      };
       document.body.appendChild(script);
     });
   };
@@ -90,17 +105,19 @@ export const useGoogleDrive = () => {
     initStartedRef.current = true;
     
     try {
-      // Step 1: Load GAPI (Legacy but required for Drive REST)
-      await loadScript('https://apis.google.com/js/api.js');
+      setError(null);
       
-      // Step 2: Initialize GAPI client
+      // Parallel load both required libraries
+      await Promise.all([
+        loadScript('https://apis.google.com/js/api.js', 'gapi'),
+        loadScript('https://accounts.google.com/gsi/client', 'google.accounts.oauth2')
+      ]);
+      
+      // Initialize GAPI client for Drive REST access
       await new Promise<void>((resolve, reject) => {
         window.gapi.load('client', {
           callback: resolve,
-          onerror: (err: any) => {
-            console.error("GAPI load error", err);
-            reject(err);
-          }
+          onerror: (err: any) => reject(new Error("GAPI load failed"))
         });
       });
       
@@ -108,10 +125,7 @@ export const useGoogleDrive = () => {
         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       });
 
-      // Step 3: Load GIS (New Identity Services for Auth)
-      await loadScript('https://accounts.google.com/gsi/client');
-
-      // Step 4: Setup the Token Client
+      // Setup the Token Client (GIS)
       window.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: GOOGLE_DRIVE_SCOPES,
@@ -119,7 +133,6 @@ export const useGoogleDrive = () => {
           if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
           
           if (tokenResponse && tokenResponse.access_token) {
-            // CRITICAL: Inject token into GAPI so it can make Drive calls
             window.gapi.client.setToken(tokenResponse);
             setIsSignedIn(true);
             updateSyncStatus('idle');
@@ -128,20 +141,21 @@ export const useGoogleDrive = () => {
           } else if (tokenResponse && tokenResponse.error) {
             handleApiError(tokenResponse, 'auth_callback');
           } else {
-            updateSyncStatus('idle'); // Likely cancelled by user
+            updateSyncStatus('idle');
           }
         },
       });
 
       setIsApiReady(true);
 
-      // Step 5: Silent Re-auth if they were already logged in
+      // Silent Re-auth check
       if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
         window.tokenClient.requestAccessToken({ prompt: '' });
       }
     } catch (e: any) {
       console.error("Sync Initialization Failed:", e);
-      setError("Google infrastructure failed to load. Check your internet connection.");
+      initStartedRef.current = false; // Allow retry
+      setError(e.message || "Google infrastructure failed to load. Ensure you aren't blocking Google scripts.");
       updateSyncStatus('error');
     }
   }, [updateSyncStatus, handleApiError]);
@@ -155,19 +169,18 @@ export const useGoogleDrive = () => {
 
   const signIn = useCallback(() => {
     if (!window.tokenClient) {
-      setError("Auth client not ready yet. Please wait a moment.");
+      setError("Auth client not ready yet. Please refresh the page.");
       return;
     }
 
     updateSyncStatus('authenticating');
     setError(null);
 
-    // Safety timeout
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
       if (syncStatusRef.current === 'authenticating') {
         updateSyncStatus('idle');
-        setError("Sign-in timed out. Please check if your browser blocked the Google popup window.");
+        setError("Sign-in timed out. Ensure popups are allowed and that you are logged into your Google account.");
       }
     }, AUTH_TIMEOUT_MS);
 
@@ -179,9 +192,11 @@ export const useGoogleDrive = () => {
   }, [updateSyncStatus, handleApiError]);
 
   const resetSyncStatus = useCallback(() => {
+    initStartedRef.current = false;
     updateSyncStatus('idle');
     setError(null);
-  }, [updateSyncStatus]);
+    initializeSync(); // Re-attempt init
+  }, [updateSyncStatus, initializeSync]);
 
   const getOrCreateFileId = useCallback(async () => {
     if (fileIdRef.current) return fileIdRef.current;
