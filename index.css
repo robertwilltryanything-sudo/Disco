@@ -10,6 +10,8 @@
     -webkit-text-size-adjust: 100%;
     overscroll-behavior-x: none;
     background-color: #f4f4f5; /* zinc-100 */
+    /* Disable gestures like double-tap zoom */
+    touch-action: manipulation;
   }
 
   #root {
