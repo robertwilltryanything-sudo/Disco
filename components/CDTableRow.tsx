@@ -37,7 +37,12 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
           {/* Image */}
           <div className="flex-shrink-0">
             {cd.cover_art_url ? (
-              <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-16 h-16 md:w-12 md:h-12 object-cover rounded-md" />
+              <img 
+                src={cd.cover_art_url} 
+                alt={`${cd.title} cover`} 
+                className="w-16 h-16 md:w-12 md:h-12 object-cover rounded-md" 
+                referrerPolicy="no-referrer"
+              />
             ) : (
               <div className="w-16 h-16 md:w-12 md:h-12 bg-zinc-200 flex items-center justify-center rounded-md">
                 <MusicNoteIcon className="w-8 md:w-6 h-8 md:h-6 text-zinc-400" />

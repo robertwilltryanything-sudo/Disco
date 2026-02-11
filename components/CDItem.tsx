@@ -45,6 +45,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
                     src={cd.cover_art_url} 
                     alt={`${cd.title} cover`} 
                     className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
                 />
             ) : (
                 <div className="w-full h-full bg-zinc-200" />

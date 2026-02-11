@@ -72,7 +72,12 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
         >
             <div className="md:w-64 flex-shrink-0">
                 {cd.cover_art_url ? (
-                    <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-full object-cover aspect-square" />
+                    <img 
+                        src={cd.cover_art_url} 
+                        alt={`${cd.title} cover`} 
+                        className="w-full object-cover aspect-square" 
+                        referrerPolicy="no-referrer"
+                    />
                 ) : (
                     <div className="w-full bg-zinc-200 flex items-center justify-center aspect-square">
                         <MusicNoteIcon className="w-16 h-16 text-zinc-400" />

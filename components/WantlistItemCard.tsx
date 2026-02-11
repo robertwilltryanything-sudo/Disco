@@ -26,13 +26,18 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
     <Link to={`/wantlist/${item.id}`} className="block relative bg-white rounded-lg border border-zinc-200 overflow-hidden">
       <div className="relative">
         {item.cover_art_url ? (
-          <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-full h-auto aspect-square object-cover" />
+          <img 
+            src={item.cover_art_url} 
+            alt={`${item.title} cover`} 
+            className="w-full h-auto aspect-square object-cover" 
+            referrerPolicy="no-referrer"
+          />
         ) : (
           <div className="w-full h-auto aspect-square bg-zinc-200 flex items-center justify-center rounded-md">
             <MusicNoteIcon className="w-12 h-12 text-zinc-400" />
           </div>
         )}
-        {/* Overlay permanently visible with fixed opacity since hover is removed */}
+        {/* Overlay permanently visible with fixed opacity */}
         <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
             <div className="flex items-center gap-2">
                 <button

@@ -17,7 +17,12 @@ const RecommendedCDItem: React.FC<RecommendedCDItemProps> = ({ cd }) => {
       <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
         <div className="relative">
           {cd.cover_art_url ? (
-            <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-full h-auto aspect-square object-cover" />
+            <img 
+              src={cd.cover_art_url} 
+              alt={`${cd.title} cover`} 
+              className="w-full h-auto aspect-square object-cover" 
+              referrerPolicy="no-referrer"
+            />
           ) : (
             <div className="w-full h-auto aspect-square bg-zinc-200 flex items-center justify-center">
               <MusicNoteIcon className="w-10 h-10 text-zinc-400" />

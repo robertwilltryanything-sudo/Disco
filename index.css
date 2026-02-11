@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply overflow-x-hidden w-full;
+    /* Prevent horizontal "bouncing" on mobile Safari */
+    position: relative;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-x: none;
+    background-color: #f4f4f5; /* zinc-100 */
+  }
+
+  #root {
+    @apply w-full overflow-x-hidden;
+    position: relative;
+  }
+}
+
+/* Ensure images don't break layouts */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-zinc-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-zinc-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-zinc-400;
+}

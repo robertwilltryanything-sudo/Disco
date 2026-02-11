@@ -358,7 +358,12 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 <div className="relative w-full group">
                   {cover_art_url ? (
                       <>
-                        <img src={cover_art_url} alt="Album cover preview" className="w-full h-auto aspect-square object-cover rounded-lg" />
+                        <img 
+                          src={cover_art_url} 
+                          alt="Album cover preview" 
+                          className="w-full h-auto aspect-square object-cover rounded-lg" 
+                          referrerPolicy="no-referrer"
+                        />
                         <button
                             type="button"
                             onClick={handleRemoveArt}

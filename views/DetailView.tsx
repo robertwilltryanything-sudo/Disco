@@ -88,7 +88,12 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
         <div className="md:flex">
             <div className="md:flex-shrink-0 md:w-80">
                 {cd.cover_art_url ? (
-                    <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-full aspect-square object-cover" />
+                    <img 
+                      src={cd.cover_art_url} 
+                      alt={`${cd.title} cover`} 
+                      className="w-full aspect-square object-cover" 
+                      referrerPolicy="no-referrer"
+                    />
                 ) : (
                     <div className="w-full aspect-square bg-zinc-50 flex items-center justify-center"><MusicNoteIcon className="w-24 h-24 text-zinc-200" /></div>
                 )}

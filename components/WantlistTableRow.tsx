@@ -33,7 +33,12 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
     >
       <td className="p-2">
         {item.cover_art_url ? (
-          <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-12 h-12 object-cover rounded-md" />
+          <img 
+            src={item.cover_art_url} 
+            alt={`${item.title} cover`} 
+            className="w-12 h-12 object-cover rounded-md" 
+            referrerPolicy="no-referrer"
+          />
         ) : (
           <div className="w-12 h-12 bg-zinc-200 flex items-center justify-center rounded-md">
             <MusicNoteIcon className="w-6 h-6 text-zinc-400" />

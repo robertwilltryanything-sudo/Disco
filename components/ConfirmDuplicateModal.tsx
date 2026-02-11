@@ -41,7 +41,12 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
         <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center gap-4">
             <div className="flex-shrink-0">
                 {existingCd.cover_art_url ? (
-                    <img src={existingCd.cover_art_url} alt={`${existingCd.title} cover`} className="w-16 h-16 object-cover rounded-lg" />
+                    <img 
+                      src={existingCd.cover_art_url} 
+                      alt={`${existingCd.title} cover`} 
+                      className="w-16 h-16 object-cover rounded-lg" 
+                      referrerPolicy="no-referrer"
+                    />
                 ) : (
                     <div className="w-16 h-16 bg-zinc-200 flex items-center justify-center rounded-lg">
                         <MusicNoteIcon className="w-8 h-8 text-zinc-400" />

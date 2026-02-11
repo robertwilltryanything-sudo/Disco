@@ -24,7 +24,12 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
           <div key={cd.id} className="flex items-center gap-4 p-3 border border-zinc-200 rounded-lg bg-white">
             <div className="flex-shrink-0">
                 {cd.cover_art_url ? (
-                    <img src={cd.cover_art_url} alt={`${cd.title} cover`} className="w-16 h-16 object-cover rounded-md" />
+                    <img 
+                      src={cd.cover_art_url} 
+                      alt={`${cd.title} cover`} 
+                      className="w-16 h-16 object-cover rounded-md" 
+                      referrerPolicy="no-referrer"
+                    />
                 ) : (
                     <div className="w-16 h-16 bg-zinc-200 flex items-center justify-center rounded-md">
                         <MusicNoteIcon className="w-8 h-8 text-zinc-400" />

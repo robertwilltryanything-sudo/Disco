@@ -49,8 +49,52 @@ const INITIAL_COLLECTION: CD[] = [
     year: 1973,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
     notes: 'Classic.',
-    created_at: new Date(Date.now() - 10000).toISOString(),
+    created_at: new Date(Date.now() - 50000).toISOString(),
     format: 'cd'
+  },
+  {
+    id: '2',
+    artist: 'Metallica',
+    title: 'Master of Puppets',
+    genre: 'Thrash Metal',
+    year: 1986,
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b2/Metallica_-_Master_of_Puppets_cover.jpg',
+    notes: 'Pinnacle of metal.',
+    created_at: new Date(Date.now() - 40000).toISOString(),
+    format: 'cd'
+  },
+  {
+    id: '3',
+    artist: 'Toto',
+    title: 'Hydra',
+    genre: 'Progressive Rock',
+    year: 1979,
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/d/de/Toto-Hydra.JPG',
+    notes: 'Underrated masterpiece.',
+    created_at: new Date(Date.now() - 30000).toISOString(),
+    format: 'vinyl'
+  },
+  {
+    id: '4',
+    artist: 'Steely Dan',
+    title: 'Aja',
+    genre: 'Jazz Fusion',
+    year: 1977,
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/e/e0/Steely_Dan_Aja.png',
+    notes: 'Audiophile dream.',
+    created_at: new Date(Date.now() - 20000).toISOString(),
+    format: 'cd'
+  },
+  {
+    id: '5',
+    artist: 'Mike Oldfield',
+    title: 'Tubular Bells',
+    genre: 'Progressive Rock',
+    year: 1973,
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b5/Tubular_Bells_album_cover.jpg',
+    notes: 'Virgin Records first release.',
+    created_at: new Date(Date.now() - 10000).toISOString(),
+    format: 'vinyl'
   }
 ];
 
@@ -298,7 +342,7 @@ const AppContent: React.FC = () => {
   const isGoogleDriveSelectedButLoggedOut = syncProvider === 'google_drive' && !driveSignedIn;
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0 font-sans selection:bg-zinc-200">
+    <div className="min-h-screen pb-20 md:pb-0 font-sans selection:bg-zinc-200 overflow-x-hidden w-full">
       <Header 
         onAddClick={() => {
             if (isOnWantlistPage) { setIsAddWantlistModalOpen(true); setWantlistItemToEdit(null); } 
@@ -319,7 +363,7 @@ const AppContent: React.FC = () => {
         onToggleMode={handleToggleMode}
         lastSyncTime={driveLastSyncTime}
       />
-      <main className="container mx-auto p-4 md:p-6">
+      <main className="container mx-auto p-4 md:p-6 max-w-full overflow-x-hidden">
         {isGoogleDriveSelectedButLoggedOut && (
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
