@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
@@ -19,7 +19,7 @@ interface DetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Tear Front"];
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Tear Front"];
 const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Price Sticker", "Sticky", "Tear Front"];
 
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode }) => {

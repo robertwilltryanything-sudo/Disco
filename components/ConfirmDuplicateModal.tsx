@@ -69,7 +69,7 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
             type="text"
             value={version}
             onChange={(e) => setVersion(e.target.value)}
-            placeholder="e.g., SACD, Remaster, Bonus DVD"
+            placeholder="e.g., Remaster, Bonus DVD, Deluxe Edition"
             className="mt-1 w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
           />
         </div>
