@@ -21,12 +21,12 @@ interface WantlistDetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Tear Front"];
-const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Price Sticker", "Sticky", "Tear Front"];
+const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratched", "Warped"];
+const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front"];
 
-/**
- * Fix: Complete the WantlistDetailView component implementation and add the missing default export
- */
+const CD_MEDIA_CONDITION = ["Scratched", "Hairlines", "Sticky"];
+const CD_COVER_CONDITION = ["Cracked Case", "Price Sticker", "Tear Front"];
+
 const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onMoveToCollection, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -96,13 +96,16 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     }
   }, [item, onDelete, navigate]);
 
-  const { conditionTraits, physicalAttributes } = useMemo(() => {
-    if (!item || !item.attributes) return { conditionTraits: [], physicalAttributes: [] };
-    const condList = item.format === 'vinyl' ? VINYL_CONDITION : CD_CONDITION;
+  const { mediaTraits, coverTraits, physicalAttributes } = useMemo(() => {
+    if (!item || !item.attributes) return { mediaTraits: [], coverTraits: [], physicalAttributes: [] };
+    const mediaList = item.format === 'vinyl' ? VINYL_MEDIA_CONDITION : CD_MEDIA_CONDITION;
+    const coverList = item.format === 'vinyl' ? VINYL_COVER_CONDITION : CD_COVER_CONDITION;
     
-    const cond = item.attributes.filter(a => condList.includes(a));
-    const phys = item.attributes.filter(a => !condList.includes(a));
-    return { conditionTraits: cond, physicalAttributes: phys };
+    const media = item.attributes.filter(a => mediaList.includes(a));
+    const cover = item.attributes.filter(a => coverList.includes(a));
+    const phys = item.attributes.filter(a => !mediaList.includes(a) && !coverList.includes(a));
+    
+    return { mediaTraits: media, coverTraits: cover, physicalAttributes: phys };
   }, [item]);
 
   if (!item) {
@@ -184,11 +187,24 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                   </div>
               )}
 
-              {conditionTraits.length > 0 && (
+              {mediaTraits.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">TARGET CONDITION</p>
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">TARGET MEDIA CONDITION</p>
                   <div className="flex flex-wrap gap-2">
-                    {conditionTraits.map(attr => (
+                    {mediaTraits.map(attr => (
+                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                        {attr}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {coverTraits.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">TARGET COVER CONDITION</p>
+                  <div className="flex flex-wrap gap-2">
+                    {coverTraits.map(attr => (
                       <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
                         {attr}
                       </span>

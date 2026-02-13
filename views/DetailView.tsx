@@ -19,8 +19,11 @@ interface DetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Tear Front"];
-const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Price Sticker", "Sticky", "Tear Front"];
+const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratched", "Warped"];
+const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front"];
+
+const CD_MEDIA_CONDITION = ["Scratched", "Hairlines", "Sticky"];
+const CD_COVER_CONDITION = ["Cracked Case", "Price Sticker", "Tear Front"];
 
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
@@ -54,13 +57,16 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode
     }
   };
 
-  const { conditionTraits, physicalAttributes } = useMemo(() => {
-    if (!cd || !cd.attributes) return { conditionTraits: [], physicalAttributes: [] };
-    const condList = cd.format === 'vinyl' ? VINYL_CONDITION : CD_CONDITION;
+  const { mediaTraits, coverTraits, physicalAttributes } = useMemo(() => {
+    if (!cd || !cd.attributes) return { mediaTraits: [], coverTraits: [], physicalAttributes: [] };
+    const mediaList = cd.format === 'vinyl' ? VINYL_MEDIA_CONDITION : CD_MEDIA_CONDITION;
+    const coverList = cd.format === 'vinyl' ? VINYL_COVER_CONDITION : CD_COVER_CONDITION;
     
-    const cond = cd.attributes.filter(a => condList.includes(a));
-    const phys = cd.attributes.filter(a => !condList.includes(a));
-    return { conditionTraits: cond, physicalAttributes: phys };
+    const media = cd.attributes.filter(a => mediaList.includes(a));
+    const cover = cd.attributes.filter(a => coverList.includes(a));
+    const phys = cd.attributes.filter(a => !mediaList.includes(a) && !coverList.includes(a));
+    
+    return { mediaTraits: media, coverTraits: cover, physicalAttributes: phys };
   }, [cd]);
 
   if (!cd) return <div className="text-center p-8"><h2 className="text-2xl font-bold text-red-600">{albumType} Not Found</h2><Link to="/" className="mt-6 inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg"> <ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>;
@@ -133,11 +139,24 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode
                 </div>
               )}
 
-              {conditionTraits.length > 0 && (
+              {mediaTraits.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">CONDITION</p>
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">MEDIA CONDITION</p>
                   <div className="flex flex-wrap gap-2">
-                    {conditionTraits.map(attr => (
+                    {mediaTraits.map(attr => (
+                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                        {attr}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {coverTraits.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">COVER CONDITION</p>
+                  <div className="flex flex-wrap gap-2">
+                    {coverTraits.map(attr => (
                       <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
                         {attr}
                       </span>
