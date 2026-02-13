@@ -10,7 +10,6 @@ import RecommendedCDItem from '../components/RecommendedCDItem';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
-import { getAlbumDetails } from '../gemini';
 import { getBrandColor } from '../utils';
 
 interface DetailViewProps {
@@ -20,14 +19,13 @@ interface DetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing", "Tear Front"];
-const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained", "Tear Front"];
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Tear Front"];
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Price Sticker", "Sticky", "Tear Front"];
 
-const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
+const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { cd, previousCd, nextCd } = useMemo(() => {
     const currentIndex = cds.findIndex(c => c.id === id);
@@ -43,26 +41,12 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   }, [cd, cds]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
-  const wikipediaUrl = useMemo(() => cd ? `https://en.wikipedia.org/wiki/${encodeURIComponent(cd.title.replace(/ /g, '_'))}` : '', [cd]);
-
-  const handleRefreshData = useCallback(async () => {
-      if (!cd) return;
-      setIsRefreshing(true);
-      try {
-          const details = await getAlbumDetails(cd.artist, cd.title);
-          if (details) {
-              const updatedCd: CD = {
-                  ...cd,
-                  genre: cd.genre || details.genre,
-                  record_label: cd.record_label || details.record_label,
-                  year: cd.year || details.year,
-                  tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])],
-              };
-              await onUpdateCD(updatedCd);
-          }
-      } catch (error) { alert("Could not fetch new details."); }
-      finally { setIsRefreshing(false); }
-  }, [cd, onUpdateCD]);
+  
+  const wikipediaUrl = useMemo(() => {
+    if (!cd) return '';
+    if (cd.wikipedia_url) return cd.wikipedia_url;
+    return `https://www.google.com/search?q=wikipedia+album+${encodeURIComponent(cd.artist)}+${encodeURIComponent(cd.title)}`;
+  }, [cd]);
 
   const handleSearchFilter = (value: string | number | undefined) => {
     if (value) {
@@ -137,6 +121,18 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
               </div>
 
+              {cd.review && (
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2 flex items-center gap-1.5">
+                    <SparklesIcon className="w-3 h-3" />
+                    Album Review
+                  </p>
+                  <p className="text-zinc-700 text-sm leading-relaxed font-medium italic">
+                    "{cd.review}"
+                  </p>
+                </div>
+              )}
+
               {conditionTraits.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
                   <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">CONDITION</p>
@@ -183,19 +179,44 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               )}
 
               <div className="mt-8 flex flex-wrap gap-3">
-                  <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-bold py-2 px-4 rounded-lg text-sm hover:bg-zinc-200 transition-colors"><GlobeIcon className="h-4 w-4" />Wikipedia</a>
-                  <button onClick={handleRefreshData} disabled={isRefreshing} className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 font-bold py-2 px-4 rounded-lg disabled:opacity-50 text-sm hover:bg-blue-100 transition-colors"><SparklesIcon className="w-4 h-4" />Update Info</button>
+                  <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors">
+                      <GlobeIcon className="w-5 h-5" />
+                      Wikipedia
+                  </a>
               </div>
             </div>
         </div>
-        <div className="bg-zinc-50/50 p-4 border-t border-zinc-100 flex justify-between">
-          <Link to={previousCd ? `/cd/${previousCd.id}` : '#'} className={`flex items-center gap-2 font-bold text-xs ${previousCd ? 'text-zinc-600 hover:text-zinc-900' : 'text-zinc-300 pointer-events-none'}`}><ArrowLeftIcon className="h-3 w-3" /> Previous</Link>
-          <Link to={nextCd ? `/cd/${nextCd.id}` : '#'} className={`flex items-center gap-2 font-bold text-xs ${nextCd ? 'text-zinc-600 hover:text-zinc-900' : 'text-zinc-300 pointer-events-none'}`}>Next <ArrowRightIcon className="h-3 w-3" /></Link>
+        <div className="bg-zinc-50 px-6 py-4 flex justify-between items-center border-t border-zinc-100">
+            {previousCd ? (
+                <Link to={`/cd/${previousCd.id}`} className="flex items-center gap-2 text-zinc-600 font-bold text-sm hover:text-zinc-900">
+                    <ArrowLeftIcon className="w-4 h-4" />
+                    Previous
+                </Link>
+            ) : <div />}
+            {nextCd ? (
+                <Link to={`/cd/${nextCd.id}`} className="flex items-center gap-2 text-zinc-600 font-bold text-sm hover:text-zinc-900">
+                    Next
+                    <ArrowRightIcon className="w-4 h-4" />
+                </Link>
+            ) : <div />}
         </div>
       </div>
 
-      {recommendations.length > 0 && <div className="mt-10"><h3 className="text-lg font-bold text-zinc-900 mb-6">Related from Collection</h3><div className="grid grid-cols-2 sm:grid-cols-4 gap-6">{recommendations.map(rec => <RecommendedCDItem key={rec.id} cd={rec} />)}</div></div>}
-      <ConfirmDeleteModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={() => { onDeleteCD(cd.id); navigate('/', { replace: true }); }} item={cd} />
+      {recommendations.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-zinc-900 mb-6">You Might Also Like</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            {recommendations.map(r => <RecommendedCDItem key={r.id} cd={r} />)}
+          </div>
+        </div>
+      )}
+
+      <ConfirmDeleteModal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        onConfirm={() => { onDeleteCD(cd.id); navigate('/'); }} 
+        item={cd} 
+      />
     </div>
   );
 };

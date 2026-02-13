@@ -30,8 +30,10 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     const normalized = { ...item };
     if (item.coverArtUrl && !item.cover_art_url) normalized.cover_art_url = item.coverArtUrl;
     if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
+    if (item.allMusicUrl && !item.allmusic_url) normalized.allmusic_url = item.allMusicUrl;
     delete normalized.coverArtUrl;
     delete normalized.recordLabel;
+    delete normalized.allMusicUrl;
     return normalized as T;
 };
 
@@ -48,6 +50,7 @@ const INITIAL_COLLECTION: CD[] = [
     genre: 'Progressive Rock',
     year: 1973,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
+    allmusic_url: 'https://www.allmusic.com/album/the-dark-side-of-the-moon-mw0000191307',
     notes: 'Classic.',
     created_at: new Date(Date.now() - 50000).toISOString(),
     format: 'cd'
@@ -59,6 +62,7 @@ const INITIAL_COLLECTION: CD[] = [
     genre: 'Thrash Metal',
     year: 1986,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b2/Metallica_-_Master_of_Puppets_cover.jpg',
+    allmusic_url: 'https://www.allmusic.com/album/master-of-puppets-mw0000193165',
     notes: 'Pinnacle of metal.',
     created_at: new Date(Date.now() - 40000).toISOString(),
     format: 'cd'
@@ -70,6 +74,7 @@ const INITIAL_COLLECTION: CD[] = [
     genre: 'Progressive Rock',
     year: 1979,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/d/de/Toto-Hydra.JPG',
+    allmusic_url: 'https://www.allmusic.com/album/hydra-mw0000192305',
     notes: 'Underrated masterpiece.',
     created_at: new Date(Date.now() - 30000).toISOString(),
     format: 'vinyl'
@@ -81,6 +86,7 @@ const INITIAL_COLLECTION: CD[] = [
     genre: 'Jazz Fusion',
     year: 1977,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/e/e0/Steely_Dan_Aja.png',
+    allmusic_url: 'https://www.allmusic.com/album/aja-mw0000191950',
     notes: 'Audiophile dream.',
     created_at: new Date(Date.now() - 20000).toISOString(),
     format: 'cd'
@@ -92,6 +98,7 @@ const INITIAL_COLLECTION: CD[] = [
     genre: 'Progressive Rock',
     year: 1973,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b5/Tubular_Bells_album_cover.jpg',
+    allmusic_url: 'https://www.allmusic.com/album/tubular-bells-mw0000201416',
     notes: 'Virgin Records first release.',
     created_at: new Date(Date.now() - 10000).toISOString(),
     format: 'vinyl'
@@ -269,7 +276,7 @@ const AppContent: React.FC = () => {
   }, [collection, wantlist]);
 
   const fetchAndApplyAlbumDetails = async (cd: CD) => {
-    if (!cd.genre || !cd.year) {
+    if (!cd.genre || !cd.year || !cd.allmusic_url) {
         try {
             const details = await getAlbumDetails(cd.artist, cd.title);
             if (details) {
@@ -279,6 +286,7 @@ const AppContent: React.FC = () => {
                     genre: cd.genre || normalizedDetails.genre,
                     year: cd.year || normalizedDetails.year,
                     record_label: cd.record_label || normalizedDetails.record_label,
+                    allmusic_url: cd.allmusic_url || normalizedDetails.allmusic_url,
                     tags: [...new Set([...(cd.tags || []), ...(normalizedDetails.tags || [])])],
                 };
                 setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));

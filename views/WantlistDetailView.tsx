@@ -11,6 +11,7 @@ import { capitalizeWords, getBrandColor } from '../utils';
 import { CheckIcon } from '../components/icons/CheckIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import { SparklesIcon } from '../components/icons/SparklesIcon';
 
 interface WantlistDetailViewProps {
   wantlist: WantlistItem[];
@@ -20,9 +21,12 @@ interface WantlistDetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Stained", "Foxing", "Tear Front"];
-const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Disc Rot", "Price Sticker", "Faded Art", "Sticky", "Stained", "Tear Front"];
+const VINYL_CONDITION = ["Ringwear", "Seemsplit", "Hairlines", "Scratched", "Warped", "Price Sticker", "Water Damage", "Tear Front"];
+const CD_CONDITION = ["Scratched", "Hairlines", "Cracked Case", "Price Sticker", "Sticky", "Tear Front"];
 
+/**
+ * Fix: Complete the WantlistDetailView component implementation and add the missing default export
+ */
 const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onMoveToCollection, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -64,9 +68,11 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
   }, [item, cds]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
+  
   const wikipediaUrl = useMemo(() => {
     if (!item) return '';
-    return `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/ /g, '_'))}`;
+    if (item.wikipedia_url) return item.wikipedia_url;
+    return `https://www.google.com/search?q=wikipedia+album+${encodeURIComponent(item.artist)}+${encodeURIComponent(item.title)}`;
   }, [item]);
 
   const handleEdit = useCallback(() => {
@@ -82,10 +88,6 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     }
   }, [navigate, item, onMoveToCollection]);
   
-  const handleRequestDelete = useCallback(() => {
-    setIsDeleteModalOpen(true);
-  }, []);
-
   const handleConfirmDelete = useCallback(() => {
     if (item) {
         onDelete(item.id);
@@ -131,36 +133,60 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           Back to {albumType} Wantlist
         </Link>
       </div>
-      <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden shadow-sm">
         <div className="md:flex">
             <div className="md:flex-shrink-0">
                 {item.cover_art_url ? (
-                    <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-full aspect-square object-cover md:w-64 rounded-br-lg" />
+                    <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-full aspect-square object-cover md:w-64" referrerPolicy="no-referrer" />
                 ) : (
-                    <div className="w-full aspect-square bg-zinc-200 flex items-center justify-center md:w-64 rounded-br-lg">
-                        <MusicNoteIcon className="w-24 h-24 text-zinc-400" />
+                    <div className="w-full aspect-square bg-zinc-50 flex items-center justify-center md:w-64">
+                        <MusicNoteIcon className="w-24 h-24 text-zinc-200" />
                     </div>
                 )}
             </div>
             <div className="p-6 md:p-8 flex flex-col justify-start relative flex-grow">
-              <h1 className="text-3xl md:text-4xl font-extrabold text-zinc-900 tracking-tight">{item.title}</h1>
-              <h2 className="text-lg md:text-xl font-semibold text-zinc-700 mt-1">{capitalizeWords(item.artist)}</h2>
+              <div className="flex justify-between items-start">
+                  <div>
+                    <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{item.title}</h1>
+                    <h2 className="text-lg font-semibold text-zinc-500 mt-1">{capitalizeWords(item.artist)}</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={handleEdit} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors">
+                      <EditIcon className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors">
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+              </div>
+
+              {item.review && (
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2 flex items-center gap-1.5">
+                    <SparklesIcon className="w-3 h-3" />
+                    Album Review
+                  </p>
+                  <p className="text-zinc-700 text-sm leading-relaxed font-medium italic">
+                    "{item.review}"
+                  </p>
+                </div>
+              )}
 
               {hasReleaseInfo && (
-                  <div className="mt-6 pt-6 border-t border-zinc-200">
-                      <h3 className="text-lg font-bold text-zinc-800">Target Info</h3>
-                      <div className="mt-2 text-zinc-600 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                        {item.year && <p><span className="font-bold text-zinc-800">Year:</span> {item.year}</p>}
-                        {item.genre && <p><span className="font-bold text-zinc-800">Genre:</span> {item.genre}</p>}
-                        {item.record_label && <p><span className="font-bold text-zinc-800">Label:</span> {item.record_label}</p>}
-                        {item.version && <p><span className="font-bold text-zinc-800">Version:</span> {item.version}</p>}
+                  <div className="mt-6 pt-6 border-t border-zinc-100">
+                      <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Target Info</h3>
+                      <div className="mt-2 text-zinc-700 text-sm grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                        {item.year && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Year:</span> {item.year}</p>}
+                        {item.genre && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Genre:</span> {item.genre}</p>}
+                        {item.record_label && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Label:</span> {item.record_label}</p>}
+                        {item.version && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Version:</span> {item.version}</p>}
                       </div>
                   </div>
               )}
 
               {conditionTraits.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">CONDITION</p>
+                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">TARGET CONDITION</p>
                   <div className="flex flex-wrap gap-2">
                     {conditionTraits.map(attr => (
                       <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
@@ -184,113 +210,66 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                 </div>
               )}
 
-              {item.notes && (
-                  <div className="mt-6 pt-6 border-t border-zinc-200">
-                      <h3 className="text-lg font-bold text-zinc-800">Personal Notes</h3>
-                      <p className="mt-2 text-zinc-600 whitespace-pre-wrap">{item.notes}</p>
-                  </div>
-              )}
-              
+              {item.notes && <div className="mt-6 pt-6 border-t border-zinc-100"><h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Notes</h3><p className="text-zinc-600 italic">"{item.notes}"</p></div>}
+
               {item.tags && item.tags.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-zinc-200">
-                    <h3 className="text-lg font-bold text-zinc-800">Tags</h3>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {item.tags.map(tag => (
-                          <span key={tag} className="bg-zinc-200 text-zinc-700 text-sm font-medium px-3 py-1 rounded-full">
-                            {capitalizeWords(tag)}
-                          </span>
-                      ))}
-                    </div>
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {item.tags.map(tag => (
+                      <span
+                        key={tag}
+                        className="bg-zinc-100 text-zinc-800 text-[11px] font-bold px-3 py-1 rounded-full border border-zinc-200 uppercase tracking-tight"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="mt-6 pt-6 border-t border-zinc-200">
-                <a
-                  href={wikipediaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                  aria-label={`View Wikipedia page for ${item.title}`}
-                >
-                  <GlobeIcon className="h-5 w-5" />
-                  View on Wikipedia
-                </a>
-              </div>
-
-              <div className="absolute top-4 right-4 flex items-center gap-2">
-                <button
-                  onClick={handleMoveToCollection}
-                  className="p-2 rounded-full bg-green-500 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  aria-label="Found it! Add to collection."
-                  title="Found It!"
-                >
-                  <CheckIcon className="w-6 h-6" />
-                </button>
-                <button
-                  onClick={handleEdit}
-                  className="p-2 rounded-full bg-white/70 text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                  aria-label={`Edit ${item.title}`}
-                  >
-                  <EditIcon className="w-6 h-6" />
-                </button>
-                <button
-                  onClick={handleRequestDelete}
-                  className="p-2 rounded-full bg-white/70 text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                  aria-label={`Delete ${item.title}`}
-                  >
-                  <TrashIcon className="w-6 h-6" />
-                </button>
+              <div className="mt-8 flex flex-wrap gap-3">
+                  <button onClick={handleMoveToCollection} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                      <CheckIcon className="w-5 h-5" />
+                      Found it! Add to Collection
+                  </button>
+                  <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors">
+                      <GlobeIcon className="w-5 h-5" />
+                      Wikipedia
+                  </a>
               </div>
             </div>
         </div>
-        <div className="border-t border-zinc-200 bg-zinc-50 p-4 flex justify-between items-center">
-          {previousItem ? (
-            <Link
-              to={`/wantlist/${previousItem.id}`}
-              className="inline-flex items-center gap-2 text-zinc-700 font-semibold py-2 px-3 rounded-lg"
-            >
-              <ArrowLeftIcon className="h-5 w-5" />
-              <span>Previous</span>
-            </Link>
-          ) : (
-            <span className="inline-flex items-center gap-2 text-zinc-400 cursor-not-allowed py-2 px-3">
-              <ArrowLeftIcon className="h-5 w-5" />
-              <span>Previous</span>
-            </span>
-          )}
-
-          {nextItem ? (
-            <Link
-              to={`/wantlist/${nextItem.id}`}
-              className="inline-flex items-center gap-2 text-zinc-700 font-semibold py-2 px-3 rounded-lg"
-            >
-              <span>Next</span>
-              <ArrowRightIcon className="h-5 w-5" />
-            </Link>
-          ) : (
-            <span className="inline-flex items-center gap-2 text-zinc-400 cursor-not-allowed py-2 px-3">
-              <span>Next</span>
-              <ArrowRightIcon className="h-5 w-5" />
-            </span>
-          )}
+        <div className="bg-zinc-50 px-6 py-4 flex justify-between items-center border-t border-zinc-100">
+            {previousItem ? (
+                <Link to={`/wantlist/${previousItem.id}`} className="flex items-center gap-2 text-zinc-600 font-bold text-sm hover:text-zinc-900">
+                    <ArrowLeftIcon className="w-4 h-4" />
+                    Previous
+                </Link>
+            ) : <div />}
+            {nextItem ? (
+                <Link to={`/wantlist/${nextItem.id}`} className="flex items-center gap-2 text-zinc-600 font-bold text-sm hover:text-zinc-900">
+                    Next
+                    <ArrowRightIcon className="w-4 h-4" />
+                </Link>
+            ) : <div />}
         </div>
       </div>
 
       {recommendations.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-2xl font-bold text-zinc-800 mb-4">From Your Collection</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-6">
-            {recommendations.map(recCd => (
-              <RecommendedCDItem key={recCd.id} cd={recCd} />
-            ))}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-zinc-900 mb-6">Similar in Your Collection</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            {recommendations.map(r => <RecommendedCDItem key={r.id} cd={r} />)}
           </div>
         </div>
       )}
-      <ConfirmDeleteModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-        item={item}
+
+      <ConfirmDeleteModal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        onConfirm={handleConfirmDelete} 
+        item={item} 
       />
     </div>
   );

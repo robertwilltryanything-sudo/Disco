@@ -6,6 +6,9 @@ export interface CD {
   genre?: string;
   year?: number;
   cover_art_url?: string;
+  allmusic_url?: string;
+  wikipedia_url?: string;
+  review?: string;
   notes?: string;
   version?: string;
   record_label?: string;
@@ -24,6 +27,9 @@ export interface WantlistItem {
   genre?: string;
   year?: number;
   cover_art_url?: string;
+  allmusic_url?: string;
+  wikipedia_url?: string;
+  review?: string;
   notes?: string;
   version?: string;
   record_label?: string;

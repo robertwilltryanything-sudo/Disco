@@ -14,7 +14,9 @@ const albumInfoSchema = {
         version: { type: Type.STRING, description: "Edition details (e.g., 'Remastered')." },
         record_label: { type: Type.STRING, description: "Record label name." },
         tags: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Descriptive tags." },
-        cover_art_url: { type: Type.STRING, description: "A URL if identifiable, but usually leave empty for frontend to find." }
+        cover_art_url: { type: Type.STRING, description: "Direct image URL if found." },
+        wikipedia_url: { type: Type.STRING, description: "The verified Wikipedia album article URL." },
+        review: { type: Type.STRING, description: "A concise 2-3 sentence critical review of the album." }
     },
     required: ["artist", "title"],
 };
@@ -25,7 +27,9 @@ const albumDetailsSchema = {
         genre: { type: Type.STRING },
         year: { type: Type.INTEGER },
         record_label: { type: Type.STRING },
-        tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+        tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+        wikipedia_url: { type: Type.STRING },
+        review: { type: Type.STRING, description: "A concise 2-3 sentence critical review of the album." }
     },
 };
 
@@ -90,16 +94,34 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
 
 export async function getAlbumDetails(artist: string, title: string): Promise<any | null> {
     try {
+        // Use Gemini 3 with Google Search to find ACTUAL verified URLs
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: `Details for album "${title}" by "${artist}": year, genre, label, and 2-3 tags. JSON format.`,
+            contents: `Find accurate metadata and verified web links for the album "${title}" by "${artist}". 
+            You MUST find the real Wikipedia album URL. 
+            Also provide a 2-3 sentence professional review of why this album is significant.`,
             config: {
+                tools: [{ googleSearch: {} }],
                 responseMimeType: "application/json",
                 responseSchema: albumDetailsSchema,
                 thinkingConfig: { thinkingBudget: 0 }
             },
         });
-        return JSON.parse(response.text || '{}');
+        
+        // Extract URLs from search grounding if the model didn't put them in the JSON
+        const data = JSON.parse(response.text || '{}');
+        const grounding = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        
+        if (grounding) {
+            grounding.forEach((chunk: any) => {
+                const url = chunk.web?.uri;
+                if (url) {
+                    if (url.includes('wikipedia.org/wiki/') && !data.wikipedia_url) data.wikipedia_url = url;
+                }
+            });
+        }
+
+        return data;
     } catch (error) {
         handleApiError(error, 'getAlbumDetails');
         return null;
@@ -113,11 +135,12 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
             contents: {
                 parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                    { text: "Identify the album from this cover art. Return the artist, title, year, genre, and record label in JSON format. Be precise." }
+                    { text: "Identify the album from this cover art. Return JSON with artist, title, year, genre, record_label, a short review, and verified Wikipedia URL. Use Google Search to ensure the Wikipedia URL is NOT a 404." }
                 ]
             },
             config: {
-                systemInstruction: "You are a highly accurate music metadata assistant. Identify albums from cover art images. Always return valid JSON matching the requested schema.",
+                systemInstruction: "You are a highly accurate music metadata assistant. Use Google Search to verify all links before returning them. Accuracy is paramount.",
+                tools: [{ googleSearch: {} }],
                 responseMimeType: "application/json",
                 responseSchema: albumInfoSchema,
                 thinkingConfig: { thinkingBudget: 0 }
@@ -127,7 +150,19 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
         const text = response.text;
         if (!text) return null;
         
-        return JSON.parse(text);
+        const data = JSON.parse(text);
+        const grounding = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        
+        if (grounding) {
+            grounding.forEach((chunk: any) => {
+                const url = chunk.web?.uri;
+                if (url) {
+                    if (url.includes('wikipedia.org/wiki/') && !data.wikipedia_url) data.wikipedia_url = url;
+                }
+            });
+        }
+        
+        return data;
     } catch (error) {
         handleApiError(error, 'getAlbumInfo');
         throw error;
