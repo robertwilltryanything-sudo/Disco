@@ -10,7 +10,9 @@ import RecommendedCDItem from '../components/RecommendedCDItem';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { getBrandColor } from '../utils';
+import { getAlbumDetails } from '../gemini';
 
 interface DetailViewProps {
   cds: CD[];
@@ -20,15 +22,16 @@ interface DetailViewProps {
 }
 
 const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratched", "Warped"];
-const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front"];
+const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front", "Cut Out"];
 
 const CD_MEDIA_CONDITION = ["Scratched", "Hairlines", "Sticky"];
 const CD_COVER_CONDITION = ["Cracked Case", "Price Sticker", "Tear Front"];
 
-const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode }) => {
+const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const { cd, previousCd, nextCd } = useMemo(() => {
     const currentIndex = cds.findIndex(c => c.id === id);
@@ -54,6 +57,31 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode
   const handleSearchFilter = (value: string | number | undefined) => {
     if (value) {
       navigate({ pathname: '/', search: `?q=${encodeURIComponent(value.toString())}` });
+    }
+  };
+
+  const handleUpdateMetadata = async () => {
+    if (!cd || isUpdating) return;
+    setIsUpdating(true);
+    try {
+        const details = await getAlbumDetails(cd.artist, cd.title);
+        if (details) {
+            const updatedCd: CD = {
+                ...cd,
+                genre: cd.genre || details.genre,
+                year: cd.year || details.year,
+                record_label: cd.record_label || details.record_label,
+                allmusic_url: cd.allmusic_url || details.allmusic_url,
+                wikipedia_url: cd.wikipedia_url || details.wikipedia_url,
+                review: cd.review || details.review,
+                tags: Array.from(new Set([...(cd.tags || []), ...(details.tags || [])])),
+            };
+            await onUpdateCD(updatedCd);
+        }
+    } catch (error) {
+        console.error("Error updating metadata:", error);
+    } finally {
+        setIsUpdating(false);
     }
   };
 
@@ -95,8 +123,8 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode
                   <h2 className="text-xl font-semibold text-zinc-500 mt-1 cursor-pointer" onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}>{cd.artist}</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => navigate('/', { state: { editCdId: cd.id } })} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors"><EditIcon className="w-5 h-5" /></button>
-                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors"><TrashIcon className="w-5 h-5" /></button>
+                  <button onClick={() => navigate('/', { state: { editCdId: cd.id } })} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors" title="Edit Album"><EditIcon className="w-5 h-5" /></button>
+                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors" title="Delete Album"><TrashIcon className="w-5 h-5" /></button>
                 </div>
               </div>
 
@@ -197,7 +225,15 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, collectionMode
                 </div>
               )}
 
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-8 flex flex-wrap gap-3 pt-6 border-t border-zinc-100">
+                  <button 
+                    onClick={handleUpdateMetadata}
+                    disabled={isUpdating}
+                    className="inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black transition-colors disabled:bg-zinc-400"
+                  >
+                      {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                      {isUpdating ? 'Updating...' : 'Update Info'}
+                  </button>
                   <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors">
                       <GlobeIcon className="w-5 h-5" />
                       Wikipedia
