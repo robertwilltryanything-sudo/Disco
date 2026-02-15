@@ -12,25 +12,29 @@ import { CheckIcon } from '../components/icons/CheckIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { SpinnerIcon } from '../components/icons/SpinnerIcon';
+import { getAlbumDetails } from '../gemini';
 
 interface WantlistDetailViewProps {
   wantlist: WantlistItem[];
   cds: CD[];
   onDelete: (id: string) => void;
+  onUpdate: (item: WantlistItem) => Promise<void>;
   onMoveToCollection: (item: WantlistItem) => void;
   collectionMode: CollectionMode;
 }
 
 const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratched", "Warped"];
-const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front"];
+const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front", "Cut Out"];
 
 const CD_MEDIA_CONDITION = ["Scratched", "Hairlines", "Sticky"];
 const CD_COVER_CONDITION = ["Cracked Case", "Price Sticker", "Tear Front"];
 
-const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onMoveToCollection, collectionMode }) => {
+const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onUpdate, onMoveToCollection, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const { item, previousItem, nextItem } = useMemo(() => {
     const currentIndex = wantlist.findIndex(i => i.id === id);
@@ -80,6 +84,31 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
       navigate('/wantlist', { state: { editWantlistItemId: item.id } });
     }
   }, [navigate, item]);
+
+  const handleUpdateInfo = useCallback(async () => {
+    if (!item || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      const details = await getAlbumDetails(item.artist, item.title);
+      if (details) {
+        const updatedItem: WantlistItem = {
+          ...item,
+          genre: details.genre || item.genre,
+          year: details.year || item.year,
+          record_label: details.record_label || item.record_label,
+          wikipedia_url: details.wikipedia_url || item.wikipedia_url,
+          review: details.review || item.review,
+          tags: [...new Set([...(item.tags || []), ...(details.tags || [])])]
+        };
+        await onUpdate(updatedItem);
+      }
+    } catch (error) {
+      console.error("Failed to update wantlist info:", error);
+      alert("Failed to update album info. Please try again later.");
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [item, isUpdating, onUpdate]);
 
   const handleMoveToCollection = useCallback(() => {
     if (item) {
@@ -153,11 +182,19 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                     <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{item.title}</h1>
                     <h2 className="text-lg font-semibold text-zinc-500 mt-1">{capitalizeWords(item.artist)}</h2>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={handleEdit} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors">
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={handleUpdateInfo} 
+                      disabled={isUpdating}
+                      className={`p-2 rounded-full transition-colors ${isUpdating ? 'text-blue-500' : 'text-zinc-400 hover:bg-blue-50 hover:text-blue-600'}`}
+                      title="Update wantlist info using Gemini"
+                    >
+                      {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                    </button>
+                    <button onClick={handleEdit} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors" title="Edit manual details">
                       <EditIcon className="w-5 h-5" />
                     </button>
-                    <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors">
+                    <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors" title="Delete from wantlist">
                       <TrashIcon className="w-5 h-5" />
                     </button>
                   </div>

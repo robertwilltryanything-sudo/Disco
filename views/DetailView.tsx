@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
@@ -60,30 +60,30 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
     }
   };
 
-  const handleUpdateMetadata = async () => {
+  const handleUpdateInfo = useCallback(async () => {
     if (!cd || isUpdating) return;
     setIsUpdating(true);
     try {
-        const details = await getAlbumDetails(cd.artist, cd.title);
-        if (details) {
-            const updatedCd: CD = {
-                ...cd,
-                genre: cd.genre || details.genre,
-                year: cd.year || details.year,
-                record_label: cd.record_label || details.record_label,
-                allmusic_url: cd.allmusic_url || details.allmusic_url,
-                wikipedia_url: cd.wikipedia_url || details.wikipedia_url,
-                review: cd.review || details.review,
-                tags: Array.from(new Set([...(cd.tags || []), ...(details.tags || [])])),
-            };
-            await onUpdateCD(updatedCd);
-        }
+      const details = await getAlbumDetails(cd.artist, cd.title);
+      if (details) {
+        const updatedCd: CD = {
+          ...cd,
+          genre: details.genre || cd.genre,
+          year: details.year || cd.year,
+          record_label: details.record_label || cd.record_label,
+          wikipedia_url: details.wikipedia_url || cd.wikipedia_url,
+          review: details.review || cd.review,
+          tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])]
+        };
+        await onUpdateCD(updatedCd);
+      }
     } catch (error) {
-        console.error("Error updating metadata:", error);
+      console.error("Failed to update album info:", error);
+      alert("Failed to update album info. Please try again later.");
     } finally {
-        setIsUpdating(false);
+      setIsUpdating(false);
     }
-  };
+  }, [cd, isUpdating, onUpdateCD]);
 
   const { mediaTraits, coverTraits, physicalAttributes } = useMemo(() => {
     if (!cd || !cd.attributes) return { mediaTraits: [], coverTraits: [], physicalAttributes: [] };
@@ -122,9 +122,17 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <h1 className="text-3xl font-bold text-zinc-900">{cd.title}</h1>
                   <h2 className="text-xl font-semibold text-zinc-500 mt-1 cursor-pointer" onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}>{cd.artist}</h2>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => navigate('/', { state: { editCdId: cd.id } })} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors" title="Edit Album"><EditIcon className="w-5 h-5" /></button>
-                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors" title="Delete Album"><TrashIcon className="w-5 h-5" /></button>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={handleUpdateInfo} 
+                    disabled={isUpdating}
+                    className={`p-2 rounded-full transition-colors ${isUpdating ? 'text-blue-500' : 'text-zinc-400 hover:bg-blue-50 hover:text-blue-600'}`}
+                    title="Update album info using Gemini"
+                  >
+                    {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                  </button>
+                  <button onClick={() => navigate('/', { state: { editCdId: cd.id } })} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors" title="Edit manual details"><EditIcon className="w-5 h-5" /></button>
+                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors" title="Delete album"><TrashIcon className="w-5 h-5" /></button>
                 </div>
               </div>
 
@@ -225,15 +233,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                 </div>
               )}
 
-              <div className="mt-8 flex flex-wrap gap-3 pt-6 border-t border-zinc-100">
-                  <button 
-                    onClick={handleUpdateMetadata}
-                    disabled={isUpdating}
-                    className="inline-flex items-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black transition-colors disabled:bg-zinc-400"
-                  >
-                      {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
-                      {isUpdating ? 'Updating...' : 'Update Info'}
-                  </button>
+              <div className="mt-8 flex flex-wrap gap-3">
                   <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors">
                       <GlobeIcon className="w-5 h-5" />
                       Wikipedia

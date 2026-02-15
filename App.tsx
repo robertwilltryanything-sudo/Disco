@@ -323,6 +323,7 @@ const AppContent: React.FC = () => {
   }, [collectionMode, duplicateCheckResult, navigate, currentCollection]);
 
   const handleDeleteCD = useCallback(async (id: string) => { setCollection(prev => prev.filter(cd => cd.id !== id)); }, []);
+  
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
       const tempId = itemData.id || generateId();
       let finalItem: WantlistItem = { 
@@ -405,7 +406,7 @@ const AppContent: React.FC = () => {
           <Route path="/stats" element={<DashboardView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} collectionMode={collectionMode} />} />
           <Route path="/wantlist" element={<WantlistView wantlist={currentWantlist} onRequestEdit={(item) => { setWantlistItemToEdit(item); setIsAddWantlistModalOpen(true); }} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
-          <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
+          <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onUpdate={handleSaveWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
         </Routes>
       </main>
       {isAddModalOpen && (
