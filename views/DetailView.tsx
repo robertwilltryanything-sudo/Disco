@@ -76,10 +76,12 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
           tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])]
         };
         await onUpdateCD(updatedCd);
+      } else {
+        alert("Gemini couldn't find any additional info for this album.");
       }
-    } catch (error) {
-      console.error("Failed to update album info:", error);
-      alert("Failed to update album info. Please try again later.");
+    } catch (error: any) {
+      console.error("Update error:", error);
+      alert(error.message || "Failed to connect to the AI service. Please check your internet and try again.");
     } finally {
       setIsUpdating(false);
     }
@@ -126,7 +128,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <button 
                     onClick={handleUpdateInfo} 
                     disabled={isUpdating}
-                    className={`p-2 rounded-full transition-colors ${isUpdating ? 'text-blue-500' : 'text-zinc-400 hover:bg-blue-50 hover:text-blue-600'}`}
+                    className={`p-2 rounded-full transition-colors ${isUpdating ? 'bg-blue-100 text-blue-600' : 'text-zinc-400 hover:bg-blue-50 hover:text-blue-600'}`}
                     title="Update album info using Gemini"
                   >
                     {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}

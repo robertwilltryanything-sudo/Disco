@@ -101,10 +101,12 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           tags: [...new Set([...(item.tags || []), ...(details.tags || [])])]
         };
         await onUpdate(updatedItem);
+      } else {
+        alert("No additional info found.");
       }
-    } catch (error) {
-      console.error("Failed to update wantlist info:", error);
-      alert("Failed to update album info. Please try again later.");
+    } catch (error: any) {
+      console.error("Update error:", error);
+      alert(error.message || "Failed to update wantlist item.");
     } finally {
       setIsUpdating(false);
     }
@@ -186,7 +188,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                     <button 
                       onClick={handleUpdateInfo} 
                       disabled={isUpdating}
-                      className={`p-2 rounded-full transition-colors ${isUpdating ? 'text-blue-500' : 'text-zinc-400 hover:bg-blue-50 hover:text-blue-600'}`}
+                      className={`p-2 rounded-full transition-colors ${isUpdating ? 'bg-blue-100 text-blue-600' : 'text-zinc-400 hover:bg-blue-50 hover:text-blue-600'}`}
                       title="Update wantlist info using Gemini"
                     >
                       {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
