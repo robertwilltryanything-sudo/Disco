@@ -119,8 +119,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                 )}
             </div>
             <div className="p-6 md:p-8 flex flex-col flex-grow min-h-0">
-              <div className="flex justify-between items-start gap-4 mb-6">
-                <div className="flex-grow">
+              <div className="flex flex-col mb-6">
                   <h1 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h1>
                   <h2 
                     className="text-base text-zinc-500 hover:text-zinc-800 transition-colors mt-1 cursor-pointer" 
@@ -128,7 +127,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   >
                     {cd.artist}
                   </h2>
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm border-t border-zinc-100 pt-6">

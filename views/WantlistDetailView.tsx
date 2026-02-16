@@ -7,7 +7,7 @@ import { EditIcon } from '../components/icons/EditIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { GlobeIcon } from '../components/icons/GlobeIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
-import { capitalizeWords, getBrandColor } from '../utils';
+import { getBrandColor } from '../utils';
 import { CheckIcon } from '../components/icons/CheckIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
@@ -179,11 +179,9 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                 )}
             </div>
             <div className="p-6 md:p-8 flex flex-col justify-start relative flex-grow min-h-0">
-              <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h1 className="text-xl font-bold text-zinc-900 leading-tight">{item.title}</h1>
-                    <h2 className="text-base text-zinc-500 mt-1">{item.artist}</h2>
-                  </div>
+              <div className="flex flex-col mb-6">
+                  <h1 className="text-xl font-bold text-zinc-900 leading-tight">{item.title}</h1>
+                  <h2 className="text-base text-zinc-500 mt-1">{item.artist}</h2>
               </div>
 
               {item.review && (
