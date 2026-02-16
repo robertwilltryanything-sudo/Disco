@@ -104,7 +104,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6"><Link to="/" className="inline-flex items-center gap-2 text-zinc-600 font-medium"><ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>
-      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm relative group/card">
         <div className="md:flex">
             <div className="md:flex-shrink-0 md:w-80">
                 {cd.cover_art_url ? (
@@ -118,27 +118,20 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     <div className="w-full aspect-square bg-zinc-50 flex items-center justify-center"><MusicNoteIcon className="w-24 h-24 text-zinc-200" /></div>
                 )}
             </div>
-            <div className="p-6 md:p-8 flex flex-col flex-grow">
-              <div className="flex justify-between items-start gap-4">
+            <div className="p-6 md:p-8 flex flex-col flex-grow min-h-0">
+              <div className="flex justify-between items-start gap-4 mb-6">
                 <div className="flex-grow">
-                  <h1 className="text-3xl font-bold text-zinc-900">{cd.title}</h1>
-                  <h2 className="text-xl font-semibold text-zinc-500 mt-1 cursor-pointer" onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}>{cd.artist}</h2>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={handleUpdateInfo} 
-                    disabled={isUpdating}
-                    className={`p-2 rounded-full transition-colors ${isUpdating ? 'bg-blue-100 text-blue-600' : 'text-zinc-400 hover:bg-blue-50 hover:text-blue-600'}`}
-                    title="Update album info using Gemini"
+                  <h1 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h1>
+                  <h2 
+                    className="text-base text-zinc-500 hover:text-zinc-800 transition-colors mt-1 cursor-pointer" 
+                    onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}
                   >
-                    {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
-                  </button>
-                  <button onClick={() => navigate('/', { state: { editCdId: cd.id } })} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors" title="Edit manual details"><EditIcon className="w-5 h-5" /></button>
-                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors" title="Delete album"><TrashIcon className="w-5 h-5" /></button>
+                    {cd.artist}
+                  </h2>
                 </div>
               </div>
 
-              <div className="mt-8 grid grid-cols-2 gap-y-4 gap-x-6 text-sm border-t border-zinc-100 pt-6">
+              <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm border-t border-zinc-100 pt-6">
                   {cd.year && (
                     <div>
                       <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Year</p>
@@ -235,11 +228,41 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                 </div>
               )}
 
-              <div className="mt-8 flex flex-wrap gap-3">
-                  <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors">
+              {/* Bottom Actions Row - Aligned Straight */}
+              <div className="mt-auto pt-8 flex items-center justify-between border-t border-zinc-50">
+                  <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
                       <GlobeIcon className="w-5 h-5" />
                       Wikipedia
                   </a>
+
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={handleUpdateInfo} 
+                      disabled={isUpdating}
+                      className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
+                        isUpdating 
+                          ? 'bg-zinc-100 text-blue-500 animate-pulse' 
+                          : 'text-zinc-400 hover:bg-zinc-100 hover:text-blue-500'
+                      }`}
+                      title="Update album info using Gemini"
+                    >
+                      {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                    </button>
+                    <button 
+                      onClick={() => navigate('/', { state: { editCdId: cd.id } })} 
+                      className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-all transform hover:scale-110 active:scale-95" 
+                      title="Edit manual details"
+                    >
+                      <EditIcon className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => setIsDeleteModalOpen(true)} 
+                      className="p-2 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
+                      title="Delete album"
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </div>
               </div>
             </div>
         </div>

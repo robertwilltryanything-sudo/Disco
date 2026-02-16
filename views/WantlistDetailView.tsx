@@ -167,7 +167,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           Back to {albumType} Wantlist
         </Link>
       </div>
-      <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden shadow-sm relative group/card">
         <div className="md:flex">
             <div className="md:flex-shrink-0">
                 {item.cover_art_url ? (
@@ -178,27 +178,11 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                     </div>
                 )}
             </div>
-            <div className="p-6 md:p-8 flex flex-col justify-start relative flex-grow">
-              <div className="flex justify-between items-start">
+            <div className="p-6 md:p-8 flex flex-col justify-start relative flex-grow min-h-0">
+              <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">{item.title}</h1>
-                    <h2 className="text-lg font-semibold text-zinc-500 mt-1">{capitalizeWords(item.artist)}</h2>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={handleUpdateInfo} 
-                      disabled={isUpdating}
-                      className={`p-2 rounded-full transition-colors ${isUpdating ? 'bg-blue-100 text-blue-600' : 'text-zinc-400 hover:bg-blue-50 hover:text-blue-600'}`}
-                      title="Update wantlist info using Gemini"
-                    >
-                      {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
-                    </button>
-                    <button onClick={handleEdit} className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 transition-colors" title="Edit manual details">
-                      <EditIcon className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 rounded-full text-red-400 hover:bg-red-50 transition-colors" title="Delete from wantlist">
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
+                    <h1 className="text-xl font-bold text-zinc-900 leading-tight">{item.title}</h1>
+                    <h2 className="text-base text-zinc-500 mt-1">{item.artist}</h2>
                   </div>
               </div>
 
@@ -283,15 +267,47 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                 </div>
               )}
 
-              <div className="mt-8 flex flex-wrap gap-3">
-                  <button onClick={handleMoveToCollection} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
-                      <CheckIcon className="w-5 h-5" />
-                      Found it! Add to Collection
-                  </button>
-                  <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors">
-                      <GlobeIcon className="w-5 h-5" />
-                      Wikipedia
-                  </a>
+              {/* Bottom Actions Row - Aligned Straight */}
+              <div className="mt-auto pt-8 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-50">
+                  <div className="flex items-center gap-3">
+                      <button onClick={handleMoveToCollection} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors shadow-sm text-sm">
+                          <CheckIcon className="w-5 h-5" />
+                          Found it!
+                      </button>
+                      <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
+                          <GlobeIcon className="w-5 h-5" />
+                          Wikipedia
+                      </a>
+                  </div>
+
+                  <div className="flex items-center gap-1 ml-auto">
+                    <button 
+                      onClick={handleUpdateInfo} 
+                      disabled={isUpdating}
+                      className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
+                        isUpdating 
+                          ? 'bg-zinc-100 text-blue-500 animate-pulse' 
+                          : 'text-zinc-400 hover:bg-zinc-100 hover:text-blue-500'
+                      }`}
+                      title="Update wantlist info using Gemini"
+                    >
+                      {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                    </button>
+                    <button 
+                      onClick={handleEdit} 
+                      className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-all transform hover:scale-110 active:scale-95" 
+                      title="Edit manual details"
+                    >
+                      <EditIcon className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => setIsDeleteModalOpen(true)} 
+                      className="p-2 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
+                      title="Delete from wantlist"
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </div>
               </div>
             </div>
         </div>
