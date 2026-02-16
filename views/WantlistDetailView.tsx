@@ -5,7 +5,7 @@ import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { MusicNoteIcon } from '../components/icons/MusicNoteIcon';
 import { EditIcon } from '../components/icons/EditIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
-import { GlobeIcon } from '../components/icons/GlobeIcon';
+import { WikipediaIcon } from '../components/icons/WikipediaIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
 import { getBrandColor } from '../utils';
 import { CheckIcon } from '../components/icons/CheckIcon';
@@ -273,7 +273,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                           Found it!
                       </button>
                       <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
-                          <GlobeIcon className="w-5 h-5" />
+                          <WikipediaIcon className="w-5 h-5" />
                           Wikipedia
                       </a>
                   </div>

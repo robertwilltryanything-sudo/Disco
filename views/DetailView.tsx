@@ -5,7 +5,7 @@ import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { MusicNoteIcon } from '../components/icons/MusicNoteIcon';
 import { EditIcon } from '../components/icons/EditIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
-import { GlobeIcon } from '../components/icons/GlobeIcon';
+import { WikipediaIcon } from '../components/icons/WikipediaIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
@@ -229,7 +229,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               {/* Bottom Actions Row - Aligned Straight */}
               <div className="mt-auto pt-8 flex items-center justify-between border-t border-zinc-50">
                   <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
-                      <GlobeIcon className="w-5 h-5" />
+                      <WikipediaIcon className="w-5 h-5" />
                       Wikipedia
                   </a>
 
