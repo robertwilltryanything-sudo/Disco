@@ -1,4 +1,3 @@
-
 export interface CD {
   id: string;
   artist: string;
@@ -62,8 +61,3 @@ export type SyncProvider = 'google_drive' | 'supabase' | 'none';
 export type SyncMode = 'realtime' | 'manual';
 
 export type CollectionMode = 'cd' | 'vinyl';
-
-export interface DiscographyAlbum {
-  title: string;
-  year: number;
-}

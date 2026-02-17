@@ -4,7 +4,6 @@ import { CD, WantlistItem, CollectionMode } from '../types';
 import { areStringsSimilar } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import CDItem from '../components/CDItem';
-import MissingAlbumScanner from '../components/MissingAlbumScanner';
 
 interface ArtistDetailViewProps {
   cds: CD[];
@@ -48,15 +47,6 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, wantlist, onAd
                 ) : (
                     <p className="mt-2 text-zinc-500">You don't have any {collectionMode}s by this artist yet.</p>
                 )}
-            </div>
-            
-            <div className="mt-6">
-                <MissingAlbumScanner 
-                    artistName={artistName}
-                    userAlbumsByArtist={userAlbumsByArtist}
-                    wantlist={wantlist}
-                    onAddToWantlist={onAddToWantlist}
-                />
             </div>
         </div>
     );

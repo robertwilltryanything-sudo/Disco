@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { CD, DiscographyAlbum } from './types';
+import { CD } from './types';
 
 /**
  * Global queue to prevent hitting RPM (Requests Per Minute) limits
@@ -97,40 +97,6 @@ function parseAlbumMetadata(text: string): any {
     }
 
     return data;
-}
-
-export async function getArtistDiscography(artistName: string): Promise<DiscographyAlbum[] | null> {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) throw new Error("API Key is missing from environment.");
-    const ai = new GoogleGenAI({ apiKey });
-
-    try {
-        return await callWithRetry(async () => {
-            const response: GenerateContentResponse = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
-                contents: `Provide a list of official studio albums for "${artistName}". Include title and original release year. Respond in JSON.`,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                title: { type: Type.STRING },
-                                year: { type: Type.INTEGER },
-                            },
-                            required: ["title", "year"],
-                        },
-                    },
-                    thinkingConfig: { thinkingBudget: 0 }
-                },
-            });
-            return JSON.parse(response.text || '[]');
-        });
-    } catch (error) {
-        handleApiError(error, 'getArtistDiscography');
-        return null;
-    }
 }
 
 export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {

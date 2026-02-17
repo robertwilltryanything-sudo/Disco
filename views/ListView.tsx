@@ -10,8 +10,6 @@ import QuickStats from '../components/CollectionStats';
 import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import CDTable from '../components/CDTable';
-import { areStringsSimilar } from '../utils';
-import MissingAlbumScanner from '../components/MissingAlbumScanner';
 
 interface ListViewProps {
   cds: CD[];
@@ -148,7 +146,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
     window.scrollTo(0, 0);
   }, [urlSearchQuery]);
 
-  const { filteredAndSortedCds, potentialArtistForScan } = useMemo(() => {
+  const filteredAndSortedCds = useMemo(() => {
     const filtered = [...cds]
       .filter(cd => {
         if (!cd) return false;
@@ -221,16 +219,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
         return sortOrder === 'asc' ? comparison : -comparison;
       });
 
-    let artistForScan: string | null = null;
-    if (urlSearchQuery && sorted.length > 0) {
-      const firstArtist = sorted[0].artist;
-      const allSameArtist = sorted.every(cd => areStringsSimilar(cd.artist, firstArtist, 0.95));
-      const queryMatchesArtist = areStringsSimilar(urlSearchQuery, firstArtist, 0.85);
-      if (allSameArtist && queryMatchesArtist) {
-        artistForScan = firstArtist;
-      }
-    }
-    return { filteredAndSortedCds: sorted, potentialArtistForScan: artistForScan };
+    return sorted;
   }, [cds, urlSearchQuery, sortBy, sortOrder]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
@@ -307,17 +296,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onR
         <CDList cds={filteredAndSortedCds} albumType={albumType} />
       ) : (
         <CDTable cds={filteredAndSortedCds} onRequestEdit={onRequestEdit} albumType={albumType} />
-      )}
-
-      {potentialArtistForScan && filteredAndSortedCds.length > 0 && (
-        <div className="mt-8">
-          <MissingAlbumScanner 
-            artistName={potentialArtistForScan}
-            userAlbumsByArtist={filteredAndSortedCds}
-            wantlist={wantlist}
-            onAddToWantlist={onAddToWantlist}
-          />
-        </div>
       )}
     </div>
   );
