@@ -1,18 +1,16 @@
 import React, { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CD, WantlistItem, CollectionMode } from '../types';
+import { CD, CollectionMode } from '../types';
 import { areStringsSimilar } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import CDItem from '../components/CDItem';
 
 interface ArtistDetailViewProps {
   cds: CD[];
-  wantlist: WantlistItem[];
-  onAddToWantlist: (item: Omit<WantlistItem, 'id' | 'created_at'>) => Promise<void>;
   collectionMode: CollectionMode;
 }
 
-const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, wantlist, onAddToWantlist, collectionMode }) => {
+const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode }) => {
     const { artistName: encodedArtistName } = useParams<{ artistName: string }>();
     const artistName = decodeURIComponent(encodedArtistName || '');
 

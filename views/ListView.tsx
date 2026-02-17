@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useTransition } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { CD, SortKey, SortOrder, WantlistItem, CollectionMode } from '../types';
+import { CD, SortKey, SortOrder, CollectionMode } from '../types';
 import CDList from '../components/CDList';
 import SearchBar from '../components/SearchBar';
 import SortControls from '../components/SortControls';
@@ -13,8 +13,6 @@ import CDTable from '../components/CDTable';
 
 interface ListViewProps {
   cds: CD[];
-  wantlist: WantlistItem[];
-  onAddToWantlist: (item: Omit<WantlistItem, 'id' | 'created_at'>) => Promise<void>;
   onRequestAdd: (artist?: string) => void;
   onRequestEdit: (cd: CD) => void;
   collectionMode: CollectionMode;
@@ -22,7 +20,7 @@ interface ListViewProps {
 
 const VIEW_MODE_KEY = 'disco_view_mode';
 
-const ListView: React.FC<ListViewProps> = ({ cds, wantlist, onAddToWantlist, onRequestAdd, onRequestEdit, collectionMode }) => {
+const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, collectionMode }) => {
   const [sortBy, setSortBy] = useState<SortKey>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);

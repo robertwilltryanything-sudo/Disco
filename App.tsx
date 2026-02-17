@@ -399,10 +399,10 @@ const AppContent: React.FC = () => {
              </div>
         )}
         <Routes>
-          <Route path="/" element={<ListView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={handleSaveWantlistItem} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
+          <Route path="/" element={<ListView cds={currentCollection} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
           <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} collectionMode={collectionMode} />} />
           <Route path="/artists" element={<ArtistsView cds={currentCollection} collectionMode={collectionMode} />} />
-          <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} wantlist={currentWantlist} onAddToWantlist={handleSaveWantlistItem} collectionMode={collectionMode} />} />
+          <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/stats" element={<DashboardView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} collectionMode={collectionMode} />} />
           <Route path="/wantlist" element={<WantlistView wantlist={currentWantlist} onRequestEdit={(item) => { setWantlistItemToEdit(item); setIsAddWantlistModalOpen(true); }} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
