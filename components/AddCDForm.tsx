@@ -135,17 +135,10 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             const imageUrls = await findCoverArt(artist, title);
 
             if (imageUrls && imageUrls.length > 0) {
-                if (imageUrls.length === 1) {
-                    cdData.cover_art_url = imageUrls[0];
-                    setFormErrorTitle("Error Saving Album");
-                    setProcessingStatus('Saving album...');
-                    await onSave(cdData);
-                } else {
-                    setCoverArtOptions(imageUrls);
-                    setIsSubmittingWithArtSelection(true);
-                    setIsSelectorOpen(true);
-                    return; 
-                }
+                setCoverArtOptions(imageUrls);
+                setIsSubmittingWithArtSelection(true);
+                setIsSelectorOpen(true);
+                return; 
             } else {
                 setFormErrorTitle("Error Saving Album");
                 setProcessingStatus('Saving album...');
@@ -218,12 +211,8 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       const imageUrls = await findCoverArt(artist, title);
 
       if (imageUrls && imageUrls.length > 0) {
-        if (imageUrls.length === 1) {
-          setCoverArtUrl(imageUrls[0]);
-        } else {
-          setCoverArtOptions(imageUrls);
-          setIsSelectorOpen(true);
-        }
+        setCoverArtOptions(imageUrls);
+        setIsSelectorOpen(true);
       } else {
         setFormErrorTitle("Cover Art Not Found");
         setFormError("We couldn't find an official cover for this specific album online.");
@@ -272,10 +261,17 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     }
   }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
 
-  const handleCloseSelector = useCallback(async () => {
+  const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
     setCoverArtOptions([]);
+    setIsProcessing(false);
+    setIsSubmittingWithArtSelection(false);
+  }, []);
 
+  const handleSkipSelector = useCallback(async () => {
+    setIsSelectorOpen(false);
+    setCoverArtOptions([]);
+    
     if (isSubmittingWithArtSelection) {
       try {
           setFormErrorTitle("Error Saving Album");
@@ -288,12 +284,14 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             created_at: cdToEdit?.created_at,
           });
       } catch (error: any) {
+        console.error("Error saving without art:", error);
         setFormError(error.message || "An error occurred while saving.");
       } finally {
         setIsProcessing(false);
         setIsSubmittingWithArtSelection(false);
       }
     } else {
+      setCoverArtUrl(undefined);
       setIsProcessing(false);
     }
   }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
@@ -625,9 +623,11 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       />
       <CoverArtSelectorModal
         isOpen={isSelectorOpen}
-        onClose={handleCloseSelector}
+        onClose={handleCancelSelector}
         onSelect={handleSelectCoverArt}
+        onSkip={handleSkipSelector}
         images={coverArtOptions}
+        isSubmitting={isSubmittingWithArtSelection}
       />
     </>
   );

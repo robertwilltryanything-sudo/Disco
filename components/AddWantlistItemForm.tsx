@@ -104,17 +104,10 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             const imageUrls = await findCoverArt(artist, title);
 
             if (imageUrls && imageUrls.length > 0) {
-                if (imageUrls.length === 1) {
-                    itemData.cover_art_url = imageUrls[0];
-                    setFormErrorTitle("Error Saving to Wantlist");
-                    setProcessingStatus('Saving item...');
-                    await onSave(itemData);
-                } else {
-                    setCoverArtOptions(imageUrls);
-                    setIsSubmittingWithArtSelection(true);
-                    setIsSelectorOpen(true);
-                    return; 
-                }
+                setCoverArtOptions(imageUrls);
+                setIsSubmittingWithArtSelection(true);
+                setIsSelectorOpen(true);
+                return; 
             } else {
                 setFormErrorTitle("Error Saving to Wantlist");
                 setProcessingStatus('Saving item...');
@@ -186,11 +179,8 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     try {
       const imageUrls = await findCoverArt(artist, title);
       if (imageUrls && imageUrls.length > 0) {
-        if (imageUrls.length === 1) setCoverArtUrl(imageUrls[0]);
-        else {
-          setCoverArtOptions(imageUrls);
-          setIsSelectorOpen(true);
-        }
+        setCoverArtOptions(imageUrls);
+        setIsSelectorOpen(true);
       } else {
         setFormErrorTitle("Not Found");
         setFormError("No cover art found online.");
@@ -237,7 +227,14 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     }
   }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
 
-  const handleCloseSelector = useCallback(async () => {
+  const handleCancelSelector = useCallback(() => {
+    setIsSelectorOpen(false);
+    setCoverArtOptions([]);
+    setIsProcessing(false);
+    setIsSubmittingWithArtSelection(false);
+  }, []);
+
+  const handleSkipSelector = useCallback(async () => {
     setIsSelectorOpen(false);
     setCoverArtOptions([]);
     if (isSubmittingWithArtSelection) {
@@ -252,12 +249,14 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             created_at: itemToEdit?.created_at,
           });
       } catch (error: any) {
+        console.error("Error saving wantlist item without art:", error);
         setFormError(error.message || "An error occurred.");
       } finally {
         setIsProcessing(false);
         setIsSubmittingWithArtSelection(false);
       }
     } else {
+      setCoverArtUrl(undefined);
       setIsProcessing(false);
     }
   }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
@@ -589,9 +588,11 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       />
       <CoverArtSelectorModal
         isOpen={isSelectorOpen}
-        onClose={handleCloseSelector}
+        onClose={handleCancelSelector}
         onSelect={handleSelectCoverArt}
+        onSkip={handleSkipSelector}
         images={coverArtOptions}
+        isSubmitting={isSubmittingWithArtSelection}
       />
     </>
   );
