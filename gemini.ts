@@ -1,11 +1,11 @@
-import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import { CD } from './types';
 
 /**
  * Global queue to prevent hitting RPM (Requests Per Minute) limits
  */
 let lastRequestTime = 0;
-const MIN_REQUEST_GAP = 1000; // 1 second between start of requests
+const MIN_REQUEST_GAP = 2000; // Increased to 2 seconds between start of requests
 
 /**
  * Sleep helper for backoff
@@ -30,7 +30,7 @@ function handleApiError(error: any, operation: string): string {
 /**
  * Wrapper for Gemini API calls with exponential backoff and rate limiting
  */
-async function callWithRetry(operation: () => Promise<any>, maxRetries = 3): Promise<any> {
+async function callWithRetry(operation: () => Promise<any>, maxRetries = 5): Promise<any> {
     let lastErr: any;
     
     for (let i = 0; i < maxRetries; i++) {
@@ -39,7 +39,7 @@ async function callWithRetry(operation: () => Promise<any>, maxRetries = 3): Pro
             const now = Date.now();
             const timeSinceLast = now - lastRequestTime;
             if (timeSinceLast < MIN_REQUEST_GAP) {
-                await sleep(MIN_REQUEST_GAP - timeSinceLast);
+                await sleep(MIN_REQUEST_GAP - timeSinceLast + (Math.random() * 500)); // Add some jitter
             }
             lastRequestTime = Date.now();
 
@@ -50,8 +50,8 @@ async function callWithRetry(operation: () => Promise<any>, maxRetries = 3): Pro
             const isQuotaError = msg.includes('429') || msg.includes('QUOTA') || msg.includes('RESOURCE_EXHAUSTED');
             
             if (isQuotaError && i < maxRetries - 1) {
-                // Exponential backoff: 2s, 4s, 8s...
-                const waitTime = Math.pow(2, i + 1) * 1000;
+                // Exponential backoff: 3s, 6s, 12s...
+                const waitTime = Math.pow(2, i + 1) * 1500;
                 console.warn(`Quota hit. Retrying in ${waitTime}ms... (Attempt ${i + 1}/${maxRetries})`);
                 await sleep(waitTime);
                 continue;
@@ -109,7 +109,7 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
             const response: GenerateContentResponse = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: `Provide one interesting brief piece of trivia about the album "${title}" by "${artist}". One concise sentence.`,
-                config: { thinkingConfig: { thinkingBudget: 0 } }
+                config: { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
             });
             return response.text?.trim() || null;
         });
@@ -138,7 +138,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 Review: [A professional 2-3 sentence review of the album's impact]`,
                 config: {
                     tools: [{ googleSearch: {} }],
-                    thinkingConfig: { thinkingBudget: 0 }
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                 },
             });
             
@@ -197,7 +197,7 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
                         },
                         required: ["artist", "title"],
                     },
-                    thinkingConfig: { thinkingBudget: 0 }
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                 },
             });
             

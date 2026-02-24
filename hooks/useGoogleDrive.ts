@@ -17,7 +17,7 @@ export interface DriveFile {
 
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
-const AUTH_TIMEOUT_MS = 30000;
+const AUTH_TIMEOUT_MS = 90000; // Increased to 90s to allow for slow connections/2FA
 
 declare global {
   interface Window {
@@ -136,7 +136,11 @@ export const useGoogleDrive = () => {
         client_id: GOOGLE_CLIENT_ID,
         scope: GOOGLE_DRIVE_SCOPES,
         callback: (tokenResponse: any) => {
-          if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
+          console.log("Google Auth Callback received:", tokenResponse?.error || "success");
+          if (authTimeoutRef.current) {
+            window.clearTimeout(authTimeoutRef.current);
+            authTimeoutRef.current = null;
+          }
           
           if (tokenResponse && tokenResponse.access_token) {
             window.gapi.client.setToken(tokenResponse);
@@ -145,7 +149,13 @@ export const useGoogleDrive = () => {
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
           } else if (tokenResponse && tokenResponse.error) {
-            handleApiError(tokenResponse, 'auth_callback');
+            // Handle specific errors like 'popup_closed_by_user'
+            if (tokenResponse.error === 'popup_closed_by_user') {
+              setError("Sign-in cancelled. Please try again.");
+              updateSyncStatus('idle');
+            } else {
+              handleApiError(tokenResponse, 'auth_callback');
+            }
           } else {
             updateSyncStatus('idle');
           }
@@ -184,8 +194,9 @@ export const useGoogleDrive = () => {
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
       if (syncStatusRef.current === 'authenticating') {
+        console.warn("Google Auth Timeout reached");
         updateSyncStatus('idle');
-        setError("Sign-in timed out. Check for blocked popups.");
+        setError("Sign-in timed out. This often happens if popups are blocked or the window was closed. Please try again.");
       }
     }, AUTH_TIMEOUT_MS);
 

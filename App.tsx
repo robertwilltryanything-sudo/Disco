@@ -22,6 +22,7 @@ import { useGoogleDrive, UnifiedStorage } from './hooks/useGoogleDrive';
 import ScrollToTop from './components/ScrollToTop';
 import ImportConfirmModal from './components/ImportConfirmModal';
 import { SpinnerIcon } from './components/icons/SpinnerIcon';
+import { XCircleIcon } from './components/icons/XCircleIcon';
 import SyncConfirmationModal from './components/SyncConfirmationModal';
 import DriveImagePickerModal from './components/DriveImagePickerModal';
 
@@ -378,9 +379,30 @@ const AppContent: React.FC = () => {
                 <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
                 <p className="text-zinc-600 mt-2">Sign in to your Google account to enable manual Load/Save between devices.</p>
                 {driveError && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 flex flex-col gap-2">
-                        <p>{driveError}</p>
-                        <button onClick={driveResetStatus} className="text-xs font-bold underline">Clear error and try again</button>
+                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex flex-col gap-3 shadow-inner">
+                        <div className="flex items-start gap-2">
+                            <XCircleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <p className="font-medium">{driveError}</p>
+                        </div>
+                        <div className="flex gap-4 ml-7">
+                            <button 
+                                onClick={() => {
+                                    driveResetStatus();
+                                    // Small delay to let reset happen before re-trying if they want
+                                }} 
+                                className="text-xs font-bold underline hover:text-red-800"
+                            >
+                                Reset & Re-initialize
+                            </button>
+                            {driveReady && (
+                                <button 
+                                    onClick={driveSignIn} 
+                                    className="text-xs font-bold underline hover:text-red-800"
+                                >
+                                    Try Sign-in Again
+                                </button>
+                            )}
+                        </div>
                     </div>
                 )}
                 {!driveReady ? (
