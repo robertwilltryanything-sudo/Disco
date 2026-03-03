@@ -5,7 +5,7 @@ import { CD } from './types';
  * Global queue to prevent hitting RPM (Requests Per Minute) limits
  */
 let lastRequestTime = 0;
-const MIN_REQUEST_GAP = 2000; // Increased to 2 seconds between start of requests
+const MIN_REQUEST_GAP = 5000; // Increased to 5 seconds between start of requests
 
 /**
  * Sleep helper for backoff
@@ -35,13 +35,20 @@ async function callWithRetry(operation: () => Promise<any>, maxRetries = 5): Pro
     
     for (let i = 0; i < maxRetries; i++) {
         try {
-            // Simple rate limiting: ensure a gap between requests
+            // Robust rate limiting: reserve a slot in the future
             const now = Date.now();
-            const timeSinceLast = now - lastRequestTime;
-            if (timeSinceLast < MIN_REQUEST_GAP) {
-                await sleep(MIN_REQUEST_GAP - timeSinceLast + (Math.random() * 500)); // Add some jitter
+            let waitTime = 0;
+            
+            if (now < lastRequestTime + MIN_REQUEST_GAP) {
+                waitTime = (lastRequestTime + MIN_REQUEST_GAP) - now;
+                lastRequestTime += MIN_REQUEST_GAP;
+            } else {
+                lastRequestTime = now;
             }
-            lastRequestTime = Date.now();
+
+            if (waitTime > 0) {
+                await sleep(waitTime + (Math.random() * 500));
+            }
 
             return await operation();
         } catch (error: any) {
@@ -50,8 +57,8 @@ async function callWithRetry(operation: () => Promise<any>, maxRetries = 5): Pro
             const isQuotaError = msg.includes('429') || msg.includes('QUOTA') || msg.includes('RESOURCE_EXHAUSTED');
             
             if (isQuotaError && i < maxRetries - 1) {
-                // Exponential backoff: 3s, 6s, 12s...
-                const waitTime = Math.pow(2, i + 1) * 1500;
+                // Exponential backoff: 5s, 10s, 20s...
+                const waitTime = Math.pow(2, i + 1) * 2500;
                 console.warn(`Quota hit. Retrying in ${waitTime}ms... (Attempt ${i + 1}/${maxRetries})`);
                 await sleep(waitTime);
                 continue;
@@ -100,6 +107,10 @@ function parseAlbumMetadata(text: string): any {
 }
 
 export async function getAlbumTrivia(artist: string, title: string): Promise<string | null> {
+    const cacheKey = `album-trivia-cache-${artist}-${title}`.toLowerCase().replace(/\s+/g, '-');
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return cached;
+
     const apiKey = process.env.API_KEY;
     if (!apiKey) return null;
     const ai = new GoogleGenAI({ apiKey });
@@ -111,7 +122,11 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
                 contents: `Provide one interesting brief piece of trivia about the album "${title}" by "${artist}". One concise sentence.`,
                 config: { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
             });
-            return response.text?.trim() || null;
+            const result = response.text?.trim() || null;
+            if (result) {
+                localStorage.setItem(cacheKey, result);
+            }
+            return result;
         });
     } catch (error) {
         handleApiError(error, 'getAlbumTrivia');
@@ -120,13 +135,22 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
 }
 
 export async function getAlbumDetails(artist: string, title: string): Promise<any | null> {
+    const cacheKey = `album-details-cache-${artist}-${title}`.toLowerCase().replace(/\s+/g, '-');
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+        try {
+            return JSON.parse(cached);
+        } catch (e) {
+            localStorage.removeItem(cacheKey);
+        }
+    }
+
     const apiKey = process.env.API_KEY;
     if (!apiKey) throw new Error("API Key configuration error.");
     const ai = new GoogleGenAI({ apiKey });
 
-    try {
+    const fetchDetails = async (useSearch: boolean) => {
         return await callWithRetry(async () => {
-            // When using googleSearch grounding, we avoid strict JSON mode as the citations break parsing.
             const response: GenerateContentResponse = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: `Search for accurate metadata for the album "${title}" by "${artist}".
@@ -137,7 +161,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 Wikipedia: [Full URL to Wikipedia album page]
                 Review: [A professional 2-3 sentence review of the album's impact]`,
                 config: {
-                    tools: [{ googleSearch: {} }],
+                    tools: useSearch ? [{ googleSearch: {} }] : undefined,
                     thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                 },
             });
@@ -145,7 +169,6 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
             const text = response.text || '';
             const data = parseAlbumMetadata(text);
             
-            // Always attempt to pull extra URLs from grounding metadata as a backup
             const grounding = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
             if (grounding) {
                 grounding.forEach((chunk: any) => {
@@ -156,11 +179,31 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 });
             }
 
-            return (data.genre || data.year || data.review) ? data : null;
+            const result = (data.genre || data.year || data.review) ? data : null;
+            if (result) {
+                localStorage.setItem(cacheKey, JSON.stringify(result));
+            }
+            return result;
         });
-    } catch (error) {
-        const msg = handleApiError(error, 'getAlbumDetails');
-        throw new Error(msg);
+    };
+
+    try {
+        // Try with search first
+        return await fetchDetails(true);
+    } catch (error: any) {
+        const msg = error?.message || String(error);
+        if (msg.includes('429') || msg.includes('QUOTA') || msg.includes('RESOURCE_EXHAUSTED')) {
+            console.warn("Google Search quota hit, retrying without search tool...");
+            try {
+                // Fallback to internal knowledge if search quota is hit
+                return await fetchDetails(false);
+            } catch (innerError) {
+                const finalMsg = handleApiError(innerError, 'getAlbumDetails_fallback');
+                throw new Error(finalMsg);
+            }
+        }
+        const msgFinal = handleApiError(error, 'getAlbumDetails');
+        throw new Error(msgFinal);
     }
 }
 

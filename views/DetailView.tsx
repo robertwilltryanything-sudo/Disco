@@ -51,7 +51,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const wikipediaUrl = useMemo(() => {
     if (!cd) return '';
     if (cd.wikipedia_url) return cd.wikipedia_url;
-    return `https://www.google.com/search?q=wikipedia+album+${encodeURIComponent(cd.artist)}+${encodeURIComponent(cd.title)}`;
+    return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(cd.artist)}+${encodeURIComponent(cd.title)}+album`;
   }, [cd]);
 
   const handleSearchFilter = (value: string | number | undefined) => {

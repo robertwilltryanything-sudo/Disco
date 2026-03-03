@@ -76,7 +76,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
   const wikipediaUrl = useMemo(() => {
     if (!item) return '';
     if (item.wikipedia_url) return item.wikipedia_url;
-    return `https://www.google.com/search?q=wikipedia+album+${encodeURIComponent(item.artist)}+${encodeURIComponent(item.title)}`;
+    return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(item.artist)}+${encodeURIComponent(item.title)}+album`;
   }, [item]);
 
   const handleEdit = useCallback(() => {
