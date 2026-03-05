@@ -222,7 +222,8 @@ export async function getMetadataFromInfobox(pageTitle: string): Promise<any | n
                 .replace(/&nbsp;/g, ' ')
                 .split('<br')[0]
                 .split('\n')[0]
-                .trim();
+                .trim()
+                .replace(/^[*#•-]\s*/, ''); // Remove leading bullets/asterisks
         };
 
         // Extract Year (usually from released field)

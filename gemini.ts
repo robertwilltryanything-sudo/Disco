@@ -81,7 +81,7 @@ function parseAlbumMetadata(text: string): any {
         for (const line of lines) {
             const match = line.match(regex);
             if (match && match[1]) {
-                data[key] = match[1].trim();
+                data[key] = match[1].trim().replace(/^[*#•-]\s*/, '');
                 break;
             }
         }
