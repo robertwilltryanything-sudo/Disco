@@ -14,6 +14,7 @@ import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { getAlbumDetails } from '../gemini';
+import { searchWikipediaForArticle } from '../wikipedia';
 
 interface WantlistDetailViewProps {
   wantlist: WantlistItem[];
@@ -76,8 +77,27 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
   const wikipediaUrl = useMemo(() => {
     if (!item) return '';
     if (item.wikipedia_url) return item.wikipedia_url;
-    return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(item.artist)}+${encodeURIComponent(item.title)}+album`;
+    // Using Special:Search with go=Go attempts to redirect directly to the article if a match is found
+    return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(item.artist)}+${encodeURIComponent(item.title)}+album&go=Go`;
   }, [item]);
+
+  // Auto-resolve missing Wikipedia URL
+  React.useEffect(() => {
+    if (item && !item.wikipedia_url) {
+      const resolveWiki = async () => {
+        try {
+          const title = await searchWikipediaForArticle(item.artist, item.title);
+          if (title) {
+            const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`;
+            onUpdate( { ...item, wikipedia_url: url });
+          }
+        } catch (e) {
+          console.warn("Failed to auto-resolve Wikipedia URL", e);
+        }
+      };
+      resolveWiki();
+    }
+  }, [item?.id, item?.wikipedia_url]);
 
   const handleEdit = useCallback(() => {
     if (item) {
