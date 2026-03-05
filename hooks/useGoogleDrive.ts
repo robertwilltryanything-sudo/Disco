@@ -79,24 +79,52 @@ export const useGoogleDrive = () => {
   const loadScript = (src: string, globalCheck: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       const parts = globalCheck.split('.');
-      let current: any = window;
-      let exists = true;
-      for (const part of parts) {
-        if (!current[part]) {
-          exists = false;
-          break;
+      const checkExists = () => {
+        let current: any = window;
+        for (const part of parts) {
+          if (!current[part]) return false;
+          current = current[part];
         }
-        current = current[part];
-      }
+        return true;
+      };
       
-      if (exists) return resolve();
+      if (checkExists()) return resolve();
+
+      // Check if script already exists in DOM
+      const existingScript = document.querySelector(`script[src="${src}"]`);
+      if (existingScript) {
+        // If it exists but globalCheck failed, it might still be loading
+        let attempts = 0;
+        const interval = setInterval(() => {
+          if (checkExists()) {
+            clearInterval(interval);
+            resolve();
+          } else if (attempts > 50) { // 5 seconds
+            clearInterval(interval);
+            reject(new Error(`Timeout waiting for ${globalCheck} to be ready.`));
+          }
+          attempts++;
+        }, 100);
+        return;
+      }
 
       const script = document.createElement('script');
       script.src = src;
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        setTimeout(() => resolve(), 200);
+        // Even after onload, the global object might take a millisecond to be assigned
+        let attempts = 0;
+        const interval = setInterval(() => {
+          if (checkExists()) {
+            clearInterval(interval);
+            resolve();
+          } else if (attempts > 20) {
+            clearInterval(interval);
+            resolve(); // Fallback to resolve anyway and let the next step handle it
+          }
+          attempts++;
+        }, 50);
       };
       script.onerror = () => {
         reject(new Error(`The script at ${src} was blocked.`));
@@ -105,8 +133,8 @@ export const useGoogleDrive = () => {
     });
   };
 
-  const initializeSync = useCallback(async () => {
-    if (!GOOGLE_CLIENT_ID || initStartedRef.current) return;
+  const initializeSync = useCallback(async (retryCount = 0) => {
+    if (!GOOGLE_CLIENT_ID || (initStartedRef.current && retryCount === 0)) return;
     initStartedRef.current = true;
     
     try {
@@ -127,6 +155,9 @@ export const useGoogleDrive = () => {
       await window.gapi.client.init({
         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       });
+
+      // Small delay to ensure GIS is fully settled after script load
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       if (!window.google?.accounts?.oauth2) {
         throw new Error("Google Identity Services failed to initialize.");
@@ -168,7 +199,15 @@ export const useGoogleDrive = () => {
         window.tokenClient.requestAccessToken({ prompt: '' });
       }
     } catch (e: any) {
-      console.error("Sync Initialization Failed:", e);
+      console.error(`Sync Initialization Failed (Attempt ${retryCount + 1}):`, e);
+      
+      if (retryCount < 1) {
+        console.log("Retrying initialization...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        initStartedRef.current = false;
+        return initializeSync(retryCount + 1);
+      }
+
       initStartedRef.current = false;
       const errorMsg = e.message || "Google infrastructure failed to load.";
       setError(`${errorMsg} Please check your connection.`);
@@ -185,7 +224,9 @@ export const useGoogleDrive = () => {
 
   const signIn = useCallback(() => {
     if (!window.tokenClient) {
-      setError("Authentication system is not ready.");
+      console.warn("Token client missing during sign-in attempt. Attempting re-init...");
+      initializeSync();
+      setError("Authentication system is still initializing. Please try again in a moment.");
       return;
     }
     updateSyncStatus('authenticating');
@@ -201,11 +242,13 @@ export const useGoogleDrive = () => {
     }, AUTH_TIMEOUT_MS);
 
     try {
+      // Ensure we are using the latest token client
       window.tokenClient.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
+      console.error("Error triggering requestAccessToken:", e);
       handleApiError(e, 'signin_trigger');
     }
-  }, [updateSyncStatus, handleApiError]);
+  }, [updateSyncStatus, handleApiError, initializeSync]);
 
   const getOrCreateFileId = useCallback(async () => {
     if (fileIdRef.current) return fileIdRef.current;
