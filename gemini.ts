@@ -6,7 +6,7 @@ import { getMetadataFromInfobox, searchWikipediaForArticle } from './wikipedia';
  * Global queue to prevent hitting RPM (Requests Per Minute) limits
  */
 let lastRequestTime = 0;
-const MIN_REQUEST_GAP = 5000; // Increased to 5 seconds between start of requests
+const MIN_REQUEST_GAP = 2500; // Reduced to 2.5 seconds for better responsiveness
 
 /**
  * Sleep helper for backoff
@@ -31,7 +31,7 @@ function handleApiError(error: any, operation: string): string {
 /**
  * Wrapper for Gemini API calls with exponential backoff and rate limiting
  */
-async function callWithRetry(operation: () => Promise<any>, maxRetries = 5): Promise<any> {
+async function callWithRetry(operation: () => Promise<any>, maxRetries = 3): Promise<any> {
     let lastErr: any;
     
     for (let i = 0; i < maxRetries; i++) {
@@ -149,8 +149,9 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
     // --- STEP 1: Try Deterministic Sources (Wikipedia) ---
     console.log(`Attempting deterministic lookup for ${artist} - ${title}...`);
     let wikiData: any = null;
+    let articleTitle: string | null = null;
     try {
-        const articleTitle = await searchWikipediaForArticle(artist, title);
+        articleTitle = await searchWikipediaForArticle(artist, title);
         if (articleTitle) {
             wikiData = await getMetadataFromInfobox(articleTitle);
             if (wikiData) {
@@ -161,9 +162,18 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
         console.warn("Wikipedia metadata fetch failed:", e);
     }
 
+    // If we found good data from Wikipedia, we can return it immediately 
+    // to keep the app responsive, especially if we have Year and Genre.
+    if (wikiData && wikiData.year && wikiData.genre) {
+        console.log("Found sufficient metadata on Wikipedia. Returning immediately.");
+        // We still want a review eventually, but let's prioritize speed for now.
+        // We'll save it to cache so we don't fetch again.
+        localStorage.setItem(cacheKey, JSON.stringify(wikiData));
+        return wikiData;
+    }
+
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
-        // If no API key, return what we found from Wikipedia
         return wikiData;
     }
 
@@ -171,7 +181,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 
     const fetchDetails = async (useSearch: boolean) => {
         return await callWithRetry(async () => {
-            // If we have Wiki data, we can provide it as context to Gemini to save it from searching
+            // If we have Wiki data, we can provide it as context to Gemini
             const contextPrompt = wikiData ? 
                 `I already found some info: Year: ${wikiData.year}, Label: ${wikiData.record_label}, Genre: ${wikiData.genre}. Please verify and provide a professional 2-3 sentence review.` :
                 `Search for accurate metadata.`;
@@ -215,12 +225,13 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 localStorage.setItem(cacheKey, JSON.stringify(result));
             }
             return result;
-        });
+        }, 2); // Only 2 retries for enrichment to avoid long spins
     };
 
     try {
-        // Try with search first
-        return await fetchDetails(true);
+        // If we have partial wiki data, we might skip the search tool to save quota
+        const shouldSearch = !wikiData || !wikiData.year;
+        return await fetchDetails(shouldSearch);
     } catch (error: any) {
         const msg = error?.message || String(error);
         if (msg.includes('429') || msg.includes('QUOTA') || msg.includes('RESOURCE_EXHAUSTED')) {
@@ -239,12 +250,14 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 }
 
 export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | null> {
+    console.log("Starting album identification from image...");
     const apiKey = process.env.API_KEY;
     if (!apiKey) throw new Error("API Key missing.");
     const ai = new GoogleGenAI({ apiKey });
 
     try {
         const identification = await callWithRetry(async () => {
+            console.log("Calling Gemini Vision for identification...");
             const response: GenerateContentResponse = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: {
@@ -270,11 +283,13 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
             
             const text = response.text;
             if (!text) return null;
-            return JSON.parse(text);
+            const result = JSON.parse(text);
+            console.log("Identification successful:", result);
+            return result;
         });
 
         if (identification && identification.artist && identification.title) {
-            // Now fetch rich metadata using our hybrid (deterministic + AI) function
+            console.log(`Fetching rich metadata for ${identification.artist} - ${identification.title}...`);
             const details = await getAlbumDetails(identification.artist, identification.title);
             return {
                 ...identification,

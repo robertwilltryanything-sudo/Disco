@@ -1,4 +1,23 @@
 /**
+ * Helper for fetch with timeout
+ */
+async function fetchWithTimeout(url: string, options: any = {}, timeout = 8000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
+}
+
+/**
  * Searches Wikipedia for a relevant article title.
  * @param artist The artist's name.
  * @param title The album's title.
@@ -26,7 +45,7 @@ export async function searchWikipediaForArticle(artist: string, title: string): 
         });
 
         try {
-            const response = await fetch(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+            const response = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
             if (!response.ok) continue;
             const data = await response.json();
 
@@ -56,7 +75,7 @@ export async function searchWikipediaForArticle(artist: string, title: string): 
     });
     
     try {
-        const response2 = await fetch(`${WIKIPEDIA_API_ENDPOINT}?${params2}`);
+        const response2 = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params2}`);
         if (!response2.ok) return null;
         const data2 = await response2.json();
 
@@ -86,7 +105,7 @@ async function getCoverFilenameFromInfobox(pageTitle: string): Promise<string | 
         origin: '*'
     });
     
-    const response = await fetch(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+    const response = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
     const data = await response.json();
     
     const pages = data.query.pages;
@@ -126,7 +145,7 @@ async function getAllImageFilesFromArticle(pageTitle: string): Promise<string[]>
         origin: '*'
     });
     
-    const response = await fetch(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+    const response = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
     const data = await response.json();
     
     const pages = data.query.pages;
@@ -153,7 +172,7 @@ async function getImageUrlFromFileTitle(fileTitle: string): Promise<string | nul
         origin: '*'
     });
 
-    const response = await fetch(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+    const response = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
     const data = await response.json();
 
     const pages = data.query.pages;
@@ -181,7 +200,7 @@ export async function getMetadataFromInfobox(pageTitle: string): Promise<any | n
     });
     
     try {
-        const response = await fetch(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+        const response = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
         const data = await response.json();
         
         const pages = data.query.pages;

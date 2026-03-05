@@ -161,10 +161,12 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
       setIsProcessing(true);
-      setProcessingStatus('Analyzing album cover...');
+      setProcessingStatus('Identifying album cover...');
       setFormError(null);
       setFormErrorTitle("Scan Error");
       try {
+          // We can't easily track progress from inside getAlbumInfo without callbacks,
+          // but we can at least set the initial status.
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
             setArtist(albumInfo.artist || '');
@@ -175,6 +177,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             setRecordLabel(albumInfo.record_label || '');
             setTags(albumInfo.tags || []);
             setCoverArtUrl(albumInfo.cover_art_url);
+          } else {
+            setFormErrorTitle("Identification Failed");
+            setFormError("We couldn't identify this album cover. Please try again with a clearer photo or enter the details manually.");
           }
       } catch (error: any) {
           console.error("Error getting album info:", error);
