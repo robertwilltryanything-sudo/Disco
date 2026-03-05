@@ -90,7 +90,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
           ...cd,
           genre: details.genre || cd.genre,
           year: details.year || cd.year,
-          record_label: details.record_label || cd.record_label,
+          record_label: cd.record_label || details.record_label,
           producer: details.producer || cd.producer,
           wikipedia_url: details.wikipedia_url || cd.wikipedia_url,
           review: details.review || cd.review,
