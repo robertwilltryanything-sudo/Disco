@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import { CD } from './types';
+import { getMetadataFromInfobox, searchWikipediaForArticle } from './wikipedia';
 
 /**
  * Global queue to prevent hitting RPM (Requests Per Minute) limits
@@ -145,15 +146,39 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
         }
     }
 
+    // --- STEP 1: Try Deterministic Sources (Wikipedia) ---
+    console.log(`Attempting deterministic lookup for ${artist} - ${title}...`);
+    let wikiData: any = null;
+    try {
+        const articleTitle = await searchWikipediaForArticle(artist, title);
+        if (articleTitle) {
+            wikiData = await getMetadataFromInfobox(articleTitle);
+            if (wikiData) {
+                wikiData.wikipedia_url = `https://en.wikipedia.org/wiki/${encodeURIComponent(articleTitle)}`;
+            }
+        }
+    } catch (e) {
+        console.warn("Wikipedia metadata fetch failed:", e);
+    }
+
     const apiKey = process.env.API_KEY;
-    if (!apiKey) throw new Error("API Key configuration error.");
+    if (!apiKey) {
+        // If no API key, return what we found from Wikipedia
+        return wikiData;
+    }
+
     const ai = new GoogleGenAI({ apiKey });
 
     const fetchDetails = async (useSearch: boolean) => {
         return await callWithRetry(async () => {
+            // If we have Wiki data, we can provide it as context to Gemini to save it from searching
+            const contextPrompt = wikiData ? 
+                `I already found some info: Year: ${wikiData.year}, Label: ${wikiData.record_label}, Genre: ${wikiData.genre}. Please verify and provide a professional 2-3 sentence review.` :
+                `Search for accurate metadata.`;
+
             const response: GenerateContentResponse = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
-                contents: `Search for accurate metadata for the album "${title}" by "${artist}".
+                contents: `${contextPrompt} for the album "${title}" by "${artist}".
                 Return the info in this EXACT format:
                 Genre: [Primary Genre]
                 Year: [4-digit Release Year]
@@ -169,17 +194,23 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
             const text = response.text || '';
             const data = parseAlbumMetadata(text);
             
+            // Merge with Wikipedia data
+            const mergedData = {
+                ...wikiData,
+                ...data
+            };
+
             const grounding = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
             if (grounding) {
                 grounding.forEach((chunk: any) => {
                     const url = chunk.web?.uri;
-                    if (url && url.includes('wikipedia.org/wiki/') && !data.wikipedia_url) {
-                        data.wikipedia_url = url;
+                    if (url && url.includes('wikipedia.org/wiki/') && !mergedData.wikipedia_url) {
+                        mergedData.wikipedia_url = url;
                     }
                 });
             }
 
-            const result = (data.genre || data.year || data.review) ? data : null;
+            const result = (mergedData.genre || mergedData.year || mergedData.review) ? mergedData : null;
             if (result) {
                 localStorage.setItem(cacheKey, JSON.stringify(result));
             }
@@ -213,30 +244,23 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
     const ai = new GoogleGenAI({ apiKey });
 
     try {
-        return await callWithRetry(async () => {
+        const identification = await callWithRetry(async () => {
             const response: GenerateContentResponse = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: {
                     parts: [
                         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-                        { text: "Identify the album from this cover art. Return JSON with artist, title, year, genre, record_label, a short review, and verified Wikipedia URL." }
+                        { text: "Identify the album from this cover art. Return JSON with artist and title only." }
                     ]
                 },
                 config: {
-                    systemInstruction: "You are a highly accurate music metadata assistant. Accuracy is paramount.",
+                    systemInstruction: "You are a highly accurate music metadata assistant. Identify the album cover provided. Return ONLY JSON.",
                     responseMimeType: "application/json",
                     responseSchema: {
                         type: Type.OBJECT,
                         properties: {
                             artist: { type: Type.STRING },
                             title: { type: Type.STRING },
-                            genre: { type: Type.STRING },
-                            year: { type: Type.INTEGER },
-                            version: { type: Type.STRING },
-                            record_label: { type: Type.STRING },
-                            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            wikipedia_url: { type: Type.STRING },
-                            review: { type: Type.STRING }
                         },
                         required: ["artist", "title"],
                     },
@@ -248,6 +272,17 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
             if (!text) return null;
             return JSON.parse(text);
         });
+
+        if (identification && identification.artist && identification.title) {
+            // Now fetch rich metadata using our hybrid (deterministic + AI) function
+            const details = await getAlbumDetails(identification.artist, identification.title);
+            return {
+                ...identification,
+                ...details
+            };
+        }
+
+        return identification;
     } catch (error) {
         const msg = handleApiError(error, 'getAlbumInfo');
         throw new Error(msg);

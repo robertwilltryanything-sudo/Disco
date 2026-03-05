@@ -4,7 +4,7 @@
  * @param title The album's title.
  * @returns A promise that resolves to the article title or null.
  */
-async function searchWikipediaForArticle(artist: string, title: string): Promise<string | null> {
+export async function searchWikipediaForArticle(artist: string, title: string): Promise<string | null> {
     const WIKIPEDIA_API_ENDPOINT = 'https://en.wikipedia.org/w/api.php';
     
     // Multiple variations of search terms to increase hit rate
@@ -164,6 +164,62 @@ async function getImageUrlFromFileTitle(fileTitle: string): Promise<string | nul
     }
     
     return pages[pageId].imageinfo[0].thumburl || pages[pageId].imageinfo[0].url;
+}
+
+/**
+ * Extracts metadata (year, genre, label) from a Wikipedia article's infobox.
+ */
+export async function getMetadataFromInfobox(pageTitle: string): Promise<any | null> {
+    const WIKIPEDIA_API_ENDPOINT = 'https://en.wikipedia.org/w/api.php';
+    const params = new URLSearchParams({
+        action: 'query',
+        prop: 'revisions',
+        rvprop: 'content',
+        titles: pageTitle,
+        format: 'json',
+        origin: '*'
+    });
+    
+    try {
+        const response = await fetch(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+        const data = await response.json();
+        
+        const pages = data.query.pages;
+        const pageId = Object.keys(pages)[0];
+        if (pageId === '-1' || !pages[pageId].revisions) {
+            return null;
+        }
+        
+        const wikitext = pages[pageId].revisions[0]['*'];
+        const metadata: any = {};
+
+        // Extract Year (usually from released field)
+        const releasedRegex = /\|\s*released\s*=\s*(.+?)\n/i;
+        const releasedMatch = wikitext.match(releasedRegex);
+        if (releasedMatch) {
+            const yearMatch = releasedMatch[1].match(/\d{4}/);
+            if (yearMatch) metadata.year = parseInt(yearMatch[0], 10);
+        }
+
+        // Extract Genre
+        const genreRegex = /\|\s*genre\s*=\s*(.+?)\n/i;
+        const genreMatch = wikitext.match(genreRegex);
+        if (genreMatch) {
+            metadata.genre = genreMatch[1].replace(/\[\[|\]\]|\{\{.+?\}\}/g, '').split('<br')[0].trim();
+        }
+
+        // Extract Label
+        const labelRegex = /\|\s*label\s*=\s*(.+?)\n/i;
+        const labelMatch = wikitext.match(labelRegex);
+        if (labelMatch) {
+            metadata.record_label = labelMatch[1].replace(/\[\[|\]\]|\{\{.+?\}\}/g, '').split('<br')[0].trim();
+        }
+
+        return Object.keys(metadata).length > 0 ? metadata : null;
+    } catch (error) {
+        console.error("Error extracting metadata from Wikipedia:", error);
+        return null;
+    }
 }
 
 /**
