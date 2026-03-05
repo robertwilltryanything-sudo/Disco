@@ -90,6 +90,7 @@ function parseAlbumMetadata(text: string): any {
     extract('genre', /Genre:\s*(.*)/i);
     extract('year', /Year:\s*(\d{4})/i);
     extract('record_label', /Label:\s*(.*)/i);
+    extract('producer', /Producer:\s*(.*)/i);
     extract('wikipedia_url', /Wikipedia:\s*(https?:\/\/[^\s]+)/i);
     
     if (data.year) data.year = parseInt(data.year, 10);
@@ -193,6 +194,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 Genre: [Primary Genre]
                 Year: [4-digit Release Year]
                 Label: [Record Label]
+                Producer: [Album Producer(s)]
                 Wikipedia: [Full URL to Wikipedia album page]
                 Review: [A professional 2-3 sentence review of the album's impact]`,
                 config: {

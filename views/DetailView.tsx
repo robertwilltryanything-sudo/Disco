@@ -91,6 +91,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
           genre: details.genre || cd.genre,
           year: details.year || cd.year,
           record_label: details.record_label || cd.record_label,
+          producer: details.producer || cd.producer,
           wikipedia_url: details.wikipedia_url || cd.wikipedia_url,
           review: details.review || cd.review,
           tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])]
@@ -173,6 +174,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     </div>
                   )}
                   {cd.record_label && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.record_label}</p></div>}
+                  {cd.producer && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Producer</p><p className="text-zinc-900 font-medium">{cd.producer}</p></div>}
                   {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
               </div>
 
@@ -262,7 +264,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                           ? 'bg-zinc-100 text-blue-500 animate-pulse' 
                           : 'text-zinc-400 hover:bg-zinc-100 hover:text-blue-500'
                       }`}
-                      title="Update album info using Gemini"
+                      title="Update album info using Wikipedia & Gemini"
                     >
                       {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
                     </button>

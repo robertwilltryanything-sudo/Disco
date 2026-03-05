@@ -212,26 +212,47 @@ export async function getMetadataFromInfobox(pageTitle: string): Promise<any | n
         const wikitext = pages[pageId].revisions[0]['*'];
         const metadata: any = {};
 
+        // Helper to clean wikitext values
+        const cleanValue = (val: string) => {
+            return val
+                .replace(/\[\[(?:[^|\]]+\|)?([^\]]+)\]\]/g, '$1') // [[Link|Text]] -> Text
+                .replace(/\{\{[^}]+\}\}/g, '') // Remove templates
+                .replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, '') // Remove refs
+                .replace(/<[^>]+>/g, '') // Remove other HTML tags
+                .replace(/&nbsp;/g, ' ')
+                .split('<br')[0]
+                .split('\n')[0]
+                .trim();
+        };
+
         // Extract Year (usually from released field)
-        const releasedRegex = /\|\s*released\s*=\s*(.+?)\n/i;
+        const releasedRegex = /\|\s*released\s*=\s*(.+?)(?=\n\s*\||\n\s*\}\})/is;
         const releasedMatch = wikitext.match(releasedRegex);
         if (releasedMatch) {
-            const yearMatch = releasedMatch[1].match(/\d{4}/);
+            const cleaned = cleanValue(releasedMatch[1]);
+            const yearMatch = cleaned.match(/\d{4}/);
             if (yearMatch) metadata.year = parseInt(yearMatch[0], 10);
         }
 
         // Extract Genre
-        const genreRegex = /\|\s*genre\s*=\s*(.+?)\n/i;
+        const genreRegex = /\|\s*genre\s*=\s*(.+?)(?=\n\s*\||\n\s*\}\})/is;
         const genreMatch = wikitext.match(genreRegex);
         if (genreMatch) {
-            metadata.genre = genreMatch[1].replace(/\[\[|\]\]|\{\{.+?\}\}/g, '').split('<br')[0].trim();
+            metadata.genre = cleanValue(genreMatch[1]);
         }
 
         // Extract Label
-        const labelRegex = /\|\s*label\s*=\s*(.+?)\n/i;
+        const labelRegex = /\|\s*label\s*=\s*(.+?)(?=\n\s*\||\n\s*\}\})/is;
         const labelMatch = wikitext.match(labelRegex);
         if (labelMatch) {
-            metadata.record_label = labelMatch[1].replace(/\[\[|\]\]|\{\{.+?\}\}/g, '').split('<br')[0].trim();
+            metadata.record_label = cleanValue(labelMatch[1]);
+        }
+
+        // Extract Producer
+        const producerRegex = /\|\s*producer\s*=\s*(.+?)(?=\n\s*\||\n\s*\}\})/is;
+        const producerMatch = wikitext.match(producerRegex);
+        if (producerMatch) {
+            metadata.producer = cleanValue(producerMatch[1]);
         }
 
         return Object.keys(metadata).length > 0 ? metadata : null;

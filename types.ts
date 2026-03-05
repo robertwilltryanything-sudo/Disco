@@ -11,6 +11,7 @@ export interface CD {
   notes?: string;
   version?: string;
   record_label?: string;
+  producer?: string;
   tags?: string[];
   condition?: string;
   attributes?: string[];
@@ -32,6 +33,7 @@ export interface WantlistItem {
   notes?: string;
   version?: string;
   record_label?: string;
+  producer?: string;
   tags?: string[];
   condition?: string;
   attributes?: string[];

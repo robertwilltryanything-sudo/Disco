@@ -40,6 +40,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
   const [record_label, setRecordLabel] = useState('');
+  const [producer, setProducer] = useState('');
   const [attributes, setAttributes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
@@ -65,6 +66,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setYear(itemToEdit.year || '');
       setVersion(itemToEdit.version || '');
       setRecordLabel(itemToEdit.record_label || '');
+      setProducer(itemToEdit.producer || '');
       setAttributes(itemToEdit.attributes || []);
       setTags(itemToEdit.tags || []);
       setCoverArtUrl(itemToEdit.cover_art_url);
@@ -93,7 +95,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         const itemData: Omit<WantlistItem, 'id'> & { id?: string } = {
             id: itemToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined,
-            version, record_label, tags, cover_art_url, notes,
+            version, record_label, producer, tags, cover_art_url, notes,
             attributes,
             created_at: itemToEdit?.created_at,
         };
@@ -125,7 +127,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genre, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, tags, attributes]);
+  }, [artist, title, genre, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes]);
   
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -142,6 +144,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             setYear(albumInfo.year || '');
             setVersion(albumInfo.version || '');
             setRecordLabel(albumInfo.record_label || '');
+            setProducer(albumInfo.producer || '');
             setTags(albumInfo.tags || []);
             setCoverArtUrl(albumInfo.cover_art_url);
           }
@@ -213,7 +216,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setProcessingStatus('Saving item...');
         await onSave({
           id: itemToEdit?.id, artist, title, genre,
-          year: year ? Number(year) : undefined, version, record_label, tags,
+          year: year ? Number(year) : undefined, version, record_label, producer, tags,
           attributes,
           cover_art_url: url, notes,
           created_at: itemToEdit?.created_at,
@@ -225,7 +228,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, producer, tags, attributes]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -243,7 +246,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           setProcessingStatus('Saving item...');
           await onSave({
             id: itemToEdit?.id, artist, title, genre,
-            year: year ? Number(year) : undefined, version, record_label, tags,
+            year: year ? Number(year) : undefined, version, record_label, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
             created_at: itemToEdit?.created_at,
@@ -435,6 +438,13 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                   placeholder="Desired Record Label"
                   value={record_label}
                   onChange={(e) => setRecordLabel(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Producer"
+                  value={producer}
+                  onChange={(e) => setProducer(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
               </div>

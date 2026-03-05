@@ -116,6 +116,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           genre: details.genre || item.genre,
           year: details.year || item.year,
           record_label: details.record_label || item.record_label,
+          producer: details.producer || item.producer,
           wikipedia_url: details.wikipedia_url || item.wikipedia_url,
           review: details.review || item.review,
           tags: [...new Set([...(item.tags || []), ...(details.tags || [])])]
@@ -223,6 +224,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                         {item.year && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Year:</span> {item.year}</p>}
                         {item.genre && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Genre:</span> {item.genre}</p>}
                         {item.record_label && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Label:</span> {item.record_label}</p>}
+                        {item.producer && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Producer:</span> {item.producer}</p>}
                         {item.version && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Version:</span> {item.version}</p>}
                       </div>
                   </div>
@@ -307,7 +309,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                           ? 'bg-zinc-100 text-blue-500 animate-pulse' 
                           : 'text-zinc-400 hover:bg-zinc-100 hover:text-blue-500'
                       }`}
-                      title="Update wantlist info using Gemini"
+                      title="Update wantlist info using Wikipedia & Gemini"
                     >
                       {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
                     </button>

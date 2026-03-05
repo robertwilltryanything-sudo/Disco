@@ -41,6 +41,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
   const [record_label, setRecordLabel] = useState('');
+  const [producer, setProducer] = useState('');
   const [attributes, setAttributes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
@@ -65,6 +66,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     setYear('');
     setVersion('');
     setRecordLabel('');
+    setProducer('');
     setAttributes([]);
     setTags([]);
     setCurrentTag('');
@@ -82,6 +84,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setYear(cdToEdit.year || '');
       setVersion(cdToEdit.version || '');
       setRecordLabel(cdToEdit.record_label || '');
+      setProducer(cdToEdit.producer || '');
       setAttributes(cdToEdit.attributes || []);
       setTags(cdToEdit.tags || []);
       setCoverArtUrl(cdToEdit.cover_art_url);
@@ -95,6 +98,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setYear(prefill.year || '');
         setVersion(prefill.version || '');
         setRecordLabel(prefill.record_label || '');
+        setProducer(prefill.producer || '');
         setAttributes(prefill.attributes || []);
         setTags(prefill.tags || []);
         setCoverArtUrl(prefill.cover_art_url);
@@ -124,7 +128,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         const cdData: Omit<CD, 'id'> & { id?: string } = {
             id: cdToEdit?.id, artist, title, genre,
             year: year ? Number(year) : undefined,
-            version, record_label, tags, cover_art_url, notes,
+            version, record_label, producer, tags, cover_art_url, notes,
             attributes,
             created_at: cdToEdit?.created_at,
         };
@@ -156,7 +160,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genre, year, version, cover_art_url, notes, cdToEdit, onSave, record_label, tags, attributes]);
+  }, [artist, title, genre, year, version, cover_art_url, notes, cdToEdit, onSave, record_label, producer, tags, attributes]);
 
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -175,6 +179,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             setYear(albumInfo.year || '');
             setVersion(albumInfo.version || '');
             setRecordLabel(albumInfo.record_label || '');
+            setProducer(albumInfo.producer || '');
             setTags(albumInfo.tags || []);
             setCoverArtUrl(albumInfo.cover_art_url);
           } else {
@@ -251,7 +256,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setProcessingStatus('Saving album...');
         await onSave({
           id: cdToEdit?.id, artist, title, genre,
-          year: year ? Number(year) : undefined, version, record_label, tags,
+          year: year ? Number(year) : undefined, version, record_label, producer, tags,
           attributes,
           cover_art_url: url, notes,
           created_at: cdToEdit?.created_at,
@@ -264,7 +269,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genre, year, version, notes, record_label, producer, tags, attributes]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -283,7 +288,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
           setProcessingStatus('Saving album...');
           await onSave({
             id: cdToEdit?.id, artist, title, genre,
-            year: year ? Number(year) : undefined, version, record_label, tags,
+            year: year ? Number(year) : undefined, version, record_label, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
             created_at: cdToEdit?.created_at,
@@ -475,6 +480,13 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                   placeholder="Record Label"
                   value={record_label}
                   onChange={(e) => setRecordLabel(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+                <input
+                  type="text"
+                  placeholder="Producer"
+                  value={producer}
+                  onChange={(e) => setProducer(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
               </div>
