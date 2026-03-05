@@ -6,7 +6,6 @@ import { MusicNoteIcon } from '../components/icons/MusicNoteIcon';
 import { EditIcon } from '../components/icons/EditIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { WikipediaIcon } from '../components/icons/WikipediaIcon';
-import { PlayIcon } from '../components/icons/PlayIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
 import { getBrandColor } from '../utils';
 import { CheckIcon } from '../components/icons/CheckIcon';
@@ -80,11 +79,6 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     if (item.wikipedia_url) return item.wikipedia_url;
     // Using Special:Search with go=Go attempts to redirect directly to the article if a match is found
     return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(item.artist)}+${encodeURIComponent(item.title)}+album&go=Go`;
-  }, [item]);
-  
-  const plexampUrl = useMemo(() => {
-    if (!item) return '';
-    return `plexamp://play?query=${encodeURIComponent(item.artist + ' ' + item.title)}`;
   }, [item]);
 
   // Auto-resolve missing Wikipedia URL
@@ -300,10 +294,6 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                           <CheckIcon className="w-5 h-5" />
                           Found it!
                       </button>
-                      <a href={plexampUrl} className="inline-flex items-center gap-2 bg-orange-500 text-white font-bold py-2 px-3 rounded-lg hover:bg-orange-600 transition-colors text-sm shadow-sm">
-                          <PlayIcon className="w-5 h-5" />
-                          Plexamp
-                      </a>
                       <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
                           <WikipediaIcon className="w-5 h-5" />
                           Wikipedia

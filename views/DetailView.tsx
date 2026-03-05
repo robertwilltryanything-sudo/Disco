@@ -59,7 +59,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
   const plexampUrl = useMemo(() => {
     if (!cd) return '';
-    return `plexamp://play?query=${encodeURIComponent(cd.artist + ' ' + cd.title)}`;
+    return `plexamp://search?query=${encodeURIComponent(cd.artist + ' ' + cd.title)}`;
   }, [cd]);
 
   // Auto-resolve missing Wikipedia URL
@@ -257,13 +257,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               {/* Bottom Actions Row - Aligned Straight */}
               <div className="mt-auto pt-8 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-50">
                   <div className="flex items-center gap-2">
-                    <a href={plexampUrl} className="inline-flex items-center gap-2 bg-orange-500 text-white font-bold py-2 px-3 rounded-lg hover:bg-orange-600 transition-colors text-sm shadow-sm">
-                        <PlayIcon className="w-5 h-5" />
-                        Plexamp
-                    </a>
                     <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
                         <WikipediaIcon className="w-5 h-5" />
                         Wikipedia
+                    </a>
+                    <a href={plexampUrl} className="inline-flex items-center gap-2 bg-zinc-100 text-orange-600 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
+                        <PlayIcon className="w-4 h-4" />
+                        Plexamp
                     </a>
                   </div>
 
