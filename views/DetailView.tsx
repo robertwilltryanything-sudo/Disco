@@ -59,7 +59,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
   const plexampUrl = useMemo(() => {
     if (!cd) return '';
-    return `plexamp://search?query=${encodeURIComponent(cd.artist + ' ' + cd.title)}`;
+    return `plexamp://play?query=${encodeURIComponent(cd.artist + ' ' + cd.title)}`;
   }, [cd]);
 
   // Auto-resolve missing Wikipedia URL

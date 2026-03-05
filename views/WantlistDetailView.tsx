@@ -84,7 +84,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
   
   const plexampUrl = useMemo(() => {
     if (!item) return '';
-    return `plexamp://search?query=${encodeURIComponent(item.artist + ' ' + item.title)}`;
+    return `plexamp://play?query=${encodeURIComponent(item.artist + ' ' + item.title)}`;
   }, [item]);
 
   // Auto-resolve missing Wikipedia URL
