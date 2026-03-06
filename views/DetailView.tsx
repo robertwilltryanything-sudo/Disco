@@ -59,8 +59,8 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
   const plexampUrl = useMemo(() => {
     if (!cd) return '';
-    // 'play' command is generally more reliable for deep-linking to specific content in Plexamp
-    return `plexamp://play?query=${encodeURIComponent(cd.artist + ' ' + cd.title)}`;
+    // Trying a more direct search path which some versions of Plexamp prefer
+    return `plexamp://search/query?query=${encodeURIComponent(cd.artist + ' ' + cd.title)}`;
   }, [cd]);
 
   // Auto-resolve missing Wikipedia URL
