@@ -222,7 +222,14 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                       <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Target Info</h3>
                       <div className="mt-2 text-zinc-700 text-sm grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         {item.year && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Year:</span> {item.year}</p>}
-                        {item.genre && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Genre:</span> {item.genre}</p>}
+                        {item.genre && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Genre:</span>
+                            <span className={`${getBrandColor(item.genre)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                              {item.genre}
+                            </span>
+                          </div>
+                        )}
                         {item.record_label && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Label:</span> {item.record_label}</p>}
                         {item.producer && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Producer:</span> {item.producer}</p>}
                         {item.version && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Version:</span> {item.version}</p>}
@@ -278,7 +285,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                     {item.tags.map(tag => (
                       <span
                         key={tag}
-                        className="bg-zinc-100 text-zinc-800 text-[11px] font-bold px-3 py-1 rounded-full border border-zinc-200 uppercase tracking-tight"
+                        className={`${getBrandColor(tag)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}
                       >
                         {tag}
                       </span>

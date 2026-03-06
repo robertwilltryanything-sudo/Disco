@@ -167,7 +167,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Genre</p>
                       <button 
                         onClick={() => handleSearchFilter(cd.genre)}
-                        className="text-zinc-900 font-medium hover:text-zinc-600 transition-colors"
+                        className={`${getBrandColor(cd.genre)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity mt-1`}
                       >
                         {cd.genre}
                       </button>
@@ -239,7 +239,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <button
                         key={tag}
                         onClick={() => handleSearchFilter(tag)}
-                        className="bg-zinc-100 text-zinc-800 text-[11px] font-bold px-3 py-1 rounded-full border border-zinc-200 hover:bg-zinc-200 transition-colors uppercase tracking-tight"
+                        className={`${getBrandColor(tag)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
                       >
                         {tag}
                       </button>
