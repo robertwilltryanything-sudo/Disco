@@ -6,7 +6,6 @@ import { MusicNoteIcon } from '../components/icons/MusicNoteIcon';
 import { EditIcon } from '../components/icons/EditIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { WikipediaIcon } from '../components/icons/WikipediaIcon';
-import { PlayIcon } from '../components/icons/PlayIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
@@ -55,12 +54,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
     if (cd.wikipedia_url) return cd.wikipedia_url;
     // Using Special:Search with go=Go attempts to redirect directly to the article if a match is found
     return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(cd.artist)}+${encodeURIComponent(cd.title)}+album&go=Go`;
-  }, [cd]);
-
-  const plexampUrl = useMemo(() => {
-    if (!cd) return '';
-    // Trying a more direct search path which some versions of Plexamp prefer
-    return `plexamp://search/query?query=${encodeURIComponent(cd.artist + ' ' + cd.title)}`;
   }, [cd]);
 
   // Auto-resolve missing Wikipedia URL
@@ -261,10 +254,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
                         <WikipediaIcon className="w-5 h-5" />
                         Wikipedia
-                    </a>
-                    <a href={plexampUrl} className="inline-flex items-center gap-2 bg-zinc-100 text-orange-600 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
-                        <PlayIcon className="w-4 h-4" />
-                        Plexamp
                     </a>
                   </div>
 
