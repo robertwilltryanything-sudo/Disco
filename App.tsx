@@ -32,6 +32,14 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (item.coverArtUrl && !item.cover_art_url) normalized.cover_art_url = item.coverArtUrl;
     if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
     if (item.allMusicUrl && !item.allmusic_url) normalized.allmusic_url = item.allMusicUrl;
+    
+    // Ensure genre is always an array if it exists
+    if (normalized.genre && !Array.isArray(normalized.genre)) {
+        normalized.genre = [normalized.genre];
+    } else if (!normalized.genre) {
+        normalized.genre = [];
+    }
+
     delete normalized.coverArtUrl;
     delete normalized.recordLabel;
     delete normalized.allMusicUrl;
@@ -48,7 +56,7 @@ const INITIAL_COLLECTION: CD[] = [
     id: '1',
     artist: 'Pink Floyd',
     title: 'The Dark Side of the Moon',
-    genre: 'Progressive Rock',
+    genre: ['Progressive Rock'],
     year: 1973,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
     allmusic_url: 'https://www.allmusic.com/album/the-dark-side-of-the-moon-mw0000191307',
@@ -60,7 +68,7 @@ const INITIAL_COLLECTION: CD[] = [
     id: '2',
     artist: 'Metallica',
     title: 'Master of Puppets',
-    genre: 'Thrash Metal',
+    genre: ['Thrash Metal'],
     year: 1986,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b2/Metallica_-_Master_of_Puppets_cover.jpg',
     allmusic_url: 'https://www.allmusic.com/album/master-of-puppets-mw0000193165',
@@ -72,7 +80,7 @@ const INITIAL_COLLECTION: CD[] = [
     id: '3',
     artist: 'Toto',
     title: 'Hydra',
-    genre: 'Progressive Rock',
+    genre: ['Progressive Rock'],
     year: 1979,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/d/de/Toto-Hydra.JPG',
     allmusic_url: 'https://www.allmusic.com/album/hydra-mw0000192305',
@@ -84,7 +92,7 @@ const INITIAL_COLLECTION: CD[] = [
     id: '4',
     artist: 'Steely Dan',
     title: 'Aja',
-    genre: 'Jazz Fusion',
+    genre: ['Jazz Fusion'],
     year: 1977,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/e/e0/Steely_Dan_Aja.png',
     allmusic_url: 'https://www.allmusic.com/album/aja-mw0000191950',
@@ -96,7 +104,7 @@ const INITIAL_COLLECTION: CD[] = [
     id: '5',
     artist: 'Mike Oldfield',
     title: 'Tubular Bells',
-    genre: 'Progressive Rock',
+    genre: ['Progressive Rock'],
     year: 1973,
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b5/Tubular_Bells_album_cover.jpg',
     allmusic_url: 'https://www.allmusic.com/album/tubular-bells-mw0000201416',

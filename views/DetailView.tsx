@@ -162,15 +162,20 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       </button>
                     </div>
                   )}
-                  {cd.genre && (
+                  {cd.genre && cd.genre.length > 0 && (
                     <div>
                       <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Genre</p>
-                      <button 
-                        onClick={() => handleSearchFilter(cd.genre)}
-                        className={`${getBrandColor(cd.genre)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity mt-1`}
-                      >
-                        {cd.genre}
-                      </button>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {cd.genre.map((g, idx) => (
+                          <button 
+                            key={idx}
+                            onClick={() => handleSearchFilter(g)}
+                            className={`${getBrandColor(g)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
+                          >
+                            {g}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {cd.record_label && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.record_label}</p></div>}

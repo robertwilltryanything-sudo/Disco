@@ -36,7 +36,8 @@ const CD_ATTRIBUTES = ["Digipak", "Slipcase", "Obi Strip", "Promo"];
 const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl, driveSignedIn, onPickFromDrive }) => {
   const [artist, setArtist] = useState('');
   const [title, setTitle] = useState('');
-  const [genre, setGenre] = useState('');
+  const [genres, setGenres] = useState<string[]>([]);
+  const [currentGenre, setCurrentGenre] = useState('');
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
   const [record_label, setRecordLabel] = useState('');
@@ -62,7 +63,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     if (itemToEdit) {
       setArtist(itemToEdit.artist);
       setTitle(itemToEdit.title);
-      setGenre(itemToEdit.genre || '');
+      setGenres(itemToEdit.genre || []);
       setYear(itemToEdit.year || '');
       setVersion(itemToEdit.version || '');
       setRecordLabel(itemToEdit.record_label || '');
@@ -93,7 +94,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
 
     try {
         const itemData: Omit<WantlistItem, 'id'> & { id?: string } = {
-            id: itemToEdit?.id, artist, title, genre,
+            id: itemToEdit?.id, artist, title, genre: genres,
             year: year ? Number(year) : undefined,
             version, record_label, producer, tags, cover_art_url, notes,
             attributes,
@@ -127,7 +128,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genre, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes]);
+  }, [artist, title, genres, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes]);
   
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -140,7 +141,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           if (albumInfo) {
             setArtist(albumInfo.artist || '');
             setTitle(albumInfo.title || '');
-            setGenre(albumInfo.genre || '');
+            setGenres(albumInfo.genre || []);
             setYear(albumInfo.year || '');
             setVersion(albumInfo.version || '');
             setRecordLabel(albumInfo.record_label || '');
@@ -215,7 +216,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setFormErrorTitle("Error Saving to Wantlist");
         setProcessingStatus('Saving item...');
         await onSave({
-          id: itemToEdit?.id, artist, title, genre,
+          id: itemToEdit?.id, artist, title, genre: genres,
           year: year ? Number(year) : undefined, version, record_label, producer, tags,
           attributes,
           cover_art_url: url, notes,
@@ -228,7 +229,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, producer, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, notes, record_label, producer, tags, attributes]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -245,7 +246,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           setFormErrorTitle("Error Saving to Wantlist");
           setProcessingStatus('Saving item...');
           await onSave({
-            id: itemToEdit?.id, artist, title, genre,
+            id: itemToEdit?.id, artist, title, genre: genres,
             year: year ? Number(year) : undefined, version, record_label, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
@@ -262,10 +263,29 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setCoverArtUrl(undefined);
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genre, year, version, notes, record_label, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, notes, record_label, tags, attributes]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);
+  };
+
+  const handleAddGenre = useCallback(() => {
+    const newGenre = currentGenre.trim();
+    if (newGenre && !genres.includes(newGenre)) {
+      setGenres([...genres, newGenre]);
+    }
+    setCurrentGenre('');
+  }, [currentGenre, genres]);
+
+  const handleRemoveGenre = useCallback((genreToRemove: string) => {
+    setGenres(genres.filter(g => g !== genreToRemove));
+  }, [genres]);
+
+  const handleGenreInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddGenre();
+    }
   };
 
   const handleAddTag = useCallback(() => {
@@ -503,13 +523,42 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  placeholder="Genre"
-                  value={genre}
-                  onChange={(e) => setGenre(e.target.value)}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-                />
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add Genre..."
+                      value={currentGenre}
+                      onChange={(e) => setCurrentGenre(e.target.value)}
+                      onKeyDown={handleGenreInputKeyDown}
+                      className="flex-grow w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddGenre}
+                      className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {genres.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {genres.map(g => (
+                        <div key={g} className="flex items-center bg-zinc-200 text-zinc-800 text-[11px] font-bold pl-3 pr-2 py-1 rounded-full uppercase tracking-tight">
+                          <span>{g}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGenre(g)}
+                            className="ml-2 rounded-full focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                            aria-label={`Remove genre ${g}`}
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <input
                   type="number"
                   placeholder="Year"

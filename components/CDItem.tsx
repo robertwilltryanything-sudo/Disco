@@ -30,7 +30,10 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
     navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` });
   }, [cd.artist, navigate]);
   
-  const details = useMemo(() => [cd.genre, cd.year].filter(Boolean).join(' • '), [cd.genre, cd.year]);
+  const details = useMemo(() => {
+    const genreStr = Array.isArray(cd.genre) ? cd.genre.join(', ') : cd.genre;
+    return [genreStr, cd.year].filter(Boolean).join(' • ');
+  }, [cd.genre, cd.year]);
 
   return (
     <Link 

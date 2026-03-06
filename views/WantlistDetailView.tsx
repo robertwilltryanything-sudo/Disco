@@ -222,12 +222,19 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                       <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Target Info</h3>
                       <div className="mt-2 text-zinc-700 text-sm grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         {item.year && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Year:</span> {item.year}</p>}
-                        {item.genre && (
-                          <div className="flex items-center gap-1.5">
+                        {item.genre && item.genre.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Genre:</span>
-                            <span className={`${getBrandColor(item.genre)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
-                              {item.genre}
-                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {item.genre.map((g, idx) => (
+                                <span 
+                                  key={idx}
+                                  className={`${getBrandColor(g)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}
+                                >
+                                  {g}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
                         {item.record_label && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Label:</span> {item.record_label}</p>}

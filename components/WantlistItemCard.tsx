@@ -14,7 +14,7 @@ interface WantlistItemCardProps {
 }
 
 const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit, onDelete, onMoveToCollection }) => {
-  const details = [item.genre, item.year].filter(Boolean).join(' • ');
+  const details = [Array.isArray(item.genre) ? item.genre.join(', ') : item.genre, item.year].filter(Boolean).join(' • ');
 
   const handleActionClick = (e: React.MouseEvent, action: () => void) => {
     e.preventDefault();

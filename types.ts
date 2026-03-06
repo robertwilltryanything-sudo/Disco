@@ -2,7 +2,7 @@ export interface CD {
   id: string;
   artist: string;
   title: string;
-  genre?: string;
+  genre?: string[];
   year?: number;
   cover_art_url?: string;
   allmusic_url?: string;
@@ -24,7 +24,7 @@ export interface WantlistItem {
   id: string;
   artist: string;
   title: string;
-  genre?: string;
+  genre?: string[];
   year?: number;
   cover_art_url?: string;
   allmusic_url?: string;

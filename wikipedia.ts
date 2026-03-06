@@ -239,7 +239,12 @@ export async function getMetadataFromInfobox(pageTitle: string): Promise<any | n
         const genreRegex = /\|\s*genre\s*=\s*(.+?)(?=\n\s*\||\n\s*\}\})/is;
         const genreMatch = wikitext.match(genreRegex);
         if (genreMatch) {
-            metadata.genre = cleanValue(genreMatch[1]);
+            const rawGenre = cleanValue(genreMatch[1]);
+            // Split by common delimiters: comma, semicolon, or <br/> (already handled by cleanValue partly)
+            metadata.genre = rawGenre
+                .split(/[,;]/)
+                .map(g => g.trim())
+                .filter(g => g.length > 0);
         }
 
         // Extract Label

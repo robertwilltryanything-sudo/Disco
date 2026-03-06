@@ -88,6 +88,11 @@ function parseAlbumMetadata(text: string): any {
     };
 
     extract('genre', /Genre:\s*(.*)/i);
+    if (data.genre) {
+        data.genre = data.genre.split(',').map((g: string) => g.trim()).filter((g: string) => g.length > 0);
+    } else {
+        data.genre = [];
+    }
     extract('year', /Year:\s*(\d{4})/i);
     extract('record_label', /Label:\s*(.*)/i);
     extract('producer', /Producer:\s*(.*)/i);
@@ -191,7 +196,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 model: 'gemini-3-flash-preview',
                 contents: `${contextPrompt} for the album "${title}" by "${artist}".
                 Return the info in this EXACT format:
-                Genre: [Primary Genre]
+                Genre: [Primary Genre, Secondary Genre, etc. (comma separated)]
                 Year: [4-digit Release Year]
                 Label: [Record Label]
                 Producer: [Album Producer(s)]

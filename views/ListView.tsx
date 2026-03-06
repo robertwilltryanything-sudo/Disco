@@ -160,7 +160,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
           (cd.artist && cd.artist.toLowerCase().includes(lowerCaseQuery)) ||
           (cd.title && cd.title.toLowerCase().includes(lowerCaseQuery)) ||
           yearMatches ||
-          (cd.genre && cd.genre.toLowerCase().includes(lowerCaseQuery)) ||
+          (cd.genre && cd.genre.some(g => g && g.toLowerCase().includes(lowerCaseQuery))) ||
           (cd.record_label && cd.record_label.toLowerCase().includes(lowerCaseQuery)) ||
           (cd.tags && cd.tags.some(tag => tag && tag.toLowerCase().includes(lowerCaseQuery)))
         );
@@ -168,8 +168,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
     
     const sorted = [...filtered]
       .sort((a, b) => {
-        const valA = a[sortBy];
-        const valB = b[sortBy];
+        let valA = a[sortBy];
+        let valB = b[sortBy];
+        
+        if (sortBy === 'genre') {
+          valA = Array.isArray(valA) ? valA[0] : valA;
+          valB = Array.isArray(valB) ? valB[0] : valB;
+        }
         
         if (valA === undefined || valA === null) return 1;
         if (valB === undefined || valB === null) return -1;

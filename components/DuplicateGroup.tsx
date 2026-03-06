@@ -41,7 +41,7 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
               <p className="text-sm text-zinc-600">{cd.artist}</p>
               <div className="text-xs text-zinc-500 mt-1 space-x-2">
                 {cd.year && <span>{cd.year}</span>}
-                {cd.genre && <span>• {cd.genre}</span>}
+                {cd.genre && cd.genre.length > 0 && <span>• {Array.isArray(cd.genre) ? cd.genre.join(', ') : cd.genre}</span>}
                 {cd.record_label && <span>• {cd.record_label}</span>}
               </div>
             </div>

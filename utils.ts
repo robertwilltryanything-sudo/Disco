@@ -7,6 +7,9 @@ import { CD } from "./types";
  * @returns The capitalized string.
  */
 export const capitalizeWords = (str: unknown): string => {
+  if (Array.isArray(str)) {
+    return str.map(s => capitalizeWords(s)).join(', ');
+  }
   if (typeof str !== 'string' || !str) {
     return '';
   }

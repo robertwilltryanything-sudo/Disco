@@ -53,8 +53,8 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
           <div className="flex-grow md:hidden">
             <p className="font-bold text-zinc-900" title={cd.title}>{cd.title}</p>
             <p className="text-zinc-700 text-sm" title={cd.artist}>{cd.artist}</p>
-            {(cd.genre || cd.year) && (
-              <p className="text-xs text-zinc-500 mt-1">{[cd.genre, cd.year].filter(Boolean).join(' • ')}</p>
+            {(cd.genre && cd.genre.length > 0 || cd.year) && (
+              <p className="text-xs text-zinc-500 mt-1">{[Array.isArray(cd.genre) ? cd.genre.join(', ') : cd.genre, cd.year].filter(Boolean).join(' • ')}</p>
             )}
           </div>
            {/* Edit button is part of the flex layout on mobile */}
@@ -73,7 +73,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
       {/* Desktop-only cells. Hidden on mobile. */}
       <td className="hidden md:table-cell p-3 font-bold text-zinc-900 align-middle" title={cd.title}>{cd.title}</td>
       <td className="hidden md:table-cell p-3 text-zinc-700 align-middle" title={cd.artist}>{cd.artist}</td>
-      <td className="hidden md:table-cell p-3 text-zinc-600 align-middle">{cd.genre}</td>
+      <td className="hidden md:table-cell p-3 text-zinc-600 align-middle">{Array.isArray(cd.genre) ? cd.genre.join(', ') : cd.genre}</td>
       <td className="hidden md:table-cell p-3 text-zinc-600 align-middle">{cd.year}</td>
       <td className="hidden md:table-cell p-3 text-right align-middle">
         <button

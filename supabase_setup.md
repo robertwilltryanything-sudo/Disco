@@ -15,7 +15,7 @@ CREATE TABLE public.collection (
   user_id uuid NOT NULL,
   artist text NOT NULL,
   title text NOT NULL,
-  genre text NULL,
+  genre text[] NULL,
   year integer NULL,
   cover_art_url text NULL,
   notes text NULL,
@@ -44,7 +44,7 @@ CREATE TABLE public.wantlist (
   user_id uuid NOT NULL,
   artist text NOT NULL,
   title text NOT NULL,
-  genre text NULL,
+  genre text[] NULL,
   year integer NULL,
   cover_art_url text NULL,
   notes text NULL,
@@ -99,4 +99,9 @@ ALTER TABLE public.collection ADD COLUMN IF NOT EXISTS condition text;
 ALTER TABLE public.wantlist ADD COLUMN IF NOT EXISTS condition text;
 ALTER TABLE public.collection ADD COLUMN IF NOT EXISTS attributes text[];
 ALTER TABLE public.wantlist ADD COLUMN IF NOT EXISTS attributes text[];
+
+-- 3. Migration for Multiple Genres
+-- Run this if you want to support multiple genres per album
+ALTER TABLE public.collection ALTER COLUMN genre TYPE text[] USING array[genre];
+ALTER TABLE public.wantlist ALTER COLUMN genre TYPE text[] USING array[genre];
 ```

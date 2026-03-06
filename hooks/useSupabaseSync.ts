@@ -21,6 +21,14 @@ const normalizeIncomingData = <T extends CD | WantlistItem>(item: any): T => {
     const normalized = { ...item };
     if (item.coverArtUrl && !item.cover_art_url) normalized.cover_art_url = item.coverArtUrl;
     if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
+    
+    // Ensure genre is always an array if it exists
+    if (normalized.genre && !Array.isArray(normalized.genre)) {
+        normalized.genre = [normalized.genre];
+    } else if (!normalized.genre) {
+        normalized.genre = [];
+    }
+
     delete normalized.coverArtUrl;
     delete normalized.recordLabel;
     return normalized as T;

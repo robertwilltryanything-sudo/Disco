@@ -132,8 +132,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
             validCds.forEach((cd: CD) => {
                 const itemValue = cd[key];
                 if (itemValue) {
-                    const lowerItem = itemValue.toLowerCase();
-                    counts[lowerItem] = (counts[lowerItem] || 0) + 1;
+                    if (Array.isArray(itemValue)) {
+                        itemValue.forEach(val => {
+                            const lowerItem = val.toLowerCase();
+                            counts[lowerItem] = (counts[lowerItem] || 0) + 1;
+                        });
+                    } else {
+                        const lowerItem = itemValue.toLowerCase();
+                        counts[lowerItem] = (counts[lowerItem] || 0) + 1;
+                    }
                 }
             });
             return Object.entries(counts)
