@@ -312,27 +312,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
           </div>
           
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            {(urlSearchQuery || urlArtistFilter) && (
-              <div className="flex items-center gap-2">
-                {urlArtistFilter && (
-                   <button 
-                     onClick={() => {
-                        const newParams = new URLSearchParams(searchParams);
-                        newParams.delete('artist');
-                        setSearchParams(newParams, { replace: true });
-                     }}
-                     className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 transition-colors"
-                   >
-                     Artist: {urlArtistFilter}
-                     <span className="text-zinc-400">×</span>
-                   </button>
-                )}
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                    {filteredAndSortedCds.length} match{filteredAndSortedCds.length !== 1 ? 'es' : ''}
-                </span>
-              </div>
-            )}
-            
             <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
                 <button 
                   onClick={() => setView('grid')} 
