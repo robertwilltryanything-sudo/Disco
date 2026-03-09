@@ -76,30 +76,34 @@ export const useGoogleDrive = () => {
     }
   }, [clearAuthState, updateSyncStatus]);
 
-  const loadScript = (src: string, globalCheck: string): Promise<void> => {
+  const loadScript = (src: string, globalCheck: string, forceReload = false): Promise<void> => {
     return new Promise((resolve, reject) => {
       const parts = globalCheck.split('.');
       const checkExists = () => {
         let current: any = window;
         for (const part of parts) {
-          if (!current[part]) return false;
+          if (!current || !current[part]) return false;
           current = current[part];
         }
         return true;
       };
       
-      if (checkExists()) return resolve();
+      if (checkExists() && !forceReload) return resolve();
 
-      // Check if script already exists in DOM
-      const existingScript = document.querySelector(`script[src="${src}"]`);
-      if (existingScript) {
-        // If it exists but globalCheck failed, it might still be loading
+      // Check if script already exists in DOM (ignoring query params)
+      const baseUrl = src.split('?')[0];
+      const existingScript = document.querySelector(`script[src^="${baseUrl}"]`);
+      
+      if (existingScript && forceReload) {
+        existingScript.remove();
+      } else if (existingScript && !forceReload) {
+        // If it exists but globalCheck failed, it might still be loading or failed
         let attempts = 0;
         const interval = setInterval(() => {
           if (checkExists()) {
             clearInterval(interval);
             resolve();
-          } else if (attempts > 50) { // 5 seconds
+          } else if (attempts >= 100) { // 10 seconds
             clearInterval(interval);
             reject(new Error(`Timeout waiting for ${globalCheck} to be ready.`));
           }
@@ -109,7 +113,7 @@ export const useGoogleDrive = () => {
       }
 
       const script = document.createElement('script');
-      script.src = src;
+      script.src = forceReload ? `${src}${src.includes('?') ? '&' : '?'}_t=${Date.now()}` : src;
       script.async = true;
       script.defer = true;
       script.onload = () => {
@@ -119,15 +123,15 @@ export const useGoogleDrive = () => {
           if (checkExists()) {
             clearInterval(interval);
             resolve();
-          } else if (attempts > 20) {
+          } else if (attempts >= 50) { // 5 seconds
             clearInterval(interval);
             resolve(); // Fallback to resolve anyway and let the next step handle it
           }
           attempts++;
-        }, 50);
+        }, 100);
       };
       script.onerror = () => {
-        reject(new Error(`The script at ${src} was blocked.`));
+        reject(new Error(`The script at ${src} was blocked or failed to load.`));
       };
       document.body.appendChild(script);
     });
@@ -140,21 +144,35 @@ export const useGoogleDrive = () => {
     try {
       setError(null);
       await Promise.all([
-        loadScript('https://apis.google.com/js/api.js', 'gapi'),
-        loadScript('https://accounts.google.com/gsi/client', 'google.accounts.oauth2')
+        loadScript('https://apis.google.com/js/api.js', 'gapi', retryCount > 0),
+        loadScript('https://accounts.google.com/gsi/client', 'google.accounts.oauth2', retryCount > 0)
       ]);
       
       await new Promise<void>((resolve, reject) => {
         if (!window.gapi) return reject(new Error("GAPI library missing"));
+        const timeout = setTimeout(() => reject(new Error("Timeout loading GAPI client")), 15000);
         window.gapi.load('client', {
-          callback: resolve,
-          onerror: () => reject(new Error("Failed to load Google API client component"))
+          callback: () => {
+            clearTimeout(timeout);
+            resolve();
+          },
+          onerror: () => {
+            clearTimeout(timeout);
+            reject(new Error("Failed to load Google API client component"));
+          }
         });
       });
       
-      await window.gapi.client.init({
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-      });
+      const initTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("GAPI client init timed out")), 15000)
+      );
+
+      await Promise.race([
+        window.gapi.client.init({
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        }),
+        initTimeout
+      ]);
 
       // Small delay to ensure GIS is fully settled after script load
       await new Promise(resolve => setTimeout(resolve, 500));

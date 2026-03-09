@@ -57,8 +57,7 @@ export type SortOrder = 'asc' | 'desc';
 
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
 
-// Added 'supabase' to SyncProvider to fix type comparison errors in hooks/useSupabaseSync.ts
-export type SyncProvider = 'google_drive' | 'supabase' | 'none';
+export type SyncProvider = 'google_drive' | 'none';
 
 export type SyncMode = 'realtime' | 'manual';
 
