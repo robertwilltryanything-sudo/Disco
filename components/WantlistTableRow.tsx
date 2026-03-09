@@ -47,7 +47,16 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
       </td>
       <td className="p-3">
         <p className="font-bold text-zinc-900" title={item.title}>{item.title}</p>
-        <p className="text-sm text-zinc-600" title={item.artist}>{item.artist}</p>
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${item.artist}"`)}` });
+          }}
+          className="text-sm text-zinc-600 hover:underline text-left block" 
+          title={item.artist}
+        >
+          {item.artist}
+        </button>
       </td>
       <td className="p-3 text-right">
         <div className="flex items-center justify-end gap-2">

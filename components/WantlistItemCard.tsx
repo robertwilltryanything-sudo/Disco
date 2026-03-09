@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { WantlistItem } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -14,6 +14,7 @@ interface WantlistItemCardProps {
 }
 
 const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit, onDelete, onMoveToCollection }) => {
+  const navigate = useNavigate();
   const details = [Array.isArray(item.genre) ? item.genre.join(', ') : item.genre, item.year].filter(Boolean).join(' • ');
 
   const handleActionClick = (e: React.MouseEvent, action: () => void) => {
@@ -69,9 +70,17 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
       </div>
       <div className="p-3">
         <h3 className="font-bold text-base text-zinc-900 truncate" title={item.title}>{item.title}</h3>
-        <p className="text-sm text-zinc-600 truncate" title={item.artist}>
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${item.artist}"`)}` });
+          }}
+          className="text-sm text-zinc-600 truncate hover:underline text-left block w-full" 
+          title={item.artist}
+        >
           {item.artist}
-        </p>
+        </button>
         {details && <p className="text-sm text-zinc-500 mt-1">{details}</p>}
       </div>
     </Link>

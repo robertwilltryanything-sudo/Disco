@@ -148,7 +148,16 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
     const filtered = [...cds]
       .filter(cd => {
         if (!cd) return false;
-        const lowerCaseQuery = urlSearchQuery.toLowerCase();
+        const trimmedQuery = urlSearchQuery.trim();
+        const lowerCaseQuery = trimmedQuery.toLowerCase();
+        
+        // Check for exact artist match prefix: artist:"Artist Name"
+        const artistMatch = trimmedQuery.match(/^artist:"(.+)"$/i);
+        if (artistMatch) {
+            const exactArtist = artistMatch[1].toLowerCase();
+            return cd.artist && cd.artist.toLowerCase() === exactArtist;
+        }
+
         const isNumericQuery = !isNaN(Number(lowerCaseQuery)) && lowerCaseQuery.length > 0;
         const isDecadeSearch = isNumericQuery && lowerCaseQuery.length === 4 && lowerCaseQuery.endsWith('0');
         const yearMatches = cd.year != null && (
