@@ -45,7 +45,7 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
             {artists.map(artist => (
                 <Link
                 key={artist}
-                to={`/artist/${encodeURIComponent(artist)}`}
+                to={`/?q=${encodeURIComponent(`artist:"${artist}"`)}&sort=year&order=asc`}
                 className="block text-zinc-700 p-2 rounded-lg truncate"
                 title={artist}
                 >

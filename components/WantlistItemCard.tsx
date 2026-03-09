@@ -74,7 +74,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${item.artist}"`)}` });
+            navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${item.artist}"`)}&sort=year&order=asc` });
           }}
           className="text-sm text-zinc-600 truncate hover:underline text-left block w-full" 
           title={item.artist}

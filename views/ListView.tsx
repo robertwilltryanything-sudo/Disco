@@ -21,16 +21,36 @@ interface ListViewProps {
 const VIEW_MODE_KEY = 'disco_view_mode';
 
 const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, collectionMode }) => {
-  const [sortBy, setSortBy] = useState<SortKey>('created_at');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSearchQuery = searchParams.get('q') || '';
+  const urlSortBy = searchParams.get('sort') as SortKey | null;
+  const urlSortOrder = searchParams.get('order') as SortOrder | null;
+
+  const [sortBy, setSortBy] = useState<SortKey>(urlSortBy || 'created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>(urlSortOrder || 'desc');
   const [featuredCd, setFeaturedCd] = useState<CD | null>(null);
   const [view, setView] = useState<'grid' | 'list'>(() => {
     const storedView = localStorage.getItem(VIEW_MODE_KEY);
     return storedView === 'list' ? 'list' : 'grid';
   });
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const urlSearchQuery = searchParams.get('q') || '';
+  const handleSortBy = useCallback((key: SortKey) => {
+    setSortBy(key);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('sort', key);
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const handleSortOrder = useCallback((order: SortOrder | ((prev: SortOrder) => SortOrder)) => {
+    setSortOrder(prev => {
+      const next = typeof order === 'function' ? order(prev) : order;
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('order', next);
+      setSearchParams(newParams, { replace: true });
+      return next;
+    });
+  }, [searchParams, setSearchParams]);
+
   const focusSearchIntent = searchParams.get('focus') === 'search';
 
   const [, startTransition] = useTransition();
@@ -50,6 +70,11 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (urlSortBy && urlSortBy !== sortBy) setSortBy(urlSortBy);
+    if (urlSortOrder && urlSortOrder !== sortOrder) setSortOrder(urlSortOrder);
+  }, [urlSortBy, urlSortOrder, sortBy, sortOrder]);
 
   useEffect(() => {
     localStorage.setItem(VIEW_MODE_KEY, view);
@@ -272,7 +297,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
         {/* Row 2: Sort & View Options */}
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="w-full sm:w-auto">
-            <SortControls sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
+            <SortControls sortBy={sortBy} setSortBy={handleSortBy} sortOrder={sortOrder} setSortOrder={handleSortOrder} />
           </div>
           
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">

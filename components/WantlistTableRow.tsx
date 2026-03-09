@@ -50,7 +50,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${item.artist}"`)}` });
+            navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${item.artist}"`)}&sort=year&order=asc` });
           }}
           className="text-sm text-zinc-600 hover:underline text-left block" 
           title={item.artist}
