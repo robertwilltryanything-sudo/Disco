@@ -144,7 +144,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <h1 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h1>
                   <h2 
                     className="text-base text-zinc-500 hover:text-zinc-800 transition-colors mt-1 cursor-pointer" 
-                    onClick={() => navigate({ pathname: '/', search: `?q=${encodeURIComponent(cd.artist)}` })}
+                    onClick={() => navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` })}
                   >
                     {cd.artist}
                   </h2>

@@ -23,6 +23,7 @@ const VIEW_MODE_KEY = 'disco_view_mode';
 const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, collectionMode }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlSearchQuery = searchParams.get('q') || '';
+  const urlArtistFilter = searchParams.get('artist') || '';
   const urlSortBy = searchParams.get('sort') as SortKey | null;
   const urlSortOrder = searchParams.get('order') as SortOrder | null;
 
@@ -63,6 +64,8 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
       } else {
         newParams.delete('q');
       }
+      // Clear artist filter when manual search is performed
+      newParams.delete('artist');
       newParams.delete('focus');
       setSearchParams(newParams, { replace: true });
     });
@@ -167,15 +170,23 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [urlSearchQuery]);
+  }, [urlSearchQuery, urlArtistFilter]);
 
   const filteredAndSortedCds = useMemo(() => {
     const filtered = [...cds]
       .filter(cd => {
         if (!cd) return false;
+
+        // Priority 1: Exact Artist Filter (from URL param 'artist')
+        if (urlArtistFilter) {
+            return cd.artist && cd.artist.toLowerCase() === urlArtistFilter.toLowerCase();
+        }
+
         const trimmedQuery = urlSearchQuery.trim();
         const lowerCaseQuery = trimmedQuery.toLowerCase();
         
+        if (!lowerCaseQuery) return true;
+
         // Check for exact artist match prefix: artist:"Artist Name"
         const artistMatch = trimmedQuery.match(/^artist:"(.+)"$/i);
         if (artistMatch) {
@@ -257,13 +268,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
       });
 
     return sorted;
-  }, [cds, urlSearchQuery, sortBy, sortOrder]);
+  }, [cds, urlSearchQuery, urlArtistFilter, sortBy, sortOrder]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
 
   return (
     <div>
-      {!urlSearchQuery && (
+      {(!urlSearchQuery && !urlArtistFilter) && (
         <div className="lg:flex lg:gap-6 mb-8">
           <div className="lg:w-2/3">
             {featuredCd ? (
@@ -301,10 +312,25 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
           </div>
           
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            {urlSearchQuery && (
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                {filteredAndSortedCds.length} match{filteredAndSortedCds.length !== 1 ? 'es' : ''}
-              </span>
+            {(urlSearchQuery || urlArtistFilter) && (
+              <div className="flex items-center gap-2">
+                {urlArtistFilter && (
+                   <button 
+                     onClick={() => {
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.delete('artist');
+                        setSearchParams(newParams, { replace: true });
+                     }}
+                     className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 transition-colors"
+                   >
+                     Artist: {urlArtistFilter}
+                     <span className="text-zinc-400">×</span>
+                   </button>
+                )}
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                    {filteredAndSortedCds.length} match{filteredAndSortedCds.length !== 1 ? 'es' : ''}
+                </span>
+              </div>
             )}
             
             <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">

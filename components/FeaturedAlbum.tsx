@@ -60,7 +60,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
         e.stopPropagation();
         navigate({
             pathname: '/',
-            search: `?q=${encodeURIComponent(`artist:"${cd.artist}"`)}&sort=year&order=asc`
+            search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc`
         });
     }, [cd.artist, navigate]);
 

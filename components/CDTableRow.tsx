@@ -55,7 +55,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${cd.artist}"`)}&sort=year&order=asc` });
+                navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` });
               }}
               className="text-zinc-700 text-sm hover:underline text-left block w-full" 
               title={cd.artist}
@@ -85,7 +85,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${cd.artist}"`)}&sort=year&order=asc` });
+            navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` });
           }}
           className="hover:underline text-left"
         >

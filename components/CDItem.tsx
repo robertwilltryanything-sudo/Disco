@@ -27,7 +27,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
   const handleArtistClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate({ pathname: '/', search: `?q=${encodeURIComponent(`artist:"${cd.artist}"`)}&sort=year&order=asc` });
+    navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` });
   }, [cd.artist, navigate]);
   
   const details = useMemo(() => {
