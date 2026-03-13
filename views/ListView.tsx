@@ -207,7 +207,8 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
           yearMatches ||
           (cd.genre && cd.genre.some(g => g && g.toLowerCase().includes(lowerCaseQuery))) ||
           (cd.record_label && cd.record_label.toLowerCase().includes(lowerCaseQuery)) ||
-          (cd.tags && cd.tags.some(tag => tag && tag.toLowerCase().includes(lowerCaseQuery)))
+          (cd.tags && cd.tags.some(tag => tag && tag.toLowerCase().includes(lowerCaseQuery))) ||
+          (cd.attributes && cd.attributes.some(attr => attr && attr.toLowerCase().includes(lowerCaseQuery)))
         );
       });
     
