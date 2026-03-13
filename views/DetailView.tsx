@@ -200,9 +200,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">MEDIA CONDITION</p>
                   <div className="flex flex-wrap gap-2">
                     {mediaTraits.map(attr => (
-                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                      <button 
+                        key={attr} 
+                        onClick={() => handleSearchFilter(attr)}
+                        className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity cursor-pointer`}
+                      >
                         {attr}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -213,9 +217,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">COVER CONDITION</p>
                   <div className="flex flex-wrap gap-2">
                     {coverTraits.map(attr => (
-                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                      <button 
+                        key={attr} 
+                        onClick={() => handleSearchFilter(attr)}
+                        className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity cursor-pointer`}
+                      >
                         {attr}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -226,9 +234,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">PHYSICAL ATTRIBUTES</p>
                   <div className="flex flex-wrap gap-2">
                     {physicalAttributes.map(attr => (
-                      <span key={attr} className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5`}>
+                      <button 
+                        key={attr} 
+                        onClick={() => handleSearchFilter(attr)}
+                        className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity cursor-pointer`}
+                      >
                         {attr}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
