@@ -30,7 +30,7 @@ const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water 
 const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Coloured Vinyl", "Hype Sticker", "Obi Strip", "OIS"];
 
 const CD_MEDIA_CONDITION = ["Scratched", "Hairlines", "Sticky"];
-const CD_COVER_CONDITION = ["Cracked Case", "Price Sticker", "Tear Front"];
+const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Tear Front", "Water damage"];
 const CD_ATTRIBUTES = ["Digipak", "Slipcase", "Obi Strip", "Promo"];
 
 const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl, driveSignedIn, onPickFromDrive }) => {

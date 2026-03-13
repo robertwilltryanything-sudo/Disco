@@ -26,7 +26,7 @@ const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratched", "Warped"];
 const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front", "Cut Out"];
 
 const CD_MEDIA_CONDITION = ["Scratched", "Hairlines", "Sticky"];
-const CD_COVER_CONDITION = ["Cracked Case", "Price Sticker", "Tear Front"];
+const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Tear Front", "Water damage"];
 
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
