@@ -15,7 +15,7 @@ const SyncConflictModal: React.FC<SyncConflictModalProps> = ({ isOpen, onResolve
   const formattedCloudTime = lastCloudTime ? new Date(lastCloudTime).toLocaleString() : 'Recently';
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
       <div className="bg-white rounded-xl border border-zinc-200 shadow-2xl max-w-xl w-full p-8">
         <div className="flex items-center gap-3 text-red-600 mb-4">
           <CloudIcon className="w-8 h-8" />

@@ -77,7 +77,7 @@ const SyncConfirmationModal: React.FC<SyncConfirmationModalProps> = ({
     const directionIcon = isPush ? <ArrowUpCircleIcon className="w-5 h-5" /> : <ArrowDownCircleIcon className="w-5 h-5" />;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-zinc-200">
                 <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
                     <div>
