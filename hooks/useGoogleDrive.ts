@@ -17,7 +17,7 @@ export interface DriveFile {
 
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
-const AUTH_TIMEOUT_MS = 90000; // Increased to 90s to allow for slow connections/2FA
+const AUTH_TIMEOUT_MS = 60000; // Reduced to 60s, still plenty for 2FA
 
 declare global {
   interface Window {
@@ -137,15 +137,15 @@ export const useGoogleDrive = () => {
     });
   };
 
-  const initializeSync = useCallback(async (retryCount = 0) => {
-    if (!GOOGLE_CLIENT_ID || (initStartedRef.current && retryCount === 0)) return;
+  const initializeSync = useCallback(async (retryCount = 0, force = false, skipAutoRefresh = false) => {
+    if (!GOOGLE_CLIENT_ID || (initStartedRef.current && retryCount === 0 && !force)) return;
     initStartedRef.current = true;
     
     try {
       setError(null);
       await Promise.all([
-        loadScript('https://apis.google.com/js/api.js', 'gapi', retryCount > 0),
-        loadScript('https://accounts.google.com/gsi/client', 'google.accounts.oauth2', retryCount > 0)
+        loadScript('https://apis.google.com/js/api.js', 'gapi', force || retryCount > 0),
+        loadScript('https://accounts.google.com/gsi/client', 'google.accounts.oauth2', force || retryCount > 0)
       ]);
       
       await new Promise<void>((resolve, reject) => {
@@ -213,7 +213,7 @@ export const useGoogleDrive = () => {
 
       setIsApiReady(true);
 
-      if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
+      if (localStorage.getItem(SIGNED_IN_KEY) === 'true' && !skipAutoRefresh) {
         window.tokenClient.requestAccessToken({ prompt: '' });
       }
     } catch (e: any) {
@@ -223,7 +223,7 @@ export const useGoogleDrive = () => {
         console.log("Retrying initialization...");
         await new Promise(resolve => setTimeout(resolve, 1000));
         initStartedRef.current = false;
-        return initializeSync(retryCount + 1);
+        return initializeSync(retryCount + 1, force, skipAutoRefresh);
       }
 
       initStartedRef.current = false;
@@ -240,15 +240,22 @@ export const useGoogleDrive = () => {
     };
   }, [initializeSync]);
 
-  const signIn = useCallback(() => {
-    if (!window.tokenClient) {
-      console.warn("Token client missing during sign-in attempt. Attempting re-init...");
-      initializeSync();
-      setError("Authentication system is still initializing. Please try again in a moment.");
-      return;
-    }
+  const signIn = useCallback(async () => {
     updateSyncStatus('authenticating');
     setError(null);
+
+    // Force a fresh initialization during the sign-in process.
+    // This ensures we have a valid token client and avoids stale state issues
+    // that often lead to timeouts in iframe/sandboxed environments.
+    // We skip auto-refresh because we are about to trigger a manual one.
+    await initializeSync(0, true, true);
+
+    if (!window.tokenClient) {
+      console.error("Token client failed to initialize during sign-in.");
+      setError("Authentication system failed to initialize. Please check if popups are blocked or try again.");
+      updateSyncStatus('error');
+      return;
+    }
 
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
@@ -260,7 +267,6 @@ export const useGoogleDrive = () => {
     }, AUTH_TIMEOUT_MS);
 
     try {
-      // Ensure we are using the latest token client
       window.tokenClient.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
       console.error("Error triggering requestAccessToken:", e);
