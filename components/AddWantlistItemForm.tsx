@@ -27,7 +27,7 @@ interface AddWantlistItemFormProps {
 
 const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratched", "Warped"];
 const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front", "Cut Out"];
-const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Coloured Vinyl", "Hype Sticker", "Obi Strip", "OIS", "Upgradable"];
+const VINYL_ATTRIBUTES = ["Gatefold", "Coloured Vinyl", "Hype Sticker", "Obi Strip", "OIS", "Upgradable"];
 
 const CD_MEDIA_CONDITION = ["Scratched", "Hairlines", "Sticky"];
 const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Tear Front", "Water damage"];
@@ -41,6 +41,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
   const [record_label, setRecordLabel] = useState('');
+  const [country, setCountry] = useState('');
   const [producer, setProducer] = useState('');
   const [attributes, setAttributes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -67,6 +68,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setYear(itemToEdit.year || '');
       setVersion(itemToEdit.version || '');
       setRecordLabel(itemToEdit.record_label || '');
+      setCountry(itemToEdit.country || '');
       setProducer(itemToEdit.producer || '');
       setAttributes(itemToEdit.attributes || []);
       setTags(itemToEdit.tags || []);
@@ -96,7 +98,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         const itemData: Omit<WantlistItem, 'id'> & { id?: string } = {
             id: itemToEdit?.id, artist, title, genre: genres,
             year: year ? Number(year) : undefined,
-            version, record_label, producer, tags, cover_art_url, notes,
+            version, record_label, country, producer, tags, cover_art_url, notes,
             attributes,
             created_at: itemToEdit?.created_at,
         };
@@ -128,7 +130,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genres, year, version, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes]);
+  }, [artist, title, genres, year, version, country, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes]);
   
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -217,7 +219,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setProcessingStatus('Saving item...');
         await onSave({
           id: itemToEdit?.id, artist, title, genre: genres,
-          year: year ? Number(year) : undefined, version, record_label, producer, tags,
+          year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
           attributes,
           cover_art_url: url, notes,
           created_at: itemToEdit?.created_at,
@@ -229,7 +231,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, notes, record_label, producer, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -247,7 +249,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           setProcessingStatus('Saving item...');
           await onSave({
             id: itemToEdit?.id, artist, title, genre: genres,
-            year: year ? Number(year) : undefined, version, record_label, producer, tags,
+            year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
             created_at: itemToEdit?.created_at,
@@ -263,7 +265,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setCoverArtUrl(undefined);
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, notes, record_label, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, country, notes, record_label, tags, attributes]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);
@@ -448,9 +450,9 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
-                  placeholder={isVinyl ? "Edition Preference (e.g. 180g)" : "Version Preference (e.g. Remaster)"}
-                  value={version}
-                  onChange={(e) => setVersion(e.target.value)}
+                  placeholder="Country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
@@ -458,6 +460,13 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                   placeholder="Desired Record Label"
                   value={record_label}
                   onChange={(e) => setRecordLabel(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+                <input
+                  type="text"
+                  placeholder={isVinyl ? "Edition Preference (e.g. 180g)" : "Version Preference (e.g. Remaster)"}
+                  value={version}
+                  onChange={(e) => setVersion(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input

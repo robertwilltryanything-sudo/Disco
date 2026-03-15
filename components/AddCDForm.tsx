@@ -28,7 +28,7 @@ interface AddCDFormProps {
 
 const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratched", "Warped"];
 const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Tear Front", "Cut Out"];
-const VINYL_ATTRIBUTES = ["Gatefold", "180g", "Coloured Vinyl", "Hype Sticker", "Obi Strip", "OIS", "Upgradable"];
+const VINYL_ATTRIBUTES = ["Gatefold", "Coloured Vinyl", "Hype Sticker", "Obi Strip", "OIS", "Upgradable"];
 
 const CD_MEDIA_CONDITION = ["Scratched", "Hairlines", "Sticky"];
 const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Tear Front", "Water damage"];
@@ -42,6 +42,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [year, setYear] = useState<number | ''>('');
   const [version, setVersion] = useState('');
   const [record_label, setRecordLabel] = useState('');
+  const [country, setCountry] = useState('');
   const [producer, setProducer] = useState('');
   const [attributes, setAttributes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -68,6 +69,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     setYear('');
     setVersion('');
     setRecordLabel('');
+    setCountry('');
     setProducer('');
     setAttributes([]);
     setTags([]);
@@ -86,6 +88,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setYear(cdToEdit.year || '');
       setVersion(cdToEdit.version || '');
       setRecordLabel(cdToEdit.record_label || '');
+      setCountry(cdToEdit.country || '');
       setProducer(cdToEdit.producer || '');
       setAttributes(cdToEdit.attributes || []);
       setTags(cdToEdit.tags || []);
@@ -100,6 +103,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setYear(prefill.year || '');
         setVersion(prefill.version || '');
         setRecordLabel(prefill.record_label || '');
+        setCountry(prefill.country || '');
         setProducer(prefill.producer || '');
         setAttributes(prefill.attributes || []);
         setTags(prefill.tags || []);
@@ -130,7 +134,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         const cdData: Omit<CD, 'id'> & { id?: string } = {
             id: cdToEdit?.id, artist, title, genre: genres,
             year: year ? Number(year) : undefined,
-            version, record_label, producer, tags, cover_art_url, notes,
+            version, record_label, country, producer, tags, cover_art_url, notes,
             attributes,
             created_at: cdToEdit?.created_at,
         };
@@ -162,7 +166,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genres, year, version, cover_art_url, notes, cdToEdit, onSave, record_label, producer, tags, attributes]);
+  }, [artist, title, genres, year, version, country, cover_art_url, notes, cdToEdit, onSave, record_label, producer, tags, attributes]);
 
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -258,7 +262,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setProcessingStatus('Saving album...');
         await onSave({
           id: cdToEdit?.id, artist, title, genre: genres,
-          year: year ? Number(year) : undefined, version, record_label, producer, tags,
+          year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
           attributes,
           cover_art_url: url, notes,
           created_at: cdToEdit?.created_at,
@@ -271,7 +275,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genres, year, version, notes, record_label, producer, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -290,7 +294,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
           setProcessingStatus('Saving album...');
           await onSave({
             id: cdToEdit?.id, artist, title, genre: genres,
-            year: year ? Number(year) : undefined, version, record_label, producer, tags,
+            year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
             created_at: cdToEdit?.created_at,
@@ -491,9 +495,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
-                  placeholder={isVinyl ? "Edition (e.g., Gatefold, 180g)" : "Version (e.g., Remaster, Deluxe)"}
-                  value={version}
-                  onChange={(e) => setVersion(e.target.value)}
+                  placeholder="Country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
@@ -501,6 +505,13 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                   placeholder="Record Label"
                   value={record_label}
                   onChange={(e) => setRecordLabel(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                />
+                <input
+                  type="text"
+                  placeholder={isVinyl ? "Edition (e.g., Gatefold, 180g)" : "Version (e.g., Remaster, Deluxe)"}
+                  value={version}
+                  onChange={(e) => setVersion(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input

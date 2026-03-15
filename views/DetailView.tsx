@@ -179,6 +179,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     </div>
                   )}
                   {cd.record_label && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.record_label}</p></div>}
+                  {cd.country && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Country</p><p className="text-zinc-900 font-medium">{cd.country}</p></div>}
                   {cd.producer && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Producer</p><p className="text-zinc-900 font-medium">{cd.producer}</p></div>}
                   {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
               </div>

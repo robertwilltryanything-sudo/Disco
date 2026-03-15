@@ -238,6 +238,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                           </div>
                         )}
                         {item.record_label && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Label:</span> {item.record_label}</p>}
+                        {item.country && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Country:</span> {item.country}</p>}
                         {item.producer && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Producer:</span> {item.producer}</p>}
                         {item.version && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Version:</span> {item.version}</p>}
                       </div>
