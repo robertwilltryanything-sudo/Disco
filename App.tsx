@@ -440,7 +440,7 @@ const AppContent: React.FC = () => {
         </Routes>
       </main>
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
           <div className="w-full max-w-3xl my-8 shadow-2xl">
             <AddCDForm 
               onSave={handleSaveCD} 
@@ -455,7 +455,7 @@ const AppContent: React.FC = () => {
         </div>
       )}
       {isAddWantlistModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
             <div className="w-full max-w-3xl my-8 shadow-2xl">
                 <AddWantlistItemForm 
                   onSave={handleSaveWantlistItem} 
