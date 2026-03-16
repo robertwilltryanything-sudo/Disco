@@ -75,9 +75,9 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (urlSortBy && urlSortBy !== sortBy) setSortBy(urlSortBy);
-    if (urlSortOrder && urlSortOrder !== sortOrder) setSortOrder(urlSortOrder);
-  }, [urlSortBy, urlSortOrder, sortBy, sortOrder]);
+    setSortBy(urlSortBy || 'created_at');
+    setSortOrder(urlSortOrder || 'desc');
+  }, [urlSortBy, urlSortOrder]);
 
   useEffect(() => {
     localStorage.setItem(VIEW_MODE_KEY, view);
