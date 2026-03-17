@@ -22,7 +22,7 @@ interface DetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped"];
+const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped", "Snap, Crackle & Pop"];
 const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Surface Tear", "Cut Out"];
 
 const CD_MEDIA_CONDITION = ["Scratches", "Hairlines", "Sticky"];

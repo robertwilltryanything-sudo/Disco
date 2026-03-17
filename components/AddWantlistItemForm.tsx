@@ -25,7 +25,7 @@ interface AddWantlistItemFormProps {
   onPickFromDrive?: () => Promise<string | null>;
 }
 
-const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped"];
+const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped", "Snap, Crackle & Pop"];
 const VINYL_COVER_CONDITION = ["Ringwear", "Seemsplit", "Price Sticker", "Water Damage", "Surface Tear", "Cut Out"];
 const VINYL_ATTRIBUTES = ["Gatefold", "Coloured Vinyl", "Hype Sticker", "Obi Strip", "OIS", "Upgradable"];
 
