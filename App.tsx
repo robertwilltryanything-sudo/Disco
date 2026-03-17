@@ -227,6 +227,62 @@ const AppContent: React.FC = () => {
       setPendingCloudData(null);
   }, [syncConfirmType, pendingCloudData, collection, wantlist, driveSaveData]);
 
+  useEffect(() => {
+    const migrateData = () => {
+      let changed = false;
+      const newCollection = collection.map(cd => {
+        let itemChanged = false;
+        let newAttributes = cd.attributes;
+
+        if (newAttributes) {
+          if (newAttributes.includes('Tear Front')) {
+            itemChanged = true;
+            newAttributes = newAttributes.map(attr => attr === 'Tear Front' ? 'Surface Tear' : attr);
+          }
+          if (newAttributes.includes('Seemsplit')) {
+            itemChanged = true;
+            newAttributes = newAttributes.map(attr => attr === 'Seemsplit' ? 'Unglued' : attr);
+          }
+        }
+
+        if (itemChanged) {
+          changed = true;
+          return { ...cd, attributes: newAttributes };
+        }
+        return cd;
+      });
+
+      const newWantlist = wantlist.map(item => {
+        let itemChanged = false;
+        let newAttributes = item.attributes;
+
+        if (newAttributes) {
+          if (newAttributes.includes('Tear Front')) {
+            itemChanged = true;
+            newAttributes = newAttributes.map(attr => attr === 'Tear Front' ? 'Surface Tear' : attr);
+          }
+          if (newAttributes.includes('Seemsplit')) {
+            itemChanged = true;
+            newAttributes = newAttributes.map(attr => attr === 'Seemsplit' ? 'Unglued' : attr);
+          }
+        }
+
+        if (itemChanged) {
+          changed = true;
+          return { ...item, attributes: newAttributes };
+        }
+        return item;
+      });
+
+      if (changed) {
+        setCollection(newCollection);
+        setWantlist(newWantlist);
+      }
+    };
+
+    migrateData();
+  }, []);
+
   useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
   useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
 
