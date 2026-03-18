@@ -85,25 +85,25 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                 )}
             </div>
             <div className="p-6 flex flex-col justify-center flex-grow">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Featured Album</p>
-                <h3 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h3>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Featured Album</p>
+                <h3 className="text-xl font-bold text-zinc-950 leading-tight">{cd.title}</h3>
                 <button
                     onClick={handleArtistClick}
-                    className="text-left text-base text-zinc-500 hover:text-zinc-800 transition-colors"
+                    className="text-left text-base text-zinc-600 hover:text-zinc-950 transition-colors"
                     title={cd.artist}
                 >
                     {cd.artist}
                 </button>
                 <div className="mt-4 pt-4 border-t border-zinc-100 min-h-[3rem] flex items-center">
                      {isLoading ? (
-                        <div className="flex items-center text-zinc-400 text-xs">
+                        <div className="flex items-center text-zinc-500 text-xs">
                             <SpinnerIcon className="w-3 h-3 animate-spin mr-2" />
                             <span>Discovering trivia...</span>
                         </div>
                     ) : error ? (
-                        <p className="text-zinc-400 text-xs italic">{error}</p>
+                        <p className="text-zinc-500 text-xs italic">{error}</p>
                     ) : (
-                        <p className="text-zinc-600 italic text-sm leading-relaxed">"{trivia}"</p>
+                        <p className="text-zinc-700 italic text-sm leading-relaxed">"{trivia}"</p>
                     )}
                 </div>
             </div>

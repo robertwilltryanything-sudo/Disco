@@ -54,18 +54,18 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
                 <div className="w-full h-full bg-zinc-200" />
             )
         ) : (
-            <MusicNoteIcon className="w-10 h-10 text-zinc-300" />
+            <MusicNoteIcon className="w-10 h-10 text-zinc-400" />
         )}
       </div>
       <div className="p-4">
-        <h3 className="font-bold text-sm text-zinc-900 truncate mb-0.5" title={cd.title}>{cd.title}</h3>
+        <h3 className="font-bold text-sm text-zinc-950 truncate mb-0.5" title={cd.title}>{cd.title}</h3>
         <button
           onClick={handleArtistClick}
-          className="text-left w-full text-xs text-zinc-400 font-bold uppercase tracking-tight truncate"
+          className="text-left w-full text-xs text-zinc-500 font-bold uppercase tracking-tight truncate"
         >
           {cd.artist}
         </button>
-        {details && <p className="text-[10px] text-zinc-300 font-medium mt-1.5">{details}</p>}
+        {details && <p className="text-[10px] text-zinc-400 font-medium mt-1.5">{details}</p>}
       </div>
     </Link>
   );

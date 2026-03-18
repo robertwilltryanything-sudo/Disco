@@ -124,7 +124,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6"><Link to="/" className="inline-flex items-center gap-2 text-zinc-600 font-medium"><ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>
+      <div className="mb-6"><Link to="/" className="inline-flex items-center gap-2 text-zinc-700 font-medium"><ArrowLeftIcon className="h-5 w-5" />Back to Collection</Link></div>
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm relative group/card">
         <div className="md:flex">
             <div className="md:flex-shrink-0 md:w-80">
@@ -136,14 +136,14 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       referrerPolicy="no-referrer"
                     />
                 ) : (
-                    <div className="w-full aspect-square bg-zinc-50 flex items-center justify-center"><MusicNoteIcon className="w-24 h-24 text-zinc-200" /></div>
+                    <div className="w-full aspect-square bg-zinc-50 flex items-center justify-center"><MusicNoteIcon className="w-24 h-24 text-zinc-300" /></div>
                 )}
             </div>
             <div className="p-6 md:p-8 flex flex-col flex-grow min-h-0">
               <div className="flex flex-col mb-6">
-                  <h1 className="text-xl font-bold text-zinc-900 leading-tight">{cd.title}</h1>
+                  <h1 className="text-xl font-bold text-zinc-950 leading-tight">{cd.title}</h1>
                   <h2 
-                    className="text-base text-zinc-500 hover:text-zinc-800 transition-colors mt-1 cursor-pointer" 
+                    className="text-base text-zinc-600 hover:text-zinc-950 transition-colors mt-1 cursor-pointer" 
                     onClick={() => navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` })}
                   >
                     {cd.artist}
@@ -153,10 +153,10 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm border-t border-zinc-100 pt-6">
                   {cd.year && (
                     <div>
-                      <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Year</p>
+                      <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Year</p>
                       <button 
                         onClick={() => handleSearchFilter(cd.year)}
-                        className="text-zinc-900 font-medium hover:text-zinc-600 transition-colors"
+                        className="text-zinc-950 font-medium hover:text-zinc-700 transition-colors"
                       >
                         {cd.year}
                       </button>
@@ -164,13 +164,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   )}
                   {cd.genre && cd.genre.length > 0 && (
                     <div>
-                      <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Genre</p>
+                      <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Genre</p>
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         {cd.genre.map((g, idx) => (
                           <button 
                             key={idx}
                             onClick={() => handleSearchFilter(g)}
-                            className={`${getBrandColor(g)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
+                            className={`${getBrandColor(g)} text-zinc-950 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
                           >
                             {g}
                           </button>
@@ -178,19 +178,19 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       </div>
                     </div>
                   )}
-                  {cd.record_label && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-900 font-medium">{cd.record_label}</p></div>}
-                  {cd.country && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Country</p><p className="text-zinc-900 font-medium">{cd.country}</p></div>}
-                  {cd.producer && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Producer</p><p className="text-zinc-900 font-medium">{cd.producer}</p></div>}
-                  {cd.version && <div><p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-900 font-medium">{cd.version}</p></div>}
+                  {cd.record_label && <div><p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Label</p><p className="text-zinc-950 font-medium">{cd.record_label}</p></div>}
+                  {cd.country && <div><p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Country</p><p className="text-zinc-950 font-medium">{cd.country}</p></div>}
+                  {cd.producer && <div><p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Producer</p><p className="text-zinc-950 font-medium">{cd.producer}</p></div>}
+                  {cd.version && <div><p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-950 font-medium">{cd.version}</p></div>}
               </div>
 
               {cd.review && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2 flex items-center gap-1.5">
+                  <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px] mb-2 flex items-center gap-1.5">
                     <SparklesIcon className="w-3 h-3" />
                     Album Review
                   </p>
-                  <p className="text-zinc-700 text-sm leading-relaxed font-medium italic">
+                  <p className="text-zinc-800 text-sm leading-relaxed font-medium italic">
                     "{cd.review}"
                   </p>
                 </div>
@@ -198,7 +198,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
               {mediaTraits.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">MEDIA CONDITION</p>
+                  <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px] mb-2">MEDIA CONDITION</p>
                   <div className="flex flex-wrap gap-2">
                     {mediaTraits.map(attr => (
                       <button 
@@ -215,7 +215,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
               {coverTraits.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">COVER CONDITION</p>
+                  <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px] mb-2">COVER CONDITION</p>
                   <div className="flex flex-wrap gap-2">
                     {coverTraits.map(attr => (
                       <button 
@@ -232,7 +232,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
               {physicalAttributes.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <p className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] mb-2">PHYSICAL ATTRIBUTES</p>
+                  <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px] mb-2">PHYSICAL ATTRIBUTES</p>
                   <div className="flex flex-wrap gap-2">
                     {physicalAttributes.map(attr => (
                       <button 
@@ -247,17 +247,17 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                 </div>
               )}
 
-              {cd.notes && <div className="mt-6 pt-6 border-t border-zinc-100"><h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Notes</h3><p className="text-zinc-600 italic">"{cd.notes}"</p></div>}
+              {cd.notes && <div className="mt-6 pt-6 border-t border-zinc-100"><h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Notes</h3><p className="text-zinc-700 italic">"{cd.notes}"</p></div>}
 
               {cd.tags && cd.tags.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">
-                  <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Tags</h3>
+                  <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Tags</h3>
                   <div className="flex flex-wrap gap-2">
                     {cd.tags.map(tag => (
                       <button
                         key={tag}
                         onClick={() => handleSearchFilter(tag)}
-                        className={`${getBrandColor(tag)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
+                        className={`${getBrandColor(tag)} text-zinc-950 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
                       >
                         {tag}
                       </button>
@@ -269,7 +269,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               {/* Bottom Actions Row - Aligned Straight */}
               <div className="mt-auto pt-8 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-50">
                   <div className="flex items-center gap-2">
-                    <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
+                    <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
                         <WikipediaIcon className="w-5 h-5" />
                         Wikipedia
                     </a>
@@ -282,7 +282,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
                         isUpdating 
                           ? 'bg-zinc-100 text-blue-500 animate-pulse' 
-                          : 'text-zinc-400 hover:bg-zinc-100 hover:text-blue-500'
+                          : 'text-zinc-500 hover:bg-zinc-100 hover:text-blue-500'
                       }`}
                       title="Update album info using Wikipedia & Gemini"
                     >
@@ -290,14 +290,14 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     </button>
                     <button 
                       onClick={() => navigate('/', { state: { editCdId: cd.id } })} 
-                      className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-all transform hover:scale-110 active:scale-95" 
+                      className="p-2 rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 transition-all transform hover:scale-110 active:scale-95" 
                       title="Edit manual details"
                     >
                       <EditIcon className="w-5 h-5" />
                     </button>
                     <button 
                       onClick={() => setIsDeleteModalOpen(true)} 
-                      className="p-2 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
+                      className="p-2 rounded-full text-zinc-500 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
                       title="Delete album"
                     >
                       <TrashIcon className="w-5 h-5" />
@@ -308,13 +308,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
         </div>
         <div className="bg-zinc-50 px-6 py-4 flex justify-between items-center border-t border-zinc-100">
             {previousCd ? (
-                <Link to={`/cd/${previousCd.id}`} className="flex items-center gap-2 text-zinc-600 font-bold text-sm hover:text-zinc-900">
+                <Link to={`/cd/${previousCd.id}`} className="flex items-center gap-2 text-zinc-700 font-bold text-sm hover:text-zinc-950">
                     <ArrowLeftIcon className="w-4 h-4" />
                     Previous
                 </Link>
             ) : <div />}
             {nextCd ? (
-                <Link to={`/cd/${nextCd.id}`} className="flex items-center gap-2 text-zinc-600 font-bold text-sm hover:text-zinc-900">
+                <Link to={`/cd/${nextCd.id}`} className="flex items-center gap-2 text-zinc-700 font-bold text-sm hover:text-zinc-950">
                     Next
                     <ArrowRightIcon className="w-4 h-4" />
                 </Link>
@@ -324,7 +324,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
       {recommendations.length > 0 && (
         <div className="mt-12">
-          <h2 className="text-2xl font-bold text-zinc-900 mb-6">You Might Also Like</h2>
+          <h2 className="text-2xl font-bold text-zinc-950 mb-6">You Might Also Like</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {recommendations.map(r => <RecommendedCDItem key={r.id} cd={r} />)}
           </div>

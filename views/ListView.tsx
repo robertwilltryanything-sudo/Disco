@@ -282,8 +282,8 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
               <FeaturedAlbum cd={featuredCd} />
             ) : (
               <div className="bg-white rounded-lg border border-zinc-200 p-6 flex flex-col items-center justify-center h-full text-center min-h-[256px]">
-                <h3 className="text-xl font-bold text-zinc-800">Welcome to DiscO!</h3>
-                <p className="text-zinc-600 mt-2">Your {collectionMode} collection is empty. Add your first {albumType} to get started.</p>
+                <h3 className="text-xl font-bold text-zinc-950">Welcome to DiscO!</h3>
+                <p className="text-zinc-700 mt-2">Your {collectionMode} collection is empty. Add your first {albumType} to get started.</p>
                 <button
                   onClick={() => onRequestAdd()}
                   className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
@@ -316,7 +316,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
             <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
                 <button 
                   onClick={() => setView('grid')} 
-                  className={`p-1.5 rounded-md transition-all ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  className={`p-1.5 rounded-md transition-all ${view === 'grid' ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-600 hover:text-zinc-800'}`}
                   aria-label="Grid View"
                   title="Grid View"
                 >
@@ -324,7 +324,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
                 </button>
                 <button 
                   onClick={() => setView('list')}
-                  className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-600 hover:text-zinc-800'}`}
                   aria-label="List View"
                   title="List View"
                 >

@@ -440,8 +440,8 @@ const AppContent: React.FC = () => {
       <main className="container mx-auto p-4 md:p-6 max-w-full overflow-x-hidden">
         {isGoogleDriveSelectedButLoggedOut && (
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
-                <h2 className="text-xl font-bold text-zinc-900">Google Drive Sync</h2>
-                <p className="text-zinc-600 mt-2">Sign in to your Google account to enable manual Load/Save between devices.</p>
+                <h2 className="text-xl font-bold text-zinc-950">Google Drive Sync</h2>
+                <p className="text-zinc-700 mt-2">Sign in to your Google account to enable manual Load/Save between devices.</p>
                 {driveError && (
                     <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex flex-col gap-3 shadow-inner">
                         <div className="flex items-start gap-2">
@@ -471,8 +471,8 @@ const AppContent: React.FC = () => {
                 )}
                 {!driveReady ? (
                     <div className="mt-6 flex flex-col items-center gap-2">
-                        <SpinnerIcon className="w-8 h-8 text-zinc-400" />
-                        <button disabled className="w-full bg-zinc-200 text-zinc-400 font-bold py-3 px-6 rounded-lg cursor-not-allowed">Initializing...</button>
+                        <SpinnerIcon className="w-8 h-8 text-zinc-500" />
+                        <button disabled className="w-full bg-zinc-200 text-zinc-500 font-bold py-3 px-6 rounded-lg cursor-not-allowed">Initializing...</button>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">

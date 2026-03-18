@@ -326,7 +326,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             <XIcon className="h-6 w-6" />
         </button>
 
-        <h2 className="text-xl font-bold text-zinc-900 pr-10">{itemToEdit ? `Edit ${albumType} Wantlist Item` : `Add ${albumType} to Wantlist`}</h2>
+        <h2 className="text-xl font-bold text-zinc-950 pr-10">{itemToEdit ? `Edit ${albumType} Wantlist Item` : `Add ${albumType} to Wantlist`}</h2>
         
         {isProcessing && !isSelectorOpen && (
             <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -375,20 +375,20 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                     <div className="flex gap-2">
                         <div className="relative flex-grow">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <LinkIcon className="h-4 w-4 text-zinc-400" />
+                                <LinkIcon className="h-4 w-4 text-zinc-500" />
                             </div>
                             <input
                                 type="url"
                                 placeholder="Paste image URL"
                                 value={manualUrl}
                                 onChange={(e) => setManualUrl(e.target.value)}
-                                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 pl-9 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
+                                className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 pl-9 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
                             />
                         </div>
                         <button
                             type="button"
                             onClick={handleSetArtFromUrl}
-                            className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
+                            className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-800 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
                         >
                             Set
                         </button>
@@ -398,7 +398,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                         <button
                             type="button"
                             onClick={handleFindArt}
-                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-800 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={!artist || !title}
                         >
                             <GlobeIcon className="h-4 w-4" />
@@ -407,7 +407,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                         <button
                             type="button"
                             onClick={handlePickFromDrive}
-                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
+                            className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-300 text-zinc-800 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800 text-sm"
                         >
                             <GoogleDriveIcon className="h-4 w-4" />
                             Drive
@@ -435,7 +435,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                   value={artist}
                   onChange={(e) => setArtist(e.target.value)}
                   required
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
                   type="text"
@@ -443,7 +443,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
               </div>
 
@@ -453,34 +453,34 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                   placeholder="Country"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
                   type="text"
                   placeholder="Desired Record Label"
                   value={record_label}
                   onChange={(e) => setRecordLabel(e.target.value)}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
                   type="text"
                   placeholder={isVinyl ? "Edition Preference (e.g. 180g)" : "Version Preference (e.g. Remaster)"}
                   value={version}
                   onChange={(e) => setVersion(e.target.value)}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
                 <input
                   type="text"
                   placeholder="Producer"
                   value={producer}
                   onChange={(e) => setProducer(e.target.value)}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">TARGET MEDIA CONDITION</p>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">TARGET MEDIA CONDITION</p>
                   <div className="space-y-2">
                     {mediaCondList.map(attr => (
                       <label key={attr} className="flex items-center gap-2 cursor-pointer group">
@@ -490,14 +490,14 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                           onChange={() => toggleAttribute(attr)}
                           className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-800"
                         />
-                        <span className="text-xs text-zinc-600 group-hover:text-zinc-900 transition-colors font-medium">{attr}</span>
+                        <span className="text-xs text-zinc-700 group-hover:text-zinc-950 transition-colors font-medium">{attr}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
                 <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">TARGET COVER CONDITION</p>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">TARGET COVER CONDITION</p>
                   <div className="space-y-2">
                     {coverCondList.map(attr => (
                       <label key={attr} className="flex items-center gap-2 cursor-pointer group">
@@ -507,7 +507,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                           onChange={() => toggleAttribute(attr)}
                           className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-800"
                         />
-                        <span className="text-xs text-zinc-600 group-hover:text-zinc-900 transition-colors font-medium">{attr}</span>
+                        <span className="text-xs text-zinc-700 group-hover:text-zinc-950 transition-colors font-medium">{attr}</span>
                       </label>
                     ))}
                   </div>
@@ -515,7 +515,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
               </div>
 
               <div className="p-3 bg-white border border-zinc-200 rounded-lg">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">PHYSICAL ATTRIBUTES</p>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">PHYSICAL ATTRIBUTES</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {attrList.map(attr => (
                     <label key={attr} className="flex items-center gap-2 cursor-pointer group">
@@ -525,7 +525,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                         onChange={() => toggleAttribute(attr)}
                         className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-800"
                       />
-                      <span className="text-xs text-zinc-600 group-hover:text-zinc-900 transition-colors font-medium">{attr}</span>
+                      <span className="text-xs text-zinc-700 group-hover:text-zinc-950 transition-colors font-medium">{attr}</span>
                     </label>
                   ))}
                 </div>
@@ -545,7 +545,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                     <button
                       type="button"
                       onClick={handleAddGenre}
-                      className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-700 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
+                      className="flex-shrink-0 bg-white border border-zinc-300 text-zinc-800 font-semibold py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
                     >
                       Add
                     </button>

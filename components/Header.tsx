@@ -38,7 +38,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
       to={to}
       className={({ isActive }) =>
         `text-base font-medium pb-1 border-b-2 uppercase tracking-wide ${
-          isActive ? 'text-zinc-900 border-zinc-900' : 'text-zinc-600 border-transparent'
+          isActive ? 'text-zinc-950 border-zinc-950' : 'text-zinc-700 border-transparent'
         }`
       }
     >
@@ -80,10 +80,10 @@ const Header: React.FC<HeaderProps> = ({
     <header className="p-4 md:p-6 bg-white sticky top-0 z-20 border-b border-zinc-200 w-full overflow-hidden">
       <div className="container mx-auto flex items-center justify-between gap-2">
         <div className="flex items-center min-w-0 flex-shrink">
-          <a href="/" onClick={handleLogoClick} className="text-xl md:text-2xl font-black text-zinc-900 uppercase tracking-wider shrink-0" style={{ fontFamily: "'Montserrat', sans-serif" }}>disco</a>
+          <a href="/" onClick={handleLogoClick} className="text-xl md:text-2xl font-black text-zinc-950 uppercase tracking-wider shrink-0" style={{ fontFamily: "'Montserrat', sans-serif" }}>disco</a>
           <div className="flex items-center ml-2 md:ml-4 shrink-0">
-              <span className="text-[10px] md:text-xs font-semibold text-zinc-500 bg-zinc-200 py-0.5 px-2 rounded-full mr-1 md:mr-2">{collectionCount}</span>
-              <button onClick={onToggleMode} className="p-1 rounded-full text-zinc-600 focus:outline-none" title={`Switch to ${collectionMode === 'cd' ? 'Vinyl' : 'CD'} mode`}>
+              <span className="text-[10px] md:text-xs font-semibold text-zinc-600 bg-zinc-200 py-0.5 px-2 rounded-full mr-1 md:mr-2">{collectionCount}</span>
+              <button onClick={onToggleMode} className="p-1 rounded-full text-zinc-700 focus:outline-none" title={`Switch to ${collectionMode === 'cd' ? 'Vinyl' : 'CD'} mode`}>
                 {collectionMode === 'cd' ? <CompactDiscIcon className="w-5 h-5 md:w-6 md:h-6" /> : <VinylIcon className="w-5 h-5 md:w-6 md:h-6" />}
               </button>
           </div>
@@ -109,7 +109,7 @@ const Header: React.FC<HeaderProps> = ({
                 <button 
                   onClick={onCloudPush}
                   disabled={isSyncBusy}
-                  className="p-1 md:p-1.5 rounded-full hover:bg-zinc-200 transition-colors text-zinc-600 disabled:opacity-30"
+                  className="p-1 md:p-1.5 rounded-full hover:bg-zinc-200 transition-colors text-zinc-700 disabled:opacity-30"
                   title="Save to Cloud (Push)"
                 >
                   <ArrowUpCircleIcon className={`w-4 h-4 md:w-5 md:h-5 ${syncStatus === 'saving' ? 'animate-bounce text-blue-600' : ''}`} />
@@ -117,7 +117,7 @@ const Header: React.FC<HeaderProps> = ({
                 <button 
                   onClick={onCloudPull}
                   disabled={isSyncBusy}
-                  className="p-1 md:p-1.5 rounded-full hover:bg-zinc-200 transition-colors text-zinc-600 disabled:opacity-30"
+                  className="p-1 md:p-1.5 rounded-full hover:bg-zinc-200 transition-colors text-zinc-700 disabled:opacity-30"
                   title="Load from Cloud (Pull)"
                 >
                   <ArrowDownCircleIcon className={`w-4 h-4 md:w-5 md:h-5 ${syncStatus === 'loading' ? 'animate-bounce text-blue-600' : ''}`} />
@@ -136,7 +136,7 @@ const Header: React.FC<HeaderProps> = ({
             )}
             
             <div ref={menuRef} className="relative">
-                <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-1.5 md:p-2 rounded-full text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-800" aria-haspopup="true" aria-expanded={isMenuOpen} aria-label="Open menu">
+                <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-1.5 md:p-2 rounded-full text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-800" aria-haspopup="true" aria-expanded={isMenuOpen} aria-label="Open menu">
                     <MenuIcon className="h-6 w-6" />
                 </button>
                 {isMenuOpen && (
@@ -150,14 +150,14 @@ const Header: React.FC<HeaderProps> = ({
                         </div>
                     )}
                     <div className="p-2">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 px-2 mb-2">Tools</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-2 mb-2">Tools</h3>
                         <NavLink to="/duplicates" onClick={() => setIsMenuOpen(false)} className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-md text-sm ${isActive ? 'bg-zinc-100 text-zinc-900 font-bold' : 'text-zinc-700'} focus:outline-none hover:bg-zinc-100 transition-colors`}>
                             <SparklesIcon className="w-5 h-5" />
                             <span className="font-medium">Find Duplicates</span>
                         </NavLink>
                     </div>
                     <div className="p-2">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 px-2 mb-2">Sync & Backup</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-2 mb-2">Sync & Backup</h3>
                          <div className="space-y-1">
                             <button onClick={() => { onOpenSyncSettings(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 rounded-md text-sm text-zinc-700 focus:outline-none hover:bg-zinc-100 transition-colors text-left">
                                 <SettingsIcon className="w-5 h-5" />
@@ -166,7 +166,7 @@ const Header: React.FC<HeaderProps> = ({
                         </div>
                     </div>
                     <div className="p-2">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 px-2 mb-2">Local Actions</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-2 mb-2">Local Actions</h3>
                          <div className="space-y-1">
                             <button onClick={() => { onImport(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 rounded-md text-sm text-zinc-700 focus:outline-none hover:bg-zinc-100 transition-colors text-left">
                                 <UploadIcon className="w-5 h-5" />

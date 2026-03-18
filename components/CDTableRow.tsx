@@ -51,26 +51,26 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
           </div>
           {/* Info Stack for Mobile */}
           <div className="flex-grow md:hidden">
-            <p className="font-bold text-zinc-900" title={cd.title}>{cd.title}</p>
+            <p className="font-bold text-zinc-950" title={cd.title}>{cd.title}</p>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` });
               }}
-              className="text-zinc-700 text-sm hover:underline text-left block w-full" 
+              className="text-zinc-800 text-sm hover:underline text-left block w-full" 
               title={cd.artist}
             >
               {cd.artist}
             </button>
             {(cd.genre && cd.genre.length > 0 || cd.year) && (
-              <p className="text-xs text-zinc-500 mt-1">{[Array.isArray(cd.genre) ? cd.genre.join(', ') : cd.genre, cd.year].filter(Boolean).join(' • ')}</p>
+              <p className="text-xs text-zinc-600 mt-1">{[Array.isArray(cd.genre) ? cd.genre.join(', ') : cd.genre, cd.year].filter(Boolean).join(' • ')}</p>
             )}
           </div>
            {/* Edit button is part of the flex layout on mobile */}
            <div className="ml-auto md:hidden">
              <button
                 onClick={handleEditClick}
-                className="p-2 text-zinc-500 rounded-full"
+                className="p-2 text-zinc-600 rounded-full"
                 aria-label={`Edit ${cd.title}`}
               >
                 <EditIcon className="w-5 h-5" />
@@ -80,8 +80,8 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
       </td>
 
       {/* Desktop-only cells. Hidden on mobile. */}
-      <td className="hidden md:table-cell p-3 font-bold text-zinc-900 align-middle" title={cd.title}>{cd.title}</td>
-      <td className="hidden md:table-cell p-3 text-zinc-700 align-middle" title={cd.artist}>
+      <td className="hidden md:table-cell p-3 font-bold text-zinc-950 align-middle" title={cd.title}>{cd.title}</td>
+      <td className="hidden md:table-cell p-3 text-zinc-800 align-middle" title={cd.artist}>
         <button 
           onClick={(e) => {
             e.stopPropagation();
@@ -92,12 +92,12 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
           {cd.artist}
         </button>
       </td>
-      <td className="hidden md:table-cell p-3 text-zinc-600 align-middle">{Array.isArray(cd.genre) ? cd.genre.join(', ') : cd.genre}</td>
-      <td className="hidden md:table-cell p-3 text-zinc-600 align-middle">{cd.year}</td>
+      <td className="hidden md:table-cell p-3 text-zinc-700 align-middle">{Array.isArray(cd.genre) ? cd.genre.join(', ') : cd.genre}</td>
+      <td className="hidden md:table-cell p-3 text-zinc-700 align-middle">{cd.year}</td>
       <td className="hidden md:table-cell p-3 text-right align-middle">
         <button
           onClick={handleEditClick}
-          className="p-2 text-zinc-500 rounded-full"
+          className="p-2 text-zinc-600 rounded-full"
           aria-label={`Edit ${cd.title}`}
         >
           <EditIcon className="w-5 h-5" />
