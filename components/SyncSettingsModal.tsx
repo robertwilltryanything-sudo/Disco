@@ -6,6 +6,7 @@ import { GlobeIcon } from './icons/GlobeIcon';
 import { QuestionMarkCircleIcon } from './icons/QuestionMarkCircleIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
+import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 interface SyncSettingsModalProps {
@@ -15,6 +16,8 @@ interface SyncSettingsModalProps {
     onProviderChange: (provider: SyncProvider) => void;
     syncMode: string;
     onSyncModeChange: (mode: string) => void;
+    isSignedIn: boolean;
+    onSignIn: () => void;
 }
 
 const ProviderOption: React.FC<{
@@ -57,8 +60,11 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     onClose,
     currentProvider,
     onProviderChange,
+    isSignedIn,
+    onSignIn,
 }) => {
     const [showDriveHelp, setShowDriveHelp] = useState(false);
+    const [showTroubleshooting, setShowTroubleshooting] = useState(false);
     // Explicitly type the state to fix TS2339 errors
     const [revisions, setRevisions] = useState<DriveRevision[]>([]);
     const [isLoadingRevisions, setIsLoadingRevisions] = useState(false);
@@ -107,6 +113,41 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                         isDisabled={!isGoogleConfigured}
                         onSelect={() => onProviderChange('google_drive')}
                     />
+
+                    {currentProvider === 'google_drive' && !isSignedIn && isGoogleConfigured && (
+                        <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-sm text-blue-800 mb-3">You are not signed in to Google Drive.</p>
+                            <button 
+                                onClick={onSignIn}
+                                className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black transition-colors"
+                            >
+                                <GoogleDriveIcon className="w-5 h-5" />
+                                <span>Sign in with Google</span>
+                            </button>
+                            
+                            <button 
+                                onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+                                className="mt-3 w-full text-xs text-blue-600 hover:underline text-center"
+                            >
+                                {showTroubleshooting ? 'Hide Troubleshooting' : 'Popup not appearing? Click here'}
+                            </button>
+
+                            {showTroubleshooting && (
+                                <div className="mt-3 p-3 bg-white border border-blue-100 rounded text-xs text-zinc-600 space-y-2">
+                                    <p className="font-bold text-zinc-800">1. Check Popup Blocker</p>
+                                    <p>Ensure your browser isn't blocking popups for this site. Look for an icon in your address bar.</p>
+                                    
+                                    <p className="font-bold text-zinc-800">2. Authorized Origins</p>
+                                    <p>You must add these URLs to your Google Cloud Console under "Authorized JavaScript origins":</p>
+                                    <div className="bg-zinc-50 p-2 rounded font-mono break-all select-all border border-zinc-200">
+                                        https://ais-dev-amszmm4xv6p2vamcbwkjfd-84416915459.europe-west2.run.app<br/>
+                                        https://ais-pre-amszmm4xv6p2vamcbwkjfd-84416915459.europe-west2.run.app
+                                    </div>
+                                    <p className="text-[10px]">Note: These are your unique development and preview URLs.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {currentProvider === 'google_drive' && googleDrive.isSignedIn && (
                         <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-lg">

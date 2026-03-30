@@ -432,6 +432,8 @@ const AppContent: React.FC = () => {
         onCloudPush={initiateCloudPush}
         onCloudPull={initiateCloudPull}
         onSignOut={driveSignOut}
+        onSignIn={driveSignIn}
+        isSignedIn={driveSignedIn}
         isOnWantlistPage={isOnWantlistPage}
         collectionMode={collectionMode}
         onToggleMode={handleToggleMode}
@@ -526,7 +528,16 @@ const AppContent: React.FC = () => {
       )}
       {duplicateCheckResult && <ConfirmDuplicateModal isOpen={true} onClose={() => setDuplicateCheckResult(null)} onConfirm={(version) => handleSaveCD({ ...duplicateCheckResult.newCd, version })} newCdData={duplicateCheckResult.newCd} existingCd={duplicateCheckResult.existingCd} />}
       <ImportConfirmModal isOpen={!!pendingImport} onClose={() => setPendingImport(null)} onMerge={() => confirmImport('merge')} onReplace={() => confirmImport('replace')} importCount={pendingImport?.length || 0} />
-      <SyncSettingsModal isOpen={isSyncSettingsOpen} onClose={() => setIsSyncSettingsOpen(false)} currentProvider={syncProvider} onProviderChange={setSyncProvider} syncMode="manual" onSyncModeChange={() => {}} />
+      <SyncSettingsModal 
+        isOpen={isSyncSettingsOpen} 
+        onClose={() => setIsSyncSettingsOpen(false)} 
+        currentProvider={syncProvider} 
+        onProviderChange={setSyncProvider} 
+        syncMode="manual" 
+        onSyncModeChange={() => {}} 
+        isSignedIn={driveSignedIn}
+        onSignIn={driveSignIn}
+      />
       <SyncConfirmationModal 
         isOpen={isSyncConfirmOpen}
         onClose={() => setIsSyncConfirmOpen(false)}

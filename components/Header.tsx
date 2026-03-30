@@ -7,6 +7,7 @@ import { UploadIcon } from './icons/UploadIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
+import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { PlusIcon } from './icons/PlusIcon';
 import { CompactDiscIcon } from './icons/CompactDiscIcon';
@@ -26,6 +27,8 @@ interface HeaderProps {
     onCloudPush: () => void;
     onCloudPull: () => void;
     onSignOut: () => void;
+    onSignIn: () => void;
+    isSignedIn: boolean;
     isOnWantlistPage?: boolean;
     collectionMode: CollectionMode;
     onToggleMode: () => void;
@@ -49,7 +52,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 
 const Header: React.FC<HeaderProps> = ({ 
     onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings,
-    syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut,
+    syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut, onSignIn, isSignedIn,
     isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -141,11 +144,19 @@ const Header: React.FC<HeaderProps> = ({
                 </button>
                 {isMenuOpen && (
                 <div className="absolute top-full right-0 mt-2 w-64 md:w-72 bg-white rounded-lg shadow-lg border border-zinc-200 p-2 z-30 divide-y divide-zinc-200" role="menu">
-                    {syncProvider === 'google_drive' && (
+                    {syncProvider === 'google_drive' && isSignedIn && (
                          <div className="p-2">
                             <button onClick={handleSignOutClick} className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none hover:bg-red-50 transition-colors">
                                 <LogoutIcon className="w-5 h-5" />
                                 <span className="font-medium text-sm">Sign Out from Drive</span>
+                            </button>
+                        </div>
+                    )}
+                    {syncProvider === 'google_drive' && !isSignedIn && (
+                         <div className="p-2">
+                            <button onClick={() => { onSignIn(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none hover:bg-zinc-100 transition-colors">
+                                <GoogleDriveIcon className="w-5 h-5" />
+                                <span className="font-medium text-sm">Sign In to Drive</span>
                             </button>
                         </div>
                     )}

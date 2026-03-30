@@ -240,39 +240,32 @@ export const useGoogleDrive = () => {
     };
   }, [initializeSync]);
 
-  const signIn = useCallback(async () => {
-    updateSyncStatus('authenticating');
-    setError(null);
-
-    // Force a fresh initialization during the sign-in process.
-    // This ensures we have a valid token client and avoids stale state issues
-    // that often lead to timeouts in iframe/sandboxed environments.
-    // We skip auto-refresh because we are about to trigger a manual one.
-    await initializeSync(0, true, true);
-
+  const signIn = useCallback(() => {
     if (!window.tokenClient) {
-      console.error("Token client failed to initialize during sign-in.");
-      setError("Authentication system failed to initialize. Please check if popups are blocked or try again.");
-      updateSyncStatus('error');
+      setError("Google Auth is still initializing. Please wait a moment and try again.");
       return;
     }
+
+    updateSyncStatus('authenticating');
+    setError(null);
 
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
       if (syncStatusRef.current === 'authenticating') {
         console.warn("Google Auth Timeout reached");
         updateSyncStatus('idle');
-        setError("Sign-in timed out. This often happens if popups are blocked or the window was closed. Please try again.");
+        setError("Sign-in is taking longer than expected. Please check if a popup window is hidden behind your browser or blocked by a popup blocker.");
       }
     }, AUTH_TIMEOUT_MS);
 
     try {
+      // Direct call without 'await' to ensure browser treats it as a user-initiated action
       window.tokenClient.requestAccessToken({ prompt: 'select_account' });
     } catch (e) {
       console.error("Error triggering requestAccessToken:", e);
       handleApiError(e, 'signin_trigger');
     }
-  }, [updateSyncStatus, handleApiError, initializeSync]);
+  }, [updateSyncStatus, handleApiError]);
 
   const getOrCreateFileId = useCallback(async () => {
     if (fileIdRef.current) return fileIdRef.current;
