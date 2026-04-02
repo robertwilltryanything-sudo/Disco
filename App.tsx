@@ -25,6 +25,7 @@ import { SpinnerIcon } from './components/icons/SpinnerIcon';
 import { XCircleIcon } from './components/icons/XCircleIcon';
 import SyncConfirmationModal from './components/SyncConfirmationModal';
 import DriveImagePickerModal from './components/DriveImagePickerModal';
+import SearchOverlay from './components/SearchOverlay';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
@@ -148,6 +149,7 @@ const AppContent: React.FC = () => {
   const [duplicateCheckResult, setDuplicateCheckResult] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
   const [pendingImport, setPendingImport] = useState<CD[] | null>(null);
   const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Drive Picker States
   const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
@@ -340,6 +342,10 @@ const AppContent: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [collection, wantlist]);
 
+  const handleGlobalSearch = useCallback((query: string) => {
+    navigate(`/?q=${encodeURIComponent(query)}`);
+  }, [navigate]);
+
   const fetchAndApplyAlbumDetails = async (cd: CD) => {
     if (!cd.genre || !cd.year || !cd.allmusic_url) {
         try {
@@ -438,6 +444,7 @@ const AppContent: React.FC = () => {
         collectionMode={collectionMode}
         onToggleMode={handleToggleMode}
         lastSyncTime={driveLastSyncTime}
+        onSearchClick={() => setIsSearchOpen(true)}
       />
       <main className="container mx-auto p-4 md:p-6 max-w-full overflow-x-hidden">
         {isGoogleDriveSelectedButLoggedOut && (
@@ -566,7 +573,14 @@ const AppContent: React.FC = () => {
         fetchImages={driveFetchImages}
       />
 
-      <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} />
+      <SearchOverlay 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        onSearch={handleGlobalSearch} 
+        albumType={collectionMode === 'vinyl' ? 'Vinyl' : 'CD'}
+      />
+
+      <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} onSearchClick={() => setIsSearchOpen(true)} />
       <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30"><PlusIcon className="h-6 w-6" /></button>
     </div>
   );

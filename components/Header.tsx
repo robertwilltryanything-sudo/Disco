@@ -14,6 +14,7 @@ import { CompactDiscIcon } from './icons/CompactDiscIcon';
 import { VinylIcon } from './icons/VinylIcon';
 import { ArrowUpCircleIcon } from './icons/ArrowUpCircleIcon';
 import { ArrowDownCircleIcon } from './icons/ArrowDownCircleIcon';
+import { SearchIcon } from './icons/SearchIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -33,6 +34,7 @@ interface HeaderProps {
     collectionMode: CollectionMode;
     onToggleMode: () => void;
     lastSyncTime?: string | null;
+    onSearchClick: () => void;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -53,7 +55,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 const Header: React.FC<HeaderProps> = ({ 
     onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings,
     syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut, onSignIn, isSignedIn,
-    isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime
+    isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime, onSearchClick
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -107,6 +109,15 @@ const Header: React.FC<HeaderProps> = ({
         </nav>
 
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
+            <button 
+              onClick={onSearchClick}
+              className="p-1.5 md:p-2 rounded-full text-zinc-700 hover:bg-zinc-100 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-800"
+              title="Search Collection"
+              aria-label="Search Collection"
+            >
+              <SearchIcon className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+
             {syncProvider === 'google_drive' && (
               <div className="flex items-center bg-zinc-50 border border-zinc-100 rounded-full px-1 py-0.5 mr-0.5 md:mr-1">
                 <button 

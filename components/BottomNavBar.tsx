@@ -48,9 +48,10 @@ const NavItem: React.FC<NavItemProps> = ({ to, onClick, children, label, state }
 interface BottomNavBarProps {
   collectionMode: CollectionMode;
   onToggleMode: () => void;
+  onSearchClick: () => void;
 }
 
-const BottomNavBar: React.FC<BottomNavBarProps> = ({ collectionMode, onToggleMode }) => {
+const BottomNavBar: React.FC<BottomNavBarProps> = ({ collectionMode, onToggleMode, onSearchClick }) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-zinc-200 z-20 grid grid-cols-5 md:hidden shadow-[0_-1px_10px_rgba(0,0,0,0.05)]">
         <NavItem to="/" label="Home">
@@ -65,7 +66,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ collectionMode, onToggleMod
         <NavItem to="/wantlist" label="Wantlist">
             <TagIcon className="w-6 h-6" />
         </NavItem>
-        <NavItem to="/?focus=search" label="Search">
+        <NavItem onClick={onSearchClick} label="Search">
             <SearchIcon className="w-6 h-6" />
         </NavItem>
     </nav>
