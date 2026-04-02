@@ -82,7 +82,7 @@ const Header: React.FC<HeaderProps> = ({
   const isSyncBusy = syncStatus === 'loading' || syncStatus === 'saving' || syncStatus === 'authenticating';
 
   return (
-    <header className="p-4 md:p-6 bg-white sticky top-0 z-20 border-b border-zinc-200 w-full overflow-hidden">
+    <header className="p-4 md:p-6 bg-white sticky top-0 z-20 border-b border-zinc-200 w-full">
       <div className="container mx-auto flex items-center justify-between gap-2">
         <div className="flex items-center min-w-0 flex-shrink">
           <a href="/" onClick={handleLogoClick} className="text-xl md:text-2xl font-black text-zinc-950 uppercase tracking-wider shrink-0" style={{ fontFamily: "'Montserrat', sans-serif" }}>disco</a>
@@ -150,7 +150,7 @@ const Header: React.FC<HeaderProps> = ({
             )}
             
             <div ref={menuRef} className="relative">
-                <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-1.5 md:p-2 rounded-full text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-800" aria-haspopup="true" aria-expanded={isMenuOpen} aria-label="Open menu">
+                <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-2 md:p-3 rounded-full text-zinc-700 hover:bg-zinc-100 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-800" aria-haspopup="true" aria-expanded={isMenuOpen} aria-label="Open menu">
                     <MenuIcon className="h-6 w-6" />
                 </button>
                 {isMenuOpen && (
