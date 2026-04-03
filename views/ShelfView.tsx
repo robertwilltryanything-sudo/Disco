@@ -22,19 +22,46 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
     // Initialize groups
     ALPHABET.forEach(char => groups[char] = []);
 
-    const getSortName = (name: string) => {
-      const lower = name.toLowerCase().trim();
-      if (lower.startsWith('the ')) return lower.slice(4).trim();
-      return lower;
+    const getSurnameInfo = (name: string) => {
+      let cleanName = name.trim();
+      if (!cleanName) return { groupChar: '#', sortKey: '' };
+
+      const lower = cleanName.toLowerCase();
+      
+      // Handle "The ..." bands - usually sorted by the first word after "The"
+      if (lower.startsWith('the ')) {
+        const afterThe = cleanName.slice(4).trim();
+        return {
+          groupChar: afterThe.charAt(0).toUpperCase(),
+          sortKey: afterThe.toLowerCase()
+        };
+      }
+
+      const parts = cleanName.split(/\s+/);
+      
+      // If multiple words, assume last is surname (e.g., David Bowie -> Bowie)
+      if (parts.length > 1) {
+        const surname = parts[parts.length - 1];
+        const firstName = parts.slice(0, -1).join(' ');
+        return {
+          groupChar: surname.charAt(0).toUpperCase(),
+          sortKey: `${surname.toLowerCase()}, ${firstName.toLowerCase()}`
+        };
+      }
+
+      // Single word name (e.g., Prince)
+      return {
+        groupChar: cleanName.charAt(0).toUpperCase(),
+        sortKey: cleanName.toLowerCase()
+      };
     };
 
     cds.forEach(cd => {
-      const sortName = getSortName(cd.artist);
-      const firstChar = sortName.charAt(0).toUpperCase();
+      const { groupChar } = getSurnameInfo(cd.artist);
       
       let targetGroup = '#';
-      if (/[A-Z]/.test(firstChar)) {
-        targetGroup = firstChar;
+      if (/[A-Z]/.test(groupChar)) {
+        targetGroup = groupChar;
       }
       
       if (groups[targetGroup]) {
@@ -44,13 +71,13 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
       }
     });
 
-    // Sort items within each group: Artist (A-Z, ignoring "The") then Year (Chronological)
+    // Sort items within each group: Surname Sort Key then Year (Chronological)
     Object.keys(groups).forEach(key => {
       groups[key].sort((a, b) => {
-        const nameA = getSortName(a.artist);
-        const nameB = getSortName(b.artist);
+        const infoA = getSurnameInfo(a.artist);
+        const infoB = getSurnameInfo(b.artist);
         
-        const artComp = nameA.localeCompare(nameB);
+        const artComp = infoA.sortKey.localeCompare(infoB.sortKey);
         if (artComp !== 0) return artComp;
         return (a.year || 0) - (b.year || 0);
       });
@@ -73,7 +100,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         </div>
         <div>
           <h1 className="text-3xl font-black text-zinc-950 uppercase tracking-tight">Shelf Organizer</h1>
-          <p className="text-zinc-600 font-medium">Grouped alphabetically by artist (ignoring "The"), then chronologically by year.</p>
+          <p className="text-zinc-600 font-medium">Grouped by surname (e.g. Bowie under B) or band name, then chronologically.</p>
         </div>
       </div>
 
