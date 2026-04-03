@@ -67,6 +67,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: lower
         };
       }
+
+      // Special case for Ryan Adams (e.g. Ryan Adams & The Cardinals -> A)
+      if (lower.includes('ryan adams')) {
+        return {
+          groupChar: 'A',
+          sortKey: 'adams, ryan' + lower.replace('ryan adams', '')
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
