@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { CD, CollectionMode } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
@@ -242,7 +243,11 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
                     <div className="p-5 pt-0 border-t border-zinc-100">
                       <div className="grid grid-cols-1 gap-3 mt-4">
                         {items.map((item) => (
-                          <div key={item.id} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-colors group">
+                          <Link 
+                            key={item.id} 
+                            to={`/cd/${item.id}`}
+                            className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-colors group"
+                          >
                             <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-200 flex-shrink-0 shadow-sm">
                               {item.cover_art_url ? (
                                 <img src={item.cover_art_url} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -253,10 +258,10 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-zinc-950 truncate leading-tight">{item.artist}</p>
+                              <p className="text-sm font-bold text-zinc-950 truncate leading-tight group-hover:text-zinc-900">{item.artist}</p>
                               <p className="text-xs text-zinc-600 truncate">{item.title} {item.year ? `(${item.year})` : ''}</p>
                             </div>
-                          </div>
+                          </Link>
                         ))}
                       </div>
                     </div>
