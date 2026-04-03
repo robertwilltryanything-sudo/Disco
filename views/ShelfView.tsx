@@ -100,6 +100,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: 'parsons project, alan'
         };
       }
+
+      // Special case for Morbid Angel (under M)
+      if (lower.includes('morbid angel')) {
+        return {
+          groupChar: 'M',
+          sortKey: lower
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
