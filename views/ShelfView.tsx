@@ -75,6 +75,30 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: 'adams, ryan' + lower.replace('ryan adams', '')
         };
       }
+
+      // Special case for Bryan Adams (under A)
+      if (lower.includes('bryan adams')) {
+        return {
+          groupChar: 'A',
+          sortKey: 'adams, bryan' + lower.replace('bryan adams', '')
+        };
+      }
+
+      // Special case for Queens of the Stone Age (under Q)
+      if (lower.includes('queens of the stone age')) {
+        return {
+          groupChar: 'Q',
+          sortKey: lower
+        };
+      }
+
+      // Special case for The Alan Parsons Project (under P)
+      if (lower.includes('the alan parsons project')) {
+        return {
+          groupChar: 'P',
+          sortKey: 'parsons project, alan'
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
