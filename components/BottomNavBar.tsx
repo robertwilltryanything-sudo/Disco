@@ -1,11 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { HomeIcon } from './icons/HomeIcon';
-import { DashboardIcon } from './icons/DashboardIcon';
 import { TagIcon } from './icons/TagIcon';
 import { CompactDiscIcon } from './icons/CompactDiscIcon';
 import { VinylIcon } from './icons/VinylIcon';
 import { SearchIcon } from './icons/SearchIcon';
+import { LibraryIcon } from './icons/LibraryIcon';
 import { CollectionMode } from '../types';
 
 interface NavItemProps {
@@ -57,8 +57,8 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ collectionMode, onToggleMod
         <NavItem to="/" label="Home">
             <HomeIcon className="w-6 h-6" />
         </NavItem>
-        <NavItem to="/stats" label="Stats">
-            <DashboardIcon className="w-6 h-6" />
+        <NavItem to="/shelf" label="Shelf">
+            <LibraryIcon className="w-6 h-6" />
         </NavItem>
         <NavItem onClick={onToggleMode} label={collectionMode === 'cd' ? 'CDs' : 'Vinyl'}>
             {collectionMode === 'cd' ? <CompactDiscIcon className="w-6 h-6" /> : <VinylIcon className="w-6 h-6" />}

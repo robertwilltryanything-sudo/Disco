@@ -9,12 +9,15 @@ import { SettingsIcon } from './icons/SettingsIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
+import { DashboardIcon } from './icons/DashboardIcon';
 import { PlusIcon } from './icons/PlusIcon';
 import { CompactDiscIcon } from './icons/CompactDiscIcon';
 import { VinylIcon } from './icons/VinylIcon';
 import { ArrowUpCircleIcon } from './icons/ArrowUpCircleIcon';
 import { ArrowDownCircleIcon } from './icons/ArrowDownCircleIcon';
 import { SearchIcon } from './icons/SearchIcon';
+
+import { LibraryIcon } from './icons/LibraryIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -96,6 +99,7 @@ const Header: React.FC<HeaderProps> = ({
         
         <nav className="hidden lg:flex flex-shrink-0">
             <ul className="flex items-center gap-6">
+                <NavItem to="/shelf">Shelf</NavItem>
                 <NavItem to="/stats">Stats</NavItem>
                 <NavItem to="/artists">Artists</NavItem>
                 <NavItem to="/wantlist">Wantlist</NavItem>
@@ -173,6 +177,14 @@ const Header: React.FC<HeaderProps> = ({
                     )}
                     <div className="p-2">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-2 mb-2">Tools</h3>
+                        <NavLink to="/shelf" onClick={() => setIsMenuOpen(false)} className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-md text-sm ${isActive ? 'bg-zinc-100 text-zinc-900 font-bold' : 'text-zinc-700'} focus:outline-none hover:bg-zinc-100 transition-colors`}>
+                            <LibraryIcon className="w-5 h-5" />
+                            <span className="font-medium">Shelf Organizer</span>
+                        </NavLink>
+                        <NavLink to="/stats" onClick={() => setIsMenuOpen(false)} className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-md text-sm ${isActive ? 'bg-zinc-100 text-zinc-900 font-bold' : 'text-zinc-700'} focus:outline-none hover:bg-zinc-100 transition-colors`}>
+                            <DashboardIcon className="w-5 h-5" />
+                            <span className="font-medium">Collection Stats</span>
+                        </NavLink>
                         <NavLink to="/duplicates" onClick={() => setIsMenuOpen(false)} className={({ isActive }) => `w-full flex items-center gap-3 p-2 rounded-md text-sm ${isActive ? 'bg-zinc-100 text-zinc-900 font-bold' : 'text-zinc-700'} focus:outline-none hover:bg-zinc-100 transition-colors`}>
                             <SparklesIcon className="w-5 h-5" />
                             <span className="font-medium">Find Duplicates</span>
