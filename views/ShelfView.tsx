@@ -35,6 +35,38 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: 'various artists'
         };
       }
+
+      // Special case for Bruce Springsteen (e.g. Bruce Springsteen & The E Street Band -> S)
+      if (lower.includes('bruce springsteen')) {
+        return {
+          groupChar: 'S',
+          sortKey: 'springsteen, bruce' + lower.replace('bruce springsteen', '')
+        };
+      }
+
+      // Special case for Elvis Costello (e.g. Elvis Costello & The Attractions -> C)
+      if (lower.includes('elvis costello')) {
+        return {
+          groupChar: 'C',
+          sortKey: 'costello, elvis' + lower.replace('elvis costello', '')
+        };
+      }
+
+      // Special case for Mumford and Sons (under M)
+      if (lower.includes('mumford and sons')) {
+        return {
+          groupChar: 'M',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Black Sabbath (under B)
+      if (lower.includes('black sabbath')) {
+        return {
+          groupChar: 'B',
+          sortKey: lower
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
@@ -49,7 +81,18 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
       
       // If multiple words, assume last is surname (e.g., David Bowie -> Bowie)
       if (parts.length > 1) {
-        const surname = parts[parts.length - 1];
+        const lastPart = parts[parts.length - 1];
+        
+        // If the last part is a number (e.g., "Jurassic 5", "Maroon 5"), 
+        // treat it as a band name and sort by the first word.
+        if (/^\d+$/.test(lastPart)) {
+          return {
+            groupChar: cleanName.charAt(0).toUpperCase(),
+            sortKey: cleanName.toLowerCase()
+          };
+        }
+
+        const surname = lastPart;
         const firstName = parts.slice(0, -1).join(' ');
         return {
           groupChar: surname.charAt(0).toUpperCase(),
