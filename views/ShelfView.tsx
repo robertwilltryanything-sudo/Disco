@@ -108,6 +108,22 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: lower
         };
       }
+
+      // Special case for Ella Fitzgerald (e.g. Ella Fitzgerald & Louis Armstrong -> F)
+      if (lower.includes('ella fitzgerald')) {
+        return {
+          groupChar: 'F',
+          sortKey: 'fitzgerald, ella' + lower.replace('ella fitzgerald', '')
+        };
+      }
+
+      // Special case for Massive Attack (under M)
+      if (lower.includes('massive attack')) {
+        return {
+          groupChar: 'M',
+          sortKey: lower
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
