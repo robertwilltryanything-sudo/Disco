@@ -28,6 +28,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
 
       const lower = cleanName.toLowerCase();
       
+      // Special case for "Various Artists"
+      if (lower === 'various artists') {
+        return {
+          groupChar: 'V',
+          sortKey: 'various artists'
+        };
+      }
+      
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
         const afterThe = cleanName.slice(4).trim();
