@@ -10,59 +10,43 @@ interface ShelfViewProps {
   collectionMode: CollectionMode;
 }
 
-const MAJOR_GENRES = [
-  { id: 'rock', name: 'Rock', keywords: ['rock', 'metal', 'grunge', 'punk', 'alternative', 'prog', 'psychedelic'] },
-  { id: 'jazz', name: 'Jazz', keywords: ['jazz', 'fusion', 'bop', 'swing', 'bebop'] },
-  { id: 'pop', name: 'Pop', keywords: ['pop', 'dance', 'synthpop', 'disco'] },
-  { id: 'electronic', name: 'Electronic', keywords: ['electronic', 'techno', 'house', 'ambient', 'trance', 'edm', 'idm', 'industrial'] },
-  { id: 'hiphop', name: 'Hip Hop', keywords: ['hip hop', 'rap', 'trap', 'r&b'] },
-  { id: 'soul', name: 'Soul & Funk', keywords: ['soul', 'funk', 'motown', 'rhythm and blues'] },
-  { id: 'classical', name: 'Classical', keywords: ['classical', 'orchestral', 'opera', 'baroque', 'chamber'] },
-  { id: 'country', name: 'Country & Folk', keywords: ['country', 'folk', 'bluegrass', 'americana', 'singer-songwriter'] },
-  { id: 'blues', name: 'Blues', keywords: ['blues'] },
-  { id: 'soundtrack', name: 'Soundtracks', keywords: ['soundtrack', 'score', 'ost', 'movie', 'film'] },
-  { id: 'yacht', name: 'Yacht Rock', keywords: ['yacht rock', 'soft rock', 'aor', 'west coast'] },
-  { id: 'reggae', name: 'Reggae', keywords: ['reggae', 'dub', 'ska'] },
-];
+const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
-  const [expandedGenres, setExpandedGenres] = useState<Record<string, boolean>>({});
+  // Sections collapsed by default for a better "visual overlook"
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const groupedCds = useMemo(() => {
     const groups: Record<string, CD[]> = {};
     
     // Initialize groups
-    MAJOR_GENRES.forEach(g => groups[g.id] = []);
-    groups['other'] = [];
+    ALPHABET.forEach(char => groups[char] = []);
+
+    const getSortName = (name: string) => {
+      const lower = name.toLowerCase().trim();
+      if (lower.startsWith('the ')) return lower.slice(4).trim();
+      return lower;
+    };
 
     cds.forEach(cd => {
-      const genres = (cd.genre || []).map(g => g.toLowerCase());
-      const tags = (cd.tags || []).map(t => t.toLowerCase());
-      const combined = [...genres, ...tags];
+      const sortName = getSortName(cd.artist);
+      const firstChar = sortName.charAt(0).toUpperCase();
       
-      // Find the best matching major genre
-      let matchedId = 'other';
-      
-      // Check keywords
-      for (const major of MAJOR_GENRES) {
-        if (major.keywords.some(keyword => combined.some(g => g.includes(keyword)))) {
-          matchedId = major.id;
-          break;
-        }
+      let targetGroup = '#';
+      if (/[A-Z]/.test(firstChar)) {
+        targetGroup = firstChar;
       }
       
-      groups[matchedId].push(cd);
+      if (groups[targetGroup]) {
+        groups[targetGroup].push(cd);
+      } else {
+        groups['#'].push(cd);
+      }
     });
 
     // Sort items within each group: Artist (A-Z, ignoring "The") then Year (Chronological)
     Object.keys(groups).forEach(key => {
       groups[key].sort((a, b) => {
-        const getSortName = (name: string) => {
-          const lower = name.toLowerCase();
-          if (lower.startsWith('the ')) return lower.slice(4);
-          return lower;
-        };
-        
         const nameA = getSortName(a.artist);
         const nameB = getSortName(b.artist);
         
@@ -75,8 +59,8 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
     return groups;
   }, [cds]);
 
-  const toggleGenre = (id: string) => {
-    setExpandedGenres(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleSection = (id: string) => {
+    setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
@@ -89,15 +73,15 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         </div>
         <div>
           <h1 className="text-3xl font-black text-zinc-950 uppercase tracking-tight">Shelf Organizer</h1>
-          <p className="text-zinc-600 font-medium">Grouped by genre, then sorted alphabetically by artist and chronologically by year.</p>
+          <p className="text-zinc-600 font-medium">Grouped alphabetically by artist (ignoring "The"), then chronologically by year.</p>
         </div>
       </div>
 
       <div className="flex justify-end mb-4">
         <button 
           onClick={() => {
-            const allExpanded = Object.keys(groupedCds).reduce((acc, key) => ({ ...acc, [key]: true }), {});
-            setExpandedGenres(allExpanded);
+            const allExpanded = ALPHABET.reduce((acc, char) => ({ ...acc, [char]: true }), {});
+            setExpandedSections(allExpanded);
           }}
           className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2"
         >
@@ -105,8 +89,8 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         </button>
         <button 
           onClick={() => {
-            const allCollapsed = Object.keys(groupedCds).reduce((acc, key) => ({ ...acc, [key]: false }), {});
-            setExpandedGenres(allCollapsed);
+            const allCollapsed = ALPHABET.reduce((acc, char) => ({ ...acc, [char]: false }), {});
+            setExpandedSections(allCollapsed);
           }}
           className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2"
         >
@@ -115,20 +99,23 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
       </div>
 
       <div className="space-y-4">
-        {[...MAJOR_GENRES, { id: 'other', name: 'Other / Unclassified', keywords: [] }].map((genre) => {
-          const items = groupedCds[genre.id] || [];
+        {ALPHABET.map((char) => {
+          const items = groupedCds[char] || [];
           if (items.length === 0) return null;
 
-          const isExpanded = expandedGenres[genre.id] ?? true;
+          // Default to collapsed (false) if not explicitly set
+          const isExpanded = expandedSections[char] ?? false;
 
           return (
-            <div key={genre.id} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <div key={char} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               <button 
-                onClick={() => toggleGenre(genre.id)}
+                onClick={() => toggleSection(char)}
                 className="w-full flex items-center justify-between p-5 text-left hover:bg-zinc-50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-lg font-bold text-zinc-950 uppercase tracking-wide">{genre.name}</span>
+                  <span className="text-xl font-black text-zinc-950 uppercase tracking-wide">
+                    {char === '#' ? '0-9' : char}
+                  </span>
                   <span className="text-xs font-black bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-full">{items.length}</span>
                 </div>
                 {isExpanded ? <ChevronDownIcon className="w-5 h-5 text-zinc-400" /> : <ChevronRightIcon className="w-5 h-5 text-zinc-400" />}
@@ -157,7 +144,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-zinc-950 truncate leading-tight">{item.artist}</p>
-                              <p className="text-xs text-zinc-600 truncate">{item.title}</p>
+                              <p className="text-xs text-zinc-600 truncate">{item.title} {item.year ? `(${item.year})` : ''}</p>
                             </div>
                           </div>
                         ))}
