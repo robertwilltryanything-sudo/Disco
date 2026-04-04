@@ -85,6 +85,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special cases for bands under A
+      if (['air supply', 'aerial m', 'alice in chains', 'aphex twin', 'arch enemy'].some(band => lower.includes(band))) {
+        return {
+          groupChar: 'A',
+          sortKey: lower
+        };
+      }
+
       // Special case for Queens of the Stone Age (under Q)
       if (lower.includes('queens of the stone age')) {
         return {
@@ -121,6 +129,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
       if (lower.includes('massive attack')) {
         return {
           groupChar: 'M',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Steely Dan (under S)
+      if (lower.includes('steely dan')) {
+        return {
+          groupChar: 'S',
           sortKey: lower
         };
       }
