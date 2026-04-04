@@ -23,7 +23,16 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
     // Initialize groups
     ALPHABET.forEach(char => groups[char] = []);
 
-    const getSurnameInfo = (name: string) => {
+    const getSurnameInfo = (cd: CD) => {
+      if (cd.sort_name) {
+        const cleanSortName = cd.sort_name.trim();
+        return {
+          groupChar: cleanSortName.charAt(0).toUpperCase(),
+          sortKey: cleanSortName.toLowerCase()
+        };
+      }
+
+      let name = cd.artist;
       let cleanName = name.trim();
       if (!cleanName) return { groupChar: '#', sortKey: '' };
 
@@ -140,6 +149,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: lower
         };
       }
+
+      // Special case for Pink Floyd (under P)
+      if (lower.includes('pink floyd')) {
+        return {
+          groupChar: 'P',
+          sortKey: lower
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
@@ -181,7 +198,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
     };
 
     cds.forEach(cd => {
-      const { groupChar } = getSurnameInfo(cd.artist);
+      const { groupChar } = getSurnameInfo(cd);
       
       let targetGroup = '#';
       if (/[A-Z]/.test(groupChar)) {
@@ -198,8 +215,8 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
     // Sort items within each group: Surname Sort Key then Year (Chronological)
     Object.keys(groups).forEach(key => {
       groups[key].sort((a, b) => {
-        const infoA = getSurnameInfo(a.artist);
-        const infoB = getSurnameInfo(b.artist);
+        const infoA = getSurnameInfo(a);
+        const infoB = getSurnameInfo(b);
         
         const artComp = infoA.sortKey.localeCompare(infoB.sortKey);
         if (artComp !== 0) return artComp;

@@ -35,6 +35,7 @@ const CD_ATTRIBUTES = ["Digipak", "Slipcase", "Obi Strip", "Promo", "Upgradable"
 
 const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl, driveSignedIn, onPickFromDrive }) => {
   const [artist, setArtist] = useState('');
+  const [sort_name, setSortName] = useState('');
   const [title, setTitle] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [currentGenre, setCurrentGenre] = useState('');
@@ -63,6 +64,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   useEffect(() => {
     if (itemToEdit) {
       setArtist(itemToEdit.artist);
+      setSortName(itemToEdit.sort_name || '');
       setTitle(itemToEdit.title);
       setGenres(itemToEdit.genre || []);
       setYear(itemToEdit.year || '');
@@ -96,7 +98,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
 
     try {
         const itemData: Omit<WantlistItem, 'id'> & { id?: string } = {
-            id: itemToEdit?.id, artist, title, genre: genres,
+            id: itemToEdit?.id, artist, sort_name, title, genre: genres,
             year: year ? Number(year) : undefined,
             version, record_label, country, producer, tags, cover_art_url, notes,
             attributes,
@@ -142,6 +144,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
             setArtist(albumInfo.artist || '');
+            setSortName(albumInfo.sort_name || '');
             setTitle(albumInfo.title || '');
             setGenres(albumInfo.genre || []);
             setYear(albumInfo.year || '');
@@ -218,7 +221,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setFormErrorTitle("Error Saving to Wantlist");
         setProcessingStatus('Saving item...');
         await onSave({
-          id: itemToEdit?.id, artist, title, genre: genres,
+          id: itemToEdit?.id, artist, sort_name, title, genre: genres,
           year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
           attributes,
           cover_art_url: url, notes,
@@ -248,7 +251,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
           setFormErrorTitle("Error Saving to Wantlist");
           setProcessingStatus('Saving item...');
           await onSave({
-            id: itemToEdit?.id, artist, title, genre: genres,
+            id: itemToEdit?.id, artist, sort_name, title, genre: genres,
             year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
@@ -445,6 +448,17 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                   required
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
+              </div>
+
+              <div className="w-full">
+                <input
+                  type="text"
+                  placeholder="Sort Name (e.g. Bowie, David)"
+                  value={sort_name}
+                  onChange={(e) => setSortName(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1 ml-1 uppercase font-bold tracking-tighter">Used for wantlist sorting</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
