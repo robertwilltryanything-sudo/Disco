@@ -69,6 +69,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Bad News (under B)
+      if (lower.includes('bad news')) {
+        return {
+          groupChar: 'B',
+          sortKey: lower
+        };
+      }
+
       // Special case for Ryan Adams (e.g. Ryan Adams & The Cardinals -> A)
       if (lower.includes('ryan adams')) {
         return {
