@@ -36,7 +36,6 @@ const CD_ATTRIBUTES = ["Digipak", "Slipcase", "Obi Strip", "Promo", "Upgradable"
 
 const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill, isVinyl, driveSignedIn, onPickFromDrive }) => {
   const [artist, setArtist] = useState('');
-  const [sort_name, setSortName] = useState('');
   const [title, setTitle] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [currentGenre, setCurrentGenre] = useState('');
@@ -64,7 +63,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
 
   const resetForm = useCallback(() => {
     setArtist('');
-    setSortName('');
     setTitle('');
     setGenres([]);
     setCurrentGenre('');
@@ -85,7 +83,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   useEffect(() => {
     if (cdToEdit) {
       setArtist(cdToEdit.artist);
-      setSortName(cdToEdit.sort_name || '');
       setTitle(cdToEdit.title);
       setGenres(cdToEdit.genre || []);
       setYear(cdToEdit.year || '');
@@ -101,7 +98,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       resetForm();
       if (prefill) {
         setArtist(prefill.artist || '');
-        setSortName(prefill.sort_name || '');
         setTitle(prefill.title || '');
         setGenres(prefill.genre || []);
         setYear(prefill.year || '');
@@ -136,7 +132,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
 
     try {
         const cdData: Omit<CD, 'id'> & { id?: string } = {
-            id: cdToEdit?.id, artist, sort_name, title, genre: genres,
+            id: cdToEdit?.id, artist, title, genre: genres,
             year: year ? Number(year) : undefined,
             version, record_label, country, producer, tags, cover_art_url, notes,
             attributes,
@@ -184,7 +180,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
             setArtist(albumInfo.artist || '');
-            setSortName(albumInfo.sort_name || '');
             setTitle(albumInfo.title || '');
             setGenres(albumInfo.genre || []);
             setYear(albumInfo.year || '');
@@ -266,7 +261,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setFormErrorTitle("Error Saving Album");
         setProcessingStatus('Saving album...');
         await onSave({
-          id: cdToEdit?.id, artist, sort_name, title, genre: genres,
+          id: cdToEdit?.id, artist, title, genre: genres,
           year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
           attributes,
           cover_art_url: url, notes,
@@ -298,7 +293,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
           setFormErrorTitle("Error Saving Album");
           setProcessingStatus('Saving album...');
           await onSave({
-            id: cdToEdit?.id, artist, sort_name, title, genre: genres,
+            id: cdToEdit?.id, artist, title, genre: genres,
             year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
@@ -495,17 +490,6 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                   required
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
-              </div>
-
-              <div className="w-full">
-                <input
-                  type="text"
-                  placeholder="Sort Name (e.g. Bowie, David)"
-                  value={sort_name}
-                  onChange={(e) => setSortName(e.target.value)}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
-                />
-                <p className="text-[10px] text-zinc-500 mt-1 ml-1 uppercase font-bold tracking-tighter">Used for shelf organization and artist sorting</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

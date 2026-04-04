@@ -48,14 +48,6 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
 
     const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
 
-    const sortedWantlist = [...wantlist].sort((a, b) => {
-        const nameA = a.sort_name || a.artist;
-        const nameB = b.sort_name || b.artist;
-        const artComp = nameA.localeCompare(nameB);
-        if (artComp !== 0) return artComp;
-        return (a.year || 0) - (b.year || 0);
-    });
-
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-6 flex justify-between items-center">
@@ -82,14 +74,14 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
 
             {view === 'grid' ? (
                 <WantlistGrid 
-                    wantlist={sortedWantlist}
+                    wantlist={wantlist}
                     onRequestEdit={onRequestEdit}
                     onDelete={onDelete}
                     onMoveToCollection={onMoveToCollection}
                 />
             ) : (
                 <WantlistTable
-                    wantlist={sortedWantlist}
+                    wantlist={wantlist}
                     onRequestEdit={onRequestEdit}
                     onDelete={onDelete}
                     onMoveToCollection={onMoveToCollection}

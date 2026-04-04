@@ -10,16 +10,13 @@ interface ArtistsViewProps {
 
 const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
   const artists = useMemo(() => {
-    const artistMap = new Map<string, string>();
-    cds.forEach(cd => {
-      if (cd && typeof cd.artist === 'string' && cd.artist && !artistMap.has(cd.artist)) {
-        artistMap.set(cd.artist, cd.sort_name || cd.artist);
-      }
-    });
-    
-    return Array.from(artistMap.entries())
-      .sort((a, b) => a[1].localeCompare(b[1]))
-      .map(entry => entry[0]);
+    // Filter for CDs that have a valid, non-empty artist string to prevent errors.
+    const artistSet = new Set<string>(
+        cds.filter(cd => cd && typeof cd.artist === 'string' && cd.artist)
+           .map(cd => cd.artist)
+    );
+    // Now that we're guaranteed to have strings, we can sort safely.
+    return [...artistSet].sort((a, b) => a.localeCompare(b));
   }, [cds]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';

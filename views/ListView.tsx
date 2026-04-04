@@ -217,11 +217,6 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
         let valA = a[sortBy];
         let valB = b[sortBy];
         
-        if (sortBy === 'artist') {
-          valA = a.sort_name || a.artist;
-          valB = b.sort_name || b.artist;
-        }
-        
         if (sortBy === 'genre') {
           valA = Array.isArray(valA) ? valA[0] : valA;
           valB = Array.isArray(valB) ? valB[0] : valB;
