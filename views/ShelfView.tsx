@@ -148,6 +148,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: lower
         };
       }
+
+      // Special case for Dave Matthews Band (under M)
+      if (lower.includes('dave matthews band')) {
+        return {
+          groupChar: 'M',
+          sortKey: 'matthews band, dave' + lower.replace('dave matthews band', '')
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {

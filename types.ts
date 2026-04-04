@@ -14,6 +14,7 @@ export interface CD {
   country?: string;
   producer?: string;
   tags?: string[];
+  sort_name?: string;
   condition?: string;
   attributes?: string[];
   user_id?: string;
@@ -37,6 +38,7 @@ export interface WantlistItem {
   country?: string;
   producer?: string;
   tags?: string[];
+  sort_name?: string;
   condition?: string;
   attributes?: string[];
   user_id?: string;

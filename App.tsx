@@ -359,6 +359,7 @@ const AppContent: React.FC = () => {
                     year: cd.year || normalizedDetails.year,
                     record_label: cd.record_label || normalizedDetails.record_label,
                     allmusic_url: cd.allmusic_url || normalizedDetails.allmusic_url,
+                    sort_name: cd.sort_name || normalizedDetails.sort_name,
                     tags: [...new Set([...(cd.tags || []), ...(normalizedDetails.tags || [])])],
                 };
                 setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
