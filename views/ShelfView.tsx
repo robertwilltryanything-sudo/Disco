@@ -164,6 +164,30 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: 'matthews band, dave' + lower.replace('dave matthews band', '')
         };
       }
+
+      // Special case for Hootie & The Blowfish (under H)
+      if (lower.includes('hootie & the blowfish')) {
+        return {
+          groupChar: 'H',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Spag Bog (under S)
+      if (lower.includes('spag bog')) {
+        return {
+          groupChar: 'S',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Dimmu Borgir (under D)
+      if (lower.includes('dimmu borgir')) {
+        return {
+          groupChar: 'D',
+          sortKey: lower
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
