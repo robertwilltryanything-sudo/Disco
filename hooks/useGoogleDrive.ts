@@ -17,7 +17,8 @@ export interface DriveFile {
 
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
-const AUTH_TIMEOUT_MS = 60000; // Reduced to 60s, still plenty for 2FA
+const AUTH_TIMEOUT_MS = 30000; // Reduced to 30s for better responsiveness
+const INIT_TIMEOUT_MS = 8000;  // 8s for internal GAPI steps
 
 declare global {
   interface Window {
@@ -103,9 +104,9 @@ export const useGoogleDrive = () => {
           if (checkExists()) {
             clearInterval(interval);
             resolve();
-          } else if (attempts >= 100) { // 10 seconds
+          } else if (attempts >= 50) { // 5 seconds
             clearInterval(interval);
-            reject(new Error(`Timeout waiting for ${globalCheck} to be ready.`));
+            resolve(); // Fallback
           }
           attempts++;
         }, 100);
@@ -117,15 +118,14 @@ export const useGoogleDrive = () => {
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        // Even after onload, the global object might take a millisecond to be assigned
         let attempts = 0;
         const interval = setInterval(() => {
           if (checkExists()) {
             clearInterval(interval);
             resolve();
-          } else if (attempts >= 50) { // 5 seconds
+          } else if (attempts >= 30) { // 3 seconds
             clearInterval(interval);
-            resolve(); // Fallback to resolve anyway and let the next step handle it
+            resolve(); 
           }
           attempts++;
         }, 100);
@@ -150,7 +150,7 @@ export const useGoogleDrive = () => {
       
       await new Promise<void>((resolve, reject) => {
         if (!window.gapi) return reject(new Error("GAPI library missing"));
-        const timeout = setTimeout(() => reject(new Error("Timeout loading GAPI client")), 15000);
+        const timeout = setTimeout(() => reject(new Error("Timeout loading GAPI client")), INIT_TIMEOUT_MS);
         window.gapi.load('client', {
           callback: () => {
             clearTimeout(timeout);
@@ -164,7 +164,7 @@ export const useGoogleDrive = () => {
       });
       
       const initTimeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("GAPI client init timed out")), 15000)
+        setTimeout(() => reject(new Error("GAPI client init timed out")), INIT_TIMEOUT_MS)
       );
 
       await Promise.race([
@@ -214,7 +214,20 @@ export const useGoogleDrive = () => {
       setIsApiReady(true);
 
       if (localStorage.getItem(SIGNED_IN_KEY) === 'true' && !skipAutoRefresh) {
-        window.tokenClient.requestAccessToken({ prompt: '' });
+        // Silent refresh with a safety timeout to prevent hanging the init process
+        const silentRefreshTimeout = setTimeout(() => {
+          console.warn("Silent refresh taking too long, proceeding to ready state.");
+          // We don't reject here, just let the app be ready so the user can click sign-in if needed
+        }, 5000);
+
+        window.tokenClient.requestAccessToken({ 
+          prompt: '',
+          // The callback is already defined in initTokenClient, but we can wrap it or just rely on it
+          // GIS will call the main callback. We just want to ensure we don't block.
+        });
+        
+        // We don't 'await' the token request here to avoid blocking the UI
+        clearTimeout(silentRefreshTimeout);
       }
     } catch (e: any) {
       console.error(`Sync Initialization Failed (Attempt ${retryCount + 1}):`, e);

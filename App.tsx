@@ -481,9 +481,25 @@ const AppContent: React.FC = () => {
                     </div>
                 )}
                 {!driveReady ? (
-                    <div className="mt-6 flex flex-col items-center gap-2">
-                        <SpinnerIcon className="w-8 h-8 text-zinc-500" />
-                        <button disabled className="w-full bg-zinc-200 text-zinc-500 font-bold py-3 px-6 rounded-lg cursor-not-allowed">Initializing...</button>
+                    <div className="mt-6 flex flex-col items-center gap-4">
+                        <div className="flex items-center gap-3 text-zinc-500">
+                            <SpinnerIcon className="w-6 h-6 animate-spin" />
+                            <span className="font-medium">Connecting to Google Services...</span>
+                        </div>
+                        <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+                            <div className="bg-zinc-900 h-full animate-pulse w-2/3"></div>
+                        </div>
+                        <p className="text-xs text-zinc-500 max-w-[280px]">
+                            This usually takes a few seconds. If it's taking too long, try refreshing the page or clicking reset below.
+                        </p>
+                        {driveError && (
+                            <button 
+                                onClick={driveResetStatus} 
+                                className="w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all"
+                            >
+                                Retry Initialization
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
