@@ -157,6 +157,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Pet Shop Boys (under P)
+      if (lower.includes('pet shop boys')) {
+        return {
+          groupChar: 'P',
+          sortKey: lower
+        };
+      }
+
       // Special case for Dave Matthews Band (under M)
       if (lower.includes('dave matthews band')) {
         return {
@@ -186,6 +194,22 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         return {
           groupChar: 'D',
           sortKey: lower
+        };
+      }
+
+      // Special case for Echo and the Bunnymen (under E)
+      if (lower.includes('echo and the bunnymen')) {
+        return {
+          groupChar: 'E',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Chris de Burgh (under D)
+      if (lower.includes('chris de burgh')) {
+        return {
+          groupChar: 'D',
+          sortKey: 'de burgh, chris'
         };
       }
       
