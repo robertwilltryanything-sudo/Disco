@@ -229,8 +229,8 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
-      // Special case for Belle And Sebastian (under B)
-      if (lower.includes('belle and sebastian')) {
+      // Special case for Belle And Sebastian / Belle & Sebastian (under B)
+      if (lower.includes('belle and sebastian') || lower.includes('belle & sebastian')) {
         return {
           groupChar: 'B',
           sortKey: lower
