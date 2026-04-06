@@ -212,6 +212,62 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: 'de burgh, chris'
         };
       }
+
+      // Special case for Killswitch Engage (under K)
+      if (lower.includes('killswitch engage')) {
+        return {
+          groupChar: 'K',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Boards Of Canada (under B)
+      if (lower.includes('boards of canada')) {
+        return {
+          groupChar: 'B',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Belle And Sebastian (under B)
+      if (lower.includes('belle and sebastian')) {
+        return {
+          groupChar: 'B',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Blind Guardian (under B)
+      if (lower.includes('blind guardian')) {
+        return {
+          groupChar: 'B',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Band of Horses (under B)
+      if (lower.includes('band of horses')) {
+        return {
+          groupChar: 'B',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Buena Vista Social Club (under B)
+      if (lower.includes('buena vista social club')) {
+        return {
+          groupChar: 'B',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Blue Pearl (under B)
+      if (lower.includes('blue pearl')) {
+        return {
+          groupChar: 'B',
+          sortKey: lower
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
