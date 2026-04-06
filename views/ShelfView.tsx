@@ -70,6 +70,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Van Morrison (under M)
+      if (lower.includes('van morrison')) {
+        return {
+          groupChar: 'M',
+          sortKey: 'morrison, van' + lower.replace('van morrison', '')
+        };
+      }
+
       // Special case for Black Sabbath (under B)
       if (lower.includes('black sabbath')) {
         return {
