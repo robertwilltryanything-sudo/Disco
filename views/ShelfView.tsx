@@ -53,6 +53,15 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Nick Cave (and Nice Cave) (under C)
+      if (lower.includes('nick cave') || lower.includes('nice cave')) {
+        const nameToUse = lower.includes('nick cave') ? 'nick cave' : 'nice cave';
+        return {
+          groupChar: 'C',
+          sortKey: 'cave, nick' + lower.replace(nameToUse, '')
+        };
+      }
+
       // Special case for Mumford and Sons (under M)
       if (lower.includes('mumford and sons')) {
         return {
