@@ -253,6 +253,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Coheed and Cambria (under C)
+      if (lower.includes('coheed and cambria')) {
+        return {
+          groupChar: 'C',
+          sortKey: lower
+        };
+      }
+
       // Special case for Buena Vista Social Club (under B)
       if (lower.includes('buena vista social club')) {
         return {
