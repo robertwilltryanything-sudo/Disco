@@ -293,6 +293,30 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
           sortKey: lower
         };
       }
+
+      // Special case for Global Communication (under G)
+      if (lower.includes('global communication')) {
+        return {
+          groupChar: 'G',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Thievery Corporation (under T)
+      if (lower.includes('thievery corporation')) {
+        return {
+          groupChar: 'T',
+          sortKey: lower
+        };
+      }
+
+      // Special case for Rain Tree Crow (under R)
+      if (lower.includes('rain tree crow')) {
+        return {
+          groupChar: 'R',
+          sortKey: lower
+        };
+      }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
       if (lower.startsWith('the ')) {
