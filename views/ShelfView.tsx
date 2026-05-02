@@ -166,6 +166,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Fairport Convention (under F)
+      if (lower.includes('fairport convention')) {
+        return {
+          groupChar: 'F',
+          sortKey: lower
+        };
+      }
+
       // Special case for Pink Floyd (under P)
       if (lower.includes('pink floyd')) {
         return {
@@ -187,6 +195,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         return {
           groupChar: 'M',
           sortKey: 'matthews band, dave' + lower.replace('dave matthews band', '')
+        };
+      }
+
+      // Special case for Dave Brubeck Quartet (under B)
+      if (lower.includes('dave brubeck quartet')) {
+        return {
+          groupChar: 'B',
+          sortKey: 'brubeck quartet, dave' + lower.replace('dave brubeck quartet', '')
         };
       }
 

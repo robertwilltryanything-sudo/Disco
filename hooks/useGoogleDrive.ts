@@ -157,14 +157,19 @@ export const useGoogleDrive = () => {
     };
   }, [initializeSync]);
 
-  const signIn = useCallback(() => {
-    if (!window.tokenClient) {
-      setError("Google Auth is still initializing. Please wait a moment.");
-      return;
-    }
-
+  const signIn = useCallback(async () => {
     updateSyncStatus('authenticating');
     setError(null);
+
+    // Reset initialization to ensure a fresh state as requested
+    initStartedRef.current = false;
+    await initializeSync();
+
+    if (!window.tokenClient) {
+      setError("Google Auth failed to initialize. Please check your connection.");
+      updateSyncStatus('idle');
+      return;
+    }
 
     if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current);
     authTimeoutRef.current = window.setTimeout(() => {
@@ -175,7 +180,7 @@ export const useGoogleDrive = () => {
     }, AUTH_TIMEOUT_MS);
 
     window.tokenClient.requestAccessToken({ prompt: 'select_account' });
-  }, [updateSyncStatus]);
+  }, [updateSyncStatus, initializeSync]);
 
   const getOrCreateFileId = useCallback(async () => {
     if (fileIdRef.current) return fileIdRef.current;
