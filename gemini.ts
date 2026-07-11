@@ -312,3 +312,64 @@ export async function getAlbumInfo(base64Image: string): Promise<Partial<CD> | n
         throw new Error(msg);
     }
 }
+
+/**
+ * Fetches a chronological list of main studio albums by an artist using the Gemini API.
+ */
+export async function getArtistStudioDiscography(artist: string): Promise<{ title: string; year: number }[] | null> {
+    const cacheKey = `artist-discography-cache-${artist}`.toLowerCase().replace(/\s+/g, '-');
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+        try {
+            return JSON.parse(cached);
+        } catch (e) {
+            localStorage.removeItem(cacheKey);
+        }
+    }
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) return null;
+    const ai = new GoogleGenAI({ apiKey });
+
+    try {
+        return await callWithRetry(async () => {
+            const response = await ai.models.generateContent({
+                model: 'gemini-3.5-flash',
+                contents: `Provide a complete, accurate, chronological list of main studio albums by the artist/band "${artist}". 
+                Exclude any live albums, compilations, EP, box sets, soundtracks (unless it is a core studio album), and bootlegs.
+                For each album, provide the title and the original release year (4-digit year).
+                Format the response strictly as a JSON array of objects, with each object having exactly "title" and "year" keys. No explanation or code blocks outside the JSON array itself.`,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                title: { type: Type.STRING },
+                                year: { type: Type.INTEGER }
+                            },
+                            required: ["title", "year"]
+                        }
+                    },
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+                }
+            });
+
+            const text = response.text?.trim() || null;
+            if (text) {
+                const parsed = JSON.parse(text);
+                if (Array.isArray(parsed)) {
+                    parsed.sort((a: any, b: any) => (a.year || 0) - (b.year || 0));
+                    localStorage.setItem(cacheKey, JSON.stringify(parsed));
+                    return parsed;
+                }
+            }
+            return null;
+        });
+    } catch (error) {
+        handleApiError(error, 'getArtistStudioDiscography');
+        return null;
+    }
+}
+

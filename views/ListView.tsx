@@ -10,6 +10,8 @@ import QuickStats from '../components/CollectionStats';
 import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import CDTable from '../components/CDTable';
+import { getArtistStudioDiscography } from '../gemini';
+import { areStringsSimilar } from '../utils';
 
 interface ListViewProps {
   cds: CD[];
@@ -34,6 +36,82 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
     const storedView = localStorage.getItem(VIEW_MODE_KEY);
     return storedView === 'list' ? 'list' : 'grid';
   });
+
+  const [fullDiscography, setFullDiscography] = useState<{ title: string; year: number }[] | null>(null);
+  const [isLoadingDiscography, setIsLoadingDiscography] = useState(false);
+  const [discographyError, setDiscographyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    setFullDiscography(null);
+    setDiscographyError(null);
+
+    if (!urlArtistFilter) return;
+
+    async function fetchDiscography() {
+      setIsLoadingDiscography(true);
+      try {
+        const disc = await getArtistStudioDiscography(urlArtistFilter);
+        if (isMounted) {
+          if (disc) {
+            setFullDiscography(disc);
+          } else {
+            setDiscographyError("To view missing albums, please ensure your Gemini API key is configured.");
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setDiscographyError(err?.message || "Failed to load discography.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingDiscography(false);
+        }
+      }
+    }
+
+    fetchDiscography();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [urlArtistFilter]);
+
+  const userAlbumsByArtist = useMemo(() => {
+    if (!urlArtistFilter) return [];
+    return cds.filter(cd => areStringsSimilar(cd.artist, urlArtistFilter));
+  }, [cds, urlArtistFilter]);
+
+  const missingAlbums = useMemo(() => {
+    if (!fullDiscography) return [];
+
+    return fullDiscography.filter(discAlbum => {
+      // Check if the user already owns this album
+      const isOwned = userAlbumsByArtist.some(userAlbum => {
+        const clean = (s: string) => s.toLowerCase()
+          .replace(/\(.*?\)/g, '') // remove anything in parentheses (special editions, remasters, etc.)
+          .replace(/\[.*?\]/g, '') // remove anything in brackets
+          .replace(/[^a-z0-9]/g, '') // keep only alphanumeric for robust matching
+          .trim();
+
+        const cleanDisc = clean(discAlbum.title);
+        const cleanUser = clean(userAlbum.title);
+
+        // Exact match on cleaned string
+        if (cleanDisc === cleanUser) return true;
+
+        // One is a close substring of the other (handles "The Album" vs "Album" or vice versa)
+        if (cleanDisc.includes(cleanUser) || cleanUser.includes(cleanDisc)) {
+          if (Math.abs(cleanDisc.length - cleanUser.length) < 8) return true;
+        }
+
+        // Fallback to Levenshtein check
+        return areStringsSimilar(discAlbum.title, userAlbum.title, 0.8);
+      });
+
+      return !isOwned;
+    });
+  }, [fullDiscography, userAlbumsByArtist]);
 
   const handleSortBy = useCallback((key: SortKey) => {
     setSortBy(key);
@@ -344,6 +422,48 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
         <CDList cds={filteredAndSortedCds} albumType={albumType} />
       ) : (
         <CDTable cds={filteredAndSortedCds} onRequestEdit={onRequestEdit} albumType={albumType} />
+      )}
+
+      {urlArtistFilter && (
+        <div className="mt-8 bg-zinc-50 rounded-lg border border-zinc-200 p-6">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="text-lg font-bold text-zinc-800">Missing Main Studio Albums by {urlArtistFilter}</h2>
+              <p className="text-xs text-zinc-500">Studio releases currently missing from your collection (ordered chronologically)</p>
+            </div>
+            {isLoadingDiscography && (
+              <div className="flex items-center gap-1.5 text-xs text-zinc-500 bg-white border border-zinc-200 rounded-full px-2.5 py-1">
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-zinc-500 border-t-transparent"></div>
+                <span>Fetching discography...</span>
+              </div>
+            )}
+          </div>
+
+          {discographyError && (
+            <p className="text-xs text-zinc-500 bg-zinc-100 border border-zinc-200 rounded-md p-3 mt-3">{discographyError}</p>
+          )}
+
+          {!isLoadingDiscography && !discographyError && fullDiscography !== null && missingAlbums.length === 0 && (
+            <div className="text-center py-4 bg-white border border-dashed border-zinc-200 rounded-md mt-3">
+              <p className="text-zinc-600 text-sm font-medium">🎉 Congratulations! You have all of their main studio albums.</p>
+            </div>
+          )}
+
+          {missingAlbums.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+              {missingAlbums.map((album, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-white border border-zinc-150 rounded-md p-2.5 shadow-xs hover:border-zinc-300 transition-colors">
+                  <span className="font-medium text-zinc-700 text-sm truncate mr-2" title={album.title}>
+                    {album.title}
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded shrink-0">
+                    {album.year}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
