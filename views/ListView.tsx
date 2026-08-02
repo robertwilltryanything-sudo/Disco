@@ -42,40 +42,28 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
   const [discographyError, setDiscographyError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
     setFullDiscography(null);
     setDiscographyError(null);
-
-    if (!urlArtistFilter) return;
-
-    async function fetchDiscography() {
-      setIsLoadingDiscography(true);
-      try {
-        const disc = await getArtistStudioDiscography(urlArtistFilter);
-        if (isMounted) {
-          if (disc) {
-            setFullDiscography(disc);
-          } else {
-            setDiscographyError("To view missing albums, please ensure your Gemini API key is configured.");
-          }
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setDiscographyError(err?.message || "Failed to load discography.");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingDiscography(false);
-        }
-      }
-    }
-
-    fetchDiscography();
-
-    return () => {
-      isMounted = false;
-    };
+    setIsLoadingDiscography(false);
   }, [urlArtistFilter]);
+
+  const handleFetchDiscography = async () => {
+    if (!urlArtistFilter || isLoadingDiscography) return;
+    setIsLoadingDiscography(true);
+    setDiscographyError(null);
+    try {
+      const disc = await getArtistStudioDiscography(urlArtistFilter);
+      if (disc) {
+        setFullDiscography(disc);
+      } else {
+        setDiscographyError("To view missing albums, please ensure your Gemini API key is configured.");
+      }
+    } catch (err: any) {
+      setDiscographyError(err?.message || "Failed to load discography.");
+    } finally {
+      setIsLoadingDiscography(false);
+    }
+  };
 
   const userAlbumsByArtist = useMemo(() => {
     if (!urlArtistFilter) return [];
@@ -426,13 +414,24 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
 
       {urlArtistFilter && (
         <div className="mt-8 bg-zinc-50 rounded-lg border border-zinc-200 p-6">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-zinc-800">Missing Main Studio Albums by {urlArtistFilter}</h2>
-              <p className="text-xs text-zinc-500">Studio releases currently missing from your collection (ordered chronologically)</p>
+              <p className="text-xs text-zinc-500">Check for studio releases currently missing from your collection</p>
             </div>
+            {fullDiscography === null && !isLoadingDiscography && (
+              <button
+                onClick={handleFetchDiscography}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 text-white hover:bg-zinc-800 rounded-md text-sm font-medium transition-colors shrink-0 shadow-xs"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Find Missing Albums
+              </button>
+            )}
             {isLoadingDiscography && (
-              <div className="flex items-center gap-1.5 text-xs text-zinc-500 bg-white border border-zinc-200 rounded-full px-2.5 py-1">
+              <div className="flex items-center gap-2 text-xs text-zinc-600 bg-white border border-zinc-200 rounded-md px-3 py-1.5 shrink-0">
                 <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-zinc-500 border-t-transparent"></div>
                 <span>Fetching discography...</span>
               </div>
@@ -440,16 +439,24 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
           </div>
 
           {discographyError && (
-            <p className="text-xs text-zinc-500 bg-zinc-100 border border-zinc-200 rounded-md p-3 mt-3">{discographyError}</p>
+            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-100 border border-zinc-200 rounded-md p-3">
+              <p className="text-xs text-zinc-600">{discographyError}</p>
+              <button
+                onClick={handleFetchDiscography}
+                className="text-xs font-semibold text-zinc-800 hover:text-zinc-900 underline shrink-0"
+              >
+                Try Again
+              </button>
+            </div>
           )}
 
           {!isLoadingDiscography && !discographyError && fullDiscography !== null && missingAlbums.length === 0 && (
-            <div className="text-center py-4 bg-white border border-dashed border-zinc-200 rounded-md mt-3">
+            <div className="text-center py-4 bg-white border border-dashed border-zinc-200 rounded-md mt-4">
               <p className="text-zinc-600 text-sm font-medium">🎉 Congratulations! You have all of their main studio albums.</p>
             </div>
           )}
 
-          {missingAlbums.length > 0 && (
+          {!isLoadingDiscography && missingAlbums.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
               {missingAlbums.map((album, idx) => (
                 <div key={idx} className="flex items-center justify-between bg-white border border-zinc-150 rounded-md p-2.5 shadow-xs hover:border-zinc-300 transition-colors">
