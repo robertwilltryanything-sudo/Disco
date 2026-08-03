@@ -1,7 +1,6 @@
 export interface PlexConfig {
   serverHost: string;
   authToken: string;
-  preferredPlayer: 'plexamp' | 'plex_web';
 }
 
 const PLEX_CONFIG_KEY = 'disco_plex_config';
@@ -18,7 +17,6 @@ export function getPlexConfig(): PlexConfig {
   return {
     serverHost: '',
     authToken: '',
-    preferredPlayer: 'plexamp',
   };
 }
 
@@ -26,18 +24,26 @@ export function savePlexConfig(config: PlexConfig): void {
   localStorage.setItem(PLEX_CONFIG_KEY, JSON.stringify(config));
 }
 
-export function getPlexampSearchUrl(artist: string, title?: string): string {
-  const query = title ? `${artist} ${title}` : artist;
-  return `plexamp://search?query=${encodeURIComponent(query)}`;
+/**
+ * Strips out edition information, remaster tags, year brackets, and disc numbers 
+ * so Plexamp search matches the clean album title directly.
+ */
+export function cleanSearchString(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/\(.*?\)/g, '') // remove parenthetical notes like (2009 Remaster), (Deluxe Version)
+    .replace(/\[.*?\]/g, '') // remove bracketed notes like [Bonus Tracks]
+    .replace(/ - .*(remaster|deluxe|edition|version|bonus|disc|cd).*/gi, '') // remove trailing " - Remastered 2011"
+    .replace(/\b(remastered|deluxe edition|bonus track|special edition|expanded edition|anniversary edition|collector's edition|disc \d+|cd \d+)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-export function getPlexWebSearchUrl(artist: string, title?: string, serverHost?: string): string {
-  const query = title ? `${artist} ${title}` : artist;
-  if (serverHost && serverHost.trim()) {
-    const cleanHost = serverHost.trim().replace(/\/+$/, '');
-    return `${cleanHost}/web/index.html#!/search?query=${encodeURIComponent(query)}`;
-  }
-  return `https://app.plex.tv/desktop#!/search?query=${encodeURIComponent(query)}`;
+export function getPlexampSearchUrl(artist: string, title?: string): string {
+  const cleanArtist = cleanSearchString(artist);
+  const cleanTitle = title ? cleanSearchString(title) : '';
+  const query = cleanTitle ? `${cleanArtist} ${cleanTitle}` : cleanArtist;
+  return `plexamp://search?query=${encodeURIComponent(query)}`;
 }
 
 export async function testPlexServerConnection(serverHost: string, authToken: string): Promise<{ success: boolean; message: string; name?: string }> {
@@ -66,7 +72,6 @@ export async function testPlexServerConnection(serverHost: string, authToken: st
     }
 
     const text = await res.text();
-    // Parse name from JSON or XML if needed
     let name = 'Plex Media Server';
     if (text.includes('MediaContainer')) {
       const match = text.match(/claimed="([^"]+)"/) || text.match(/machineIdentifier="([^"]+)"/);
@@ -81,3 +86,4 @@ export async function testPlexServerConnection(serverHost: string, authToken: st
     return { success: false, message: `Could not reach Plex Server: ${err.message || 'Network error or CORS restriction'}` };
   }
 }
+

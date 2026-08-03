@@ -202,7 +202,7 @@ const Header: React.FC<HeaderProps> = ({
                             {onOpenPlexSettings && (
                               <button onClick={() => { onOpenPlexSettings(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 rounded-md text-sm text-zinc-700 focus:outline-none hover:bg-zinc-100 transition-colors text-left">
                                   <PlexIcon className="w-5 h-5 text-amber-500" />
-                                  <span className="font-medium">Plex / Plexamp Settings</span>
+                                  <span className="font-medium">Plexamp Integration</span>
                               </button>
                             )}
                         </div>

@@ -56,44 +56,16 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
             <PlexIcon className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-zinc-900">Plexamp / Plex Connection</h2>
+            <h2 className="text-lg font-bold text-zinc-900">Plexamp Integration</h2>
             <p className="text-xs text-zinc-500">Configure deep links and local server details</p>
           </div>
         </div>
 
         <div className="space-y-4 text-sm">
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1">
-              Default Action
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setConfig(c => ({ ...c, preferredPlayer: 'plexamp' }))}
-                className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
-                  config.preferredPlayer === 'plexamp'
-                    ? 'border-amber-500 bg-amber-50 text-amber-900 font-bold'
-                    : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                }`}
-              >
-                Plexamp App (plexamp://)
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfig(c => ({ ...c, preferredPlayer: 'plex_web' }))}
-                className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
-                  config.preferredPlayer === 'plex_web'
-                    ? 'border-amber-500 bg-amber-50 text-amber-900 font-bold'
-                    : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                }`}
-              >
-                Plex Web Application
-              </button>
-            </div>
-            <p className="text-[11px] text-zinc-500 mt-1">
-              {config.preferredPlayer === 'plexamp'
-                ? 'Opens the native Plexamp desktop or mobile app directly when clicking play.'
-                : 'Opens Plex in your web browser.'}
+          <div className="bg-amber-50 border border-amber-200/60 rounded-lg p-3 text-xs text-amber-900">
+            <p className="font-semibold mb-1">Direct Plexamp Protocol Links</p>
+            <p className="text-amber-800">
+              Clicking <strong className="font-semibold">PlexAmp</strong> on any album or artist directly opens your native Plexamp desktop or mobile application with clean search queries mapped to your local music library.
             </p>
           </div>
 
@@ -109,7 +81,7 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
               className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
             />
             <p className="text-[11px] text-zinc-500 mt-1">
-              If provided, Plex Web search links will point directly to your local server instead of app.plex.tv.
+              Provide your local server address to test network accessibility.
             </p>
           </div>
 
