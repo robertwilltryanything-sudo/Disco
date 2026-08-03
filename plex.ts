@@ -39,11 +39,33 @@ export function cleanSearchString(str: string): string {
     .trim();
 }
 
-export function getPlexampSearchUrl(artist: string, title?: string): string {
+export function getPlexampSearchQuery(artist: string, title?: string): string {
   const cleanArtist = cleanSearchString(artist);
   const cleanTitle = title ? cleanSearchString(title) : '';
-  const query = cleanTitle ? `${cleanArtist} ${cleanTitle}` : cleanArtist;
+  return cleanTitle ? `${cleanArtist} ${cleanTitle}` : cleanArtist;
+}
+
+export function getPlexampSearchUrl(artist: string, title?: string): string {
+  const query = getPlexampSearchQuery(artist, title);
   return `plexamp://search?query=${encodeURIComponent(query)}`;
+}
+
+export async function openInPlexamp(artist: string, title?: string): Promise<{ query: string; copied: boolean }> {
+  const query = getPlexampSearchQuery(artist, title);
+  let copied = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(query);
+      copied = true;
+    }
+  } catch (e) {
+    // ignore clipboard permission errors
+  }
+
+  const url = getPlexampSearchUrl(artist, title);
+  window.location.href = url;
+
+  return { query, copied };
 }
 
 export async function testPlexServerConnection(serverHost: string, authToken: string): Promise<{ success: boolean; message: string; name?: string }> {

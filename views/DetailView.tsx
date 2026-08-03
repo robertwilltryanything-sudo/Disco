@@ -15,7 +15,7 @@ import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
 import { PlexIcon } from '../components/icons/PlexIcon';
-import { getPlexampSearchUrl } from '../plex';
+import { openInPlexamp } from '../plex';
 
 interface DetailViewProps {
   cds: CD[];
@@ -35,6 +35,18 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [plexampNotice, setPlexampNotice] = useState<string | null>(null);
+
+  const handlePlexampLaunch = async () => {
+    if (!cd) return;
+    const { query, copied } = await openInPlexamp(cd.artist, cd.title);
+    if (copied) {
+      setPlexampNotice(`Copied "${query}" — Paste in Plexamp search!`);
+    } else {
+      setPlexampNotice(`Opening Plexamp for "${query}"`);
+    }
+    setTimeout(() => setPlexampNotice(null), 5000);
+  };
 
   const { cd, previousCd, nextCd } = useMemo(() => {
     const currentIndex = cds.findIndex(c => c.id === id);
@@ -269,16 +281,17 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               )}
 
               {/* Bottom Actions Row - Aligned Straight */}
-              <div className="mt-auto pt-8 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-50">
+              <div className="mt-auto pt-8 flex flex-col gap-2 border-t border-zinc-50">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <a 
-                      href={getPlexampSearchUrl(cd.artist, cd.title)} 
-                      className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-3.5 rounded-lg transition-colors text-sm shadow-xs"
+                    <button 
+                      onClick={handlePlexampLaunch}
+                      className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-3.5 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
                       title={`Open ${cd.title} by ${cd.artist} in Plexamp`}
                     >
                       <PlexIcon className="w-5 h-5" />
                       <span>PlexAmp</span>
-                    </a>
+                    </button>
                     <a 
                       href={wikipediaUrl} 
                       target="_blank" 
@@ -318,6 +331,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <TrashIcon className="w-5 h-5" />
                     </button>
                   </div>
+                </div>
+                {plexampNotice && (
+                  <div className="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200/80 rounded-md px-3 py-1.5 flex items-center gap-2 animate-in fade-in">
+                    <span>📋</span>
+                    <span>{plexampNotice}</span>
+                  </div>
+                )}
               </div>
             </div>
         </div>

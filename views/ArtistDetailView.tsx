@@ -6,7 +6,7 @@ import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import CDItem from '../components/CDItem';
 import { getArtistStudioDiscography } from '../gemini';
 import { PlexIcon } from '../components/icons/PlexIcon';
-import { getPlexampSearchUrl } from '../plex';
+import { openInPlexamp } from '../plex';
 
 interface ArtistDetailViewProps {
   cds: CD[];
@@ -25,6 +25,17 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
     const [fullDiscography, setFullDiscography] = useState<DiscographyAlbum[] | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [plexampNotice, setPlexampNotice] = useState<string | null>(null);
+
+    const handlePlexampLaunch = async () => {
+        const { query, copied } = await openInPlexamp(artistName);
+        if (copied) {
+            setPlexampNotice(`Copied "${query}" — Paste in Plexamp search!`);
+        } else {
+            setPlexampNotice(`Opening Plexamp for "${query}"`);
+        }
+        setTimeout(() => setPlexampNotice(null), 5000);
+    };
 
     const userAlbumsByArtist = useMemo(() => {
         return cds
@@ -99,14 +110,22 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     </Link>
                     <h1 className="text-3xl font-bold text-zinc-800">{artistName}</h1>
                 </div>
-                <a
-                    href={getPlexampSearchUrl(artistName)}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-xs shrink-0 self-start sm:self-auto"
-                    title={`Open ${artistName} in Plexamp`}
-                >
-                    <PlexIcon className="w-4 h-4" />
-                    <span>PlexAmp</span>
-                </a>
+                <div className="flex flex-col items-start sm:items-end gap-1.5 shrink-0 self-start sm:self-auto">
+                    <button
+                        onClick={handlePlexampLaunch}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-xs cursor-pointer"
+                        title={`Open ${artistName} in Plexamp`}
+                    >
+                        <PlexIcon className="w-4 h-4" />
+                        <span>PlexAmp</span>
+                    </button>
+                    {plexampNotice && (
+                        <div className="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200/80 rounded-md px-2.5 py-1 flex items-center gap-1.5 animate-in fade-in">
+                            <span>📋</span>
+                            <span>{plexampNotice}</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="bg-white rounded-lg border border-zinc-200 p-6">
