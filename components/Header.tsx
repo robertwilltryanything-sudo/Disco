@@ -18,6 +18,7 @@ import { ArrowDownCircleIcon } from './icons/ArrowDownCircleIcon';
 import { SearchIcon } from './icons/SearchIcon';
 
 import { LibraryIcon } from './icons/LibraryIcon';
+import { PlexIcon } from './icons/PlexIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -25,6 +26,7 @@ interface HeaderProps {
     onImport: () => void;
     onExport: () => void;
     onOpenSyncSettings: () => void;
+    onOpenPlexSettings?: () => void;
     syncStatus: SyncStatus;
     syncError: string | null;
     syncProvider: SyncProvider;
@@ -56,7 +58,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 );
 
 const Header: React.FC<HeaderProps> = ({ 
-    onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings,
+    onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings, onOpenPlexSettings,
     syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut, onSignIn, isSignedIn,
     isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime, onSearchClick
 }) => {
@@ -191,12 +193,18 @@ const Header: React.FC<HeaderProps> = ({
                         </NavLink>
                     </div>
                     <div className="p-2">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-2 mb-2">Sync & Backup</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-2 mb-2">Sync & Integrations</h3>
                          <div className="space-y-1">
                             <button onClick={() => { onOpenSyncSettings(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 rounded-md text-sm text-zinc-700 focus:outline-none hover:bg-zinc-100 transition-colors text-left">
                                 <SettingsIcon className="w-5 h-5" />
                                 <span className="font-medium">Sync Settings</span>
                             </button>
+                            {onOpenPlexSettings && (
+                              <button onClick={() => { onOpenPlexSettings(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 rounded-md text-sm text-zinc-700 focus:outline-none hover:bg-zinc-100 transition-colors text-left">
+                                  <PlexIcon className="w-5 h-5 text-amber-500" />
+                                  <span className="font-medium">Plex / Plexamp Settings</span>
+                              </button>
+                            )}
                         </div>
                     </div>
                     <div className="p-2">

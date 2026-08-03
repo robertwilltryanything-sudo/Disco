@@ -27,6 +27,7 @@ import { XCircleIcon } from './components/icons/XCircleIcon';
 import SyncConfirmationModal from './components/SyncConfirmationModal';
 import DriveImagePickerModal from './components/DriveImagePickerModal';
 import SearchOverlay from './components/SearchOverlay';
+import { PlexSettingsModal } from './components/PlexSettingsModal';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
@@ -150,6 +151,7 @@ const AppContent: React.FC = () => {
   const [duplicateCheckResult, setDuplicateCheckResult] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
   const [pendingImport, setPendingImport] = useState<CD[] | null>(null);
   const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
+  const [isPlexSettingsOpen, setIsPlexSettingsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Drive Picker States
@@ -434,6 +436,7 @@ const AppContent: React.FC = () => {
         onImport={handleImport}
         onExport={handleExport}
         onOpenSyncSettings={() => setIsSyncSettingsOpen(true)}
+        onOpenPlexSettings={() => setIsPlexSettingsOpen(true)}
         syncStatus={isPeekingCloud ? 'loading' : currentSyncStatus}
         syncError={currentSyncError}
         syncProvider={syncProvider}
@@ -563,6 +566,10 @@ const AppContent: React.FC = () => {
         onSyncModeChange={() => {}} 
         isSignedIn={driveSignedIn}
         onSignIn={driveSignIn}
+      />
+      <PlexSettingsModal 
+        isOpen={isPlexSettingsOpen} 
+        onClose={() => setIsPlexSettingsOpen(false)} 
       />
       <SyncConfirmationModal 
         isOpen={isSyncConfirmOpen}

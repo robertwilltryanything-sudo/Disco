@@ -14,6 +14,8 @@ import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
+import { PlexIcon } from '../components/icons/PlexIcon';
+import { getPlexConfig, getPlexampSearchUrl, getPlexWebSearchUrl } from '../plex';
 
 interface DetailViewProps {
   cds: CD[];
@@ -267,43 +269,73 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               )}
 
               {/* Bottom Actions Row - Aligned Straight */}
-              <div className="mt-auto pt-8 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-50">
-                  <div className="flex items-center gap-2">
-                    <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
-                        <WikipediaIcon className="w-5 h-5" />
-                        Wikipedia
-                    </a>
-                  </div>
+              {(() => {
+                const plexConfig = getPlexConfig();
+                const plexampUrl = getPlexampSearchUrl(cd.artist, cd.title);
+                const plexWebUrl = getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost);
+                const isPlexamp = plexConfig.preferredPlayer === 'plexamp';
+                return (
+                  <div className="mt-auto pt-8 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-50">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <a 
+                          href={isPlexamp ? plexampUrl : plexWebUrl} 
+                          className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-3.5 rounded-lg transition-colors text-sm shadow-xs"
+                          title={`Search & play ${cd.title} in ${isPlexamp ? 'Plexamp' : 'Plex Web'}`}
+                        >
+                          <PlexIcon className="w-5 h-5" />
+                          <span>{isPlexamp ? 'Play in Plexamp' : 'Search Plex'}</span>
+                        </a>
+                        <a 
+                          href={isPlexamp ? plexWebUrl : plexampUrl} 
+                          target={isPlexamp ? "_blank" : undefined}
+                          rel={isPlexamp ? "noopener noreferrer" : undefined}
+                          className="text-xs text-zinc-500 hover:text-zinc-800 underline px-1 py-1"
+                          title={`Alternative: ${isPlexamp ? 'Open Plex Web' : 'Open Plexamp'}`}
+                        >
+                          {isPlexamp ? 'Plex Web' : 'Plexamp App'}
+                        </a>
+                        <a 
+                          href={wikipediaUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm ml-1"
+                        >
+                            <WikipediaIcon className="w-5 h-5" />
+                            Wikipedia
+                        </a>
+                      </div>
 
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={handleUpdateInfo} 
-                      disabled={isUpdating}
-                      className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
-                        isUpdating 
-                          ? 'bg-zinc-100 text-blue-500 animate-pulse' 
-                          : 'text-zinc-500 hover:bg-zinc-100 hover:text-blue-500'
-                      }`}
-                      title="Update album info using Wikipedia & Gemini"
-                    >
-                      {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
-                    </button>
-                    <button 
-                      onClick={() => navigate('/', { state: { editCdId: cd.id } })} 
-                      className="p-2 rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 transition-all transform hover:scale-110 active:scale-95" 
-                      title="Edit manual details"
-                    >
-                      <EditIcon className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => setIsDeleteModalOpen(true)} 
-                      className="p-2 rounded-full text-zinc-500 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
-                      title="Delete album"
-                    >
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={handleUpdateInfo} 
+                          disabled={isUpdating}
+                          className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
+                            isUpdating 
+                              ? 'bg-zinc-100 text-blue-500 animate-pulse' 
+                              : 'text-zinc-500 hover:bg-zinc-100 hover:text-blue-500'
+                          }`}
+                          title="Update album info using Wikipedia & Gemini"
+                        >
+                          {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                        </button>
+                        <button 
+                          onClick={() => navigate('/', { state: { editCdId: cd.id } })} 
+                          className="p-2 rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 transition-all transform hover:scale-110 active:scale-95" 
+                          title="Edit manual details"
+                        >
+                          <EditIcon className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => setIsDeleteModalOpen(true)} 
+                          className="p-2 rounded-full text-zinc-500 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
+                          title="Delete album"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </div>
                   </div>
-              </div>
+                );
+              })()}
             </div>
         </div>
         <div className="bg-zinc-50 px-6 py-4 flex justify-between items-center border-t border-zinc-100">

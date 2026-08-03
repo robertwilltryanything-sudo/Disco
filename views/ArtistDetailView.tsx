@@ -5,6 +5,8 @@ import { areStringsSimilar } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import CDItem from '../components/CDItem';
 import { getArtistStudioDiscography } from '../gemini';
+import { PlexIcon } from '../components/icons/PlexIcon';
+import { getPlexConfig, getPlexampSearchUrl, getPlexWebSearchUrl } from '../plex';
 
 interface ArtistDetailViewProps {
   cds: CD[];
@@ -89,7 +91,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
 
     return (
         <div className="max-w-4xl mx-auto">
-            <div className="mb-6 flex justify-between items-center">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <Link to="/artists" className="inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900 font-medium mb-1">
                         <ArrowLeftIcon className="h-4 w-4" />
@@ -97,6 +99,23 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     </Link>
                     <h1 className="text-3xl font-bold text-zinc-800">{artistName}</h1>
                 </div>
+                {(() => {
+                    const plexConfig = getPlexConfig();
+                    const isPlexamp = plexConfig.preferredPlayer === 'plexamp';
+                    const plexUrl = isPlexamp 
+                        ? getPlexampSearchUrl(artistName) 
+                        : getPlexWebSearchUrl(artistName, undefined, plexConfig.serverHost);
+                    return (
+                        <a
+                            href={plexUrl}
+                            className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-xs shrink-0 self-start sm:self-auto"
+                            title={`Search ${artistName} in ${isPlexamp ? 'Plexamp' : 'Plex'}`}
+                        >
+                            <PlexIcon className="w-4 h-4" />
+                            <span>{isPlexamp ? 'Open Artist in Plexamp' : 'Search Artist on Plex'}</span>
+                        </a>
+                    );
+                })()}
             </div>
 
             <div className="bg-white rounded-lg border border-zinc-200 p-6">
