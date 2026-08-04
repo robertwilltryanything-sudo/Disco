@@ -63,12 +63,15 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
 
         <div className="space-y-4 text-sm">
           <div className="bg-amber-50 border border-amber-200/60 rounded-lg p-3 text-xs text-amber-900 space-y-1.5">
-            <p className="font-semibold text-amber-950">How Plex & Plexamp Links Work:</p>
+            <p className="font-semibold text-amber-950">How Direct Album Linking Works:</p>
             <p>
-              • <strong className="font-semibold text-amber-950">Search Plex Web</strong>: Opens hosted Plex Web or your local Plex Media Server search in a new tab with your album or artist pre-filled.
+              • <strong className="font-semibold text-amber-950">1-Click Direct Links</strong>: Click "🔗 Link Plex Album" on any album detail page to paste a direct <code className="bg-amber-100/80 px-1 py-0.5 rounded text-[11px]">listen.plex.tv</code> share link or Plex Web URL.
             </p>
             <p>
-              • <strong className="font-semibold text-amber-950">Plexamp App</strong>: Launches the native Plexamp desktop or mobile application (`plexamp://`) and automatically copies the cleaned search query to your clipboard for instant pasting.
+              • <strong className="font-semibold text-amber-950">Auto-Detect Server Match</strong>: Enter your Plex Server Host and Token below. You can auto-query your server library to link directly to exact album metadata pages!
+            </p>
+            <p>
+              • <strong className="font-semibold text-amber-950">Plex Web & App Search</strong>: Launches Plex Web or copies clean artist/album queries directly to your clipboard for quick searches in Plexamp.
             </p>
           </div>
 

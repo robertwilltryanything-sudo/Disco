@@ -50,7 +50,10 @@ export function getPlexampSearchUrl(artist: string, title?: string): string {
   return `plexamp://search?query=${encodeURIComponent(query)}`;
 }
 
-export function getPlexWebSearchUrl(artist: string, title?: string, serverHost?: string): string {
+export function getPlexWebSearchUrl(artist: string, title?: string, serverHost?: string, customPlexUrl?: string): string {
+  if (customPlexUrl && customPlexUrl.trim()) {
+    return customPlexUrl.trim();
+  }
   const query = getPlexampSearchQuery(artist, title);
   if (serverHost && serverHost.trim()) {
     const cleanHost = serverHost.trim().replace(/\/+$/, '');
@@ -66,6 +69,8 @@ export interface PlexSearchResult {
   artist?: string;
   type: 'album' | 'artist';
   webUrl: string;
+  hostedWebUrl?: string;
+  deepLinkUrl?: string;
 }
 
 export async function searchPlexLibrary(artist: string, title?: string): Promise<PlexSearchResult | null> {
@@ -111,6 +116,14 @@ export async function searchPlexLibrary(artist: string, title?: string): Promise
         ? `${cleanHost}/web/index.html#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`
         : `${cleanHost}/web/index.html#!/search?query=${encodeURIComponent(query)}`;
 
+      const hostedWebUrl = machineIdentifier
+        ? `https://app.plex.tv/desktop#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`
+        : `https://app.plex.tv/desktop#!/search?query=${encodeURIComponent(query)}`;
+
+      const deepLinkUrl = machineIdentifier
+        ? `plex://server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`
+        : undefined;
+
       return {
         ratingKey,
         machineIdentifier,
@@ -118,6 +131,8 @@ export async function searchPlexLibrary(artist: string, title?: string): Promise
         artist: item.parentTitle || item.grandparentTitle || artist,
         type: item.type === 'artist' ? 'artist' : 'album',
         webUrl,
+        hostedWebUrl,
+        deepLinkUrl,
       };
     }
   } catch (err) {

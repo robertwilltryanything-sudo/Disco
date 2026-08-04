@@ -50,6 +50,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [currentTag, setCurrentTag] = useState('');
   const [cover_art_url, setCoverArtUrl] = useState<string | undefined>('');
   const [manualUrl, setManualUrl] = useState('');
+  const [plex_url, setPlexUrl] = useState('');
   const [notes, setNotes] = useState('');
   
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -78,6 +79,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     setCurrentTag('');
     setCoverArtUrl(undefined);
     setManualUrl('');
+    setPlexUrl('');
     setNotes('');
     setFormError(null);
   }, []);
@@ -96,6 +98,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setAttributes(cdToEdit.attributes || []);
       setTags(cdToEdit.tags || []);
       setCoverArtUrl(cdToEdit.cover_art_url);
+      setPlexUrl(cdToEdit.plex_url || '');
       setNotes(cdToEdit.notes || '');
     } else {
       resetForm();
@@ -112,6 +115,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setAttributes(prefill.attributes || []);
         setTags(prefill.tags || []);
         setCoverArtUrl(prefill.cover_art_url);
+        setPlexUrl(prefill.plex_url || '');
         setNotes(prefill.notes || '');
       }
     }
@@ -138,7 +142,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         const cdData: Omit<CD, 'id'> & { id?: string } = {
             id: cdToEdit?.id, artist, sort_name, title, genre: genres,
             year: year ? Number(year) : undefined,
-            version, record_label, country, producer, tags, cover_art_url, notes,
+            version, record_label, country, producer, tags, cover_art_url, plex_url, notes,
             attributes,
             created_at: cdToEdit?.created_at,
         };
@@ -537,6 +541,19 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                   onChange={(e) => setProducer(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                 />
+              </div>
+
+              <div className="w-full">
+                <input
+                  type="text"
+                  placeholder="Plex Direct Link (e.g. https://listen.plex.tv/album/... or https://app.plex.tv/desktop...)"
+                  value={plex_url}
+                  onChange={(e) => setPlexUrl(e.target.value)}
+                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm placeholder:text-zinc-400"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1 ml-1 font-medium">
+                  Optional: Paste a direct Plex / Plexamp share URL or ratingKey link to launch this album directly in 1-click.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
