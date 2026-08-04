@@ -15,7 +15,7 @@ import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
 import { PlexIcon } from '../components/icons/PlexIcon';
-import { openInPlexamp } from '../plex';
+import { openInPlexamp, getPlexWebSearchUrl, getPlexConfig } from '../plex';
 
 interface DetailViewProps {
   cds: CD[];
@@ -41,11 +41,11 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
     if (!cd) return;
     const { query, copied } = await openInPlexamp(cd.artist, cd.title);
     if (copied) {
-      setPlexampNotice(`Copied "${query}" — Paste in Plexamp search!`);
+      setPlexampNotice(`Copied "${query}" to clipboard & opened Plexamp! Press Ctrl+V (Cmd+V) in Plexamp search.`);
     } else {
       setPlexampNotice(`Opening Plexamp for "${query}"`);
     }
-    setTimeout(() => setPlexampNotice(null), 5000);
+    setTimeout(() => setPlexampNotice(null), 8000);
   };
 
   const { cd, previousCd, nextCd } = useMemo(() => {
@@ -283,25 +283,43 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               {/* Bottom Actions Row - Aligned Straight */}
               <div className="mt-auto pt-8 flex flex-col gap-2 border-t border-zinc-50">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button 
-                      onClick={handlePlexampLaunch}
-                      className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-3.5 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
-                      title={`Open ${cd.title} by ${cd.artist} in Plexamp`}
-                    >
-                      <PlexIcon className="w-5 h-5" />
-                      <span>PlexAmp</span>
-                    </button>
-                    <a 
-                      href={wikipediaUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm ml-1"
-                    >
-                        <WikipediaIcon className="w-5 h-5" />
-                        Wikipedia
-                    </a>
-                  </div>
+                  {(() => {
+                    const plexConfig = getPlexConfig();
+                    const plexWebUrl = getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost);
+                    return (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <a 
+                          href={plexWebUrl} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-3.5 rounded-lg transition-colors text-sm shadow-xs"
+                          title={`Search ${cd.title} by ${cd.artist} on Plex Web`}
+                        >
+                          <PlexIcon className="w-5 h-5" />
+                          <span>Search Plex Web</span>
+                        </a>
+
+                        <button 
+                          onClick={handlePlexampLaunch}
+                          className="inline-flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-950 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
+                          title={`Launch Plexamp Desktop/Mobile App for ${cd.title}`}
+                        >
+                          <PlexIcon className="w-4 h-4 text-amber-400" />
+                          <span>Plexamp App</span>
+                        </button>
+
+                        <a 
+                          href={wikipediaUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm ml-1"
+                        >
+                            <WikipediaIcon className="w-5 h-5" />
+                            Wikipedia
+                        </a>
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex items-center gap-1">
                     <button 

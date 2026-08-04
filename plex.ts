@@ -50,6 +50,83 @@ export function getPlexampSearchUrl(artist: string, title?: string): string {
   return `plexamp://search?query=${encodeURIComponent(query)}`;
 }
 
+export function getPlexWebSearchUrl(artist: string, title?: string, serverHost?: string): string {
+  const query = getPlexampSearchQuery(artist, title);
+  if (serverHost && serverHost.trim()) {
+    const cleanHost = serverHost.trim().replace(/\/+$/, '');
+    return `${cleanHost}/web/index.html#!/search?query=${encodeURIComponent(query)}`;
+  }
+  return `https://app.plex.tv/desktop#!/search?query=${encodeURIComponent(query)}`;
+}
+
+export interface PlexSearchResult {
+  ratingKey: string;
+  machineIdentifier?: string;
+  title: string;
+  artist?: string;
+  type: 'album' | 'artist';
+  webUrl: string;
+}
+
+export async function searchPlexLibrary(artist: string, title?: string): Promise<PlexSearchResult | null> {
+  const config = getPlexConfig();
+  if (!config.serverHost) return null;
+
+  const cleanHost = config.serverHost.trim().replace(/\/+$/, '');
+  const token = config.authToken.trim();
+
+  try {
+    let machineIdentifier = '';
+    try {
+      const idRes = await fetch(`${cleanHost}/identity${token ? `?X-Plex-Token=${encodeURIComponent(token)}` : ''}`, {
+        headers: { Accept: 'application/json' }
+      });
+      if (idRes.ok) {
+        const idData = await idRes.json();
+        machineIdentifier = idData?.MediaContainer?.machineIdentifier || '';
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    const query = getPlexampSearchQuery(artist, title);
+    const searchUrl = `${cleanHost}/hubs/search?query=${encodeURIComponent(query)}&limit=5${token ? `&X-Plex-Token=${encodeURIComponent(token)}` : ''}`;
+
+    const res = await fetch(searchUrl, {
+      headers: { Accept: 'application/json' }
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const hubs = data?.MediaContainer?.Hub || [];
+
+    const targetType = title ? 'album' : 'artist';
+    const hub = hubs.find((h: any) => h.type === targetType) || hubs.find((h: any) => h.type === 'album' || h.type === 'artist');
+
+    if (hub && hub.Metadata && hub.Metadata.length > 0) {
+      const item = hub.Metadata[0];
+      const ratingKey = item.ratingKey;
+
+      const webUrl = machineIdentifier
+        ? `${cleanHost}/web/index.html#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`
+        : `${cleanHost}/web/index.html#!/search?query=${encodeURIComponent(query)}`;
+
+      return {
+        ratingKey,
+        machineIdentifier,
+        title: item.title,
+        artist: item.parentTitle || item.grandparentTitle || artist,
+        type: item.type === 'artist' ? 'artist' : 'album',
+        webUrl,
+      };
+    }
+  } catch (err) {
+    console.warn('Plex library search check failed or CORS blocked:', err);
+  }
+
+  return null;
+}
+
 export async function openInPlexamp(artist: string, title?: string): Promise<{ query: string; copied: boolean }> {
   const query = getPlexampSearchQuery(artist, title);
   let copied = false;
@@ -62,8 +139,11 @@ export async function openInPlexamp(artist: string, title?: string): Promise<{ q
     // ignore clipboard permission errors
   }
 
+  // Launch plexamp protocol safely without navigating the current web page away
   const url = getPlexampSearchUrl(artist, title);
-  window.location.href = url;
+  const link = document.createElement('a');
+  link.href = url;
+  link.click();
 
   return { query, copied };
 }

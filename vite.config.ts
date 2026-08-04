@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
     ],
+    server: {
+      host: '0.0.0.0',
+      port: 3000,
+    },
     base: '/',
     define: {
       // Priority: check explicitly loaded VITE_API_KEY, fallback to system process.env if available

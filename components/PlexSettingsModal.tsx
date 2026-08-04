@@ -62,10 +62,13 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
         </div>
 
         <div className="space-y-4 text-sm">
-          <div className="bg-amber-50 border border-amber-200/60 rounded-lg p-3 text-xs text-amber-900">
-            <p className="font-semibold mb-1">Direct Plexamp Protocol Links</p>
-            <p className="text-amber-800">
-              Clicking <strong className="font-semibold">PlexAmp</strong> on any album or artist directly opens your native Plexamp desktop or mobile application with clean search queries mapped to your local music library.
+          <div className="bg-amber-50 border border-amber-200/60 rounded-lg p-3 text-xs text-amber-900 space-y-1.5">
+            <p className="font-semibold text-amber-950">How Plex & Plexamp Links Work:</p>
+            <p>
+              • <strong className="font-semibold text-amber-950">Search Plex Web</strong>: Opens hosted Plex Web or your local Plex Media Server search in a new tab with your album or artist pre-filled.
+            </p>
+            <p>
+              • <strong className="font-semibold text-amber-950">Plexamp App</strong>: Launches the native Plexamp desktop or mobile application (`plexamp://`) and automatically copies the cleaned search query to your clipboard for instant pasting.
             </p>
           </div>
 
