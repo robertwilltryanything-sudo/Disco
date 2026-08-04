@@ -5,8 +5,7 @@ import { areStringsSimilar } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import CDItem from '../components/CDItem';
 import { getArtistStudioDiscography } from '../gemini';
-import { PlexIcon } from '../components/icons/PlexIcon';
-import { openInPlexamp, getPlexWebSearchUrl, getPlexConfig } from '../plex';
+import { getPlexWebSearchUrl, getPlexConfig } from '../plex';
 
 interface ArtistDetailViewProps {
   cds: CD[];
@@ -25,17 +24,6 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
     const [fullDiscography, setFullDiscography] = useState<DiscographyAlbum[] | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [plexampNotice, setPlexampNotice] = useState<string | null>(null);
-
-    const handlePlexampLaunch = async () => {
-        const { query, copied } = await openInPlexamp(artistName);
-        if (copied) {
-            setPlexampNotice(`Copied "${query}" to clipboard & opened Plexamp! Press Ctrl+V (Cmd+V) in Plexamp search.`);
-        } else {
-            setPlexampNotice(`Opening Plexamp for "${query}"`);
-        }
-        setTimeout(() => setPlexampNotice(null), 8000);
-    };
 
     const userAlbumsByArtist = useMemo(() => {
         return cds
@@ -115,33 +103,15 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     const plexWebUrl = getPlexWebSearchUrl(artistName, undefined, plexConfig.serverHost);
                     return (
                         <div className="flex flex-col items-start sm:items-end gap-1.5 shrink-0 self-start sm:self-auto">
-                            <div className="flex items-center gap-2">
-                                <a
-                                    href={plexWebUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-xs"
-                                    title={`Search ${artistName} on Plex Web`}
-                                >
-                                    <PlexIcon className="w-4 h-4" />
-                                    <span>Search Plex Web</span>
-                                </a>
-
-                                <button
-                                    onClick={handlePlexampLaunch}
-                                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-950 text-white rounded-md text-xs font-bold transition-colors shadow-xs cursor-pointer"
-                                    title={`Launch Plexamp App for ${artistName}`}
-                                >
-                                    <PlexIcon className="w-3.5 h-3.5 text-amber-400" />
-                                    <span>Plexamp App</span>
-                                </button>
-                            </div>
-                            {plexampNotice && (
-                                <div className="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200/80 rounded-md px-2.5 py-1 flex items-center gap-1.5 animate-in fade-in">
-                                    <span>📋</span>
-                                    <span>{plexampNotice}</span>
-                                </div>
-                            )}
+                            <a
+                                href={plexWebUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-xs"
+                                title={`Search ${artistName} on Plex`}
+                            >
+                                <span>Play</span>
+                            </a>
                         </div>
                     );
                 })()}

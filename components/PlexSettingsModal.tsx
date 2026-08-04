@@ -65,13 +65,10 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
           <div className="bg-amber-50 border border-amber-200/60 rounded-lg p-3 text-xs text-amber-900 space-y-1.5">
             <p className="font-semibold text-amber-950">How Direct Album Linking Works:</p>
             <p>
-              • <strong className="font-semibold text-amber-950">1-Click Direct Links</strong>: Click "🔗 Link Plex Album" on any album detail page to paste a direct <code className="bg-amber-100/80 px-1 py-0.5 rounded text-[11px]">listen.plex.tv</code> share link or Plex Web URL.
+              • <strong className="font-semibold text-amber-950">Play Button</strong>: Clicking the "Play" button on an album page will immediately open your pasted direct link (e.g. <code className="bg-amber-100/80 px-1 py-0.5 rounded text-[11px]">listen.plex.tv</code> or Plex Web URL) or search Plex Web.
             </p>
             <p>
-              • <strong className="font-semibold text-amber-950">Auto-Detect Server Match</strong>: Enter your Plex Server Host and Token below. You can auto-query your server library to link directly to exact album metadata pages!
-            </p>
-            <p>
-              • <strong className="font-semibold text-amber-950">Plex Web & App Search</strong>: Launches Plex Web or copies clean artist/album queries directly to your clipboard for quick searches in Plexamp.
+              • <strong className="font-semibold text-amber-950">Linking Albums</strong>: Use "🔗 Link Plex Album" on any album detail page (or when adding/editing) to paste the share link from Plexamp ('Share' → 'Copy Link').
             </p>
           </div>
 

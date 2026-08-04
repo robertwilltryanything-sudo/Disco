@@ -15,7 +15,7 @@ import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
 import { PlexIcon } from '../components/icons/PlexIcon';
-import { openInPlexamp, getPlexWebSearchUrl, getPlexConfig, searchPlexLibrary } from '../plex';
+import { getPlexWebSearchUrl, getPlexConfig } from '../plex';
 
 interface DetailViewProps {
   cds: CD[];
@@ -38,7 +38,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const [plexampNotice, setPlexampNotice] = useState<string | null>(null);
   const [isPlexModalOpen, setIsPlexModalOpen] = useState(false);
   const [plexInputUrl, setPlexInputUrl] = useState('');
-  const [isDetectingPlex, setIsDetectingPlex] = useState(false);
 
   const handleOpenPlexModal = () => {
     setPlexInputUrl(cd?.plex_url || '');
@@ -51,40 +50,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
     setIsPlexModalOpen(false);
     setPlexampNotice('Plex direct link saved successfully!');
     setTimeout(() => setPlexampNotice(null), 4000);
-  };
-
-  const handleAutoDetectPlex = async () => {
-    if (!cd) return;
-    setIsDetectingPlex(true);
-    setPlexampNotice('Searching Plex Media Server for album...');
-    const result = await searchPlexLibrary(cd.artist, cd.title);
-    setIsDetectingPlex(false);
-    if (result && (result.hostedWebUrl || result.webUrl)) {
-      const urlToUse = result.hostedWebUrl || result.webUrl;
-      setPlexInputUrl(urlToUse);
-      await onUpdateCD({ ...cd, plex_url: urlToUse });
-      setPlexampNotice(`Found exact match on Plex Media Server! Direct album link saved.`);
-      setTimeout(() => setPlexampNotice(null), 5000);
-      setIsPlexModalOpen(false);
-    } else {
-      setPlexampNotice('Could not find item on connected Plex Server. Ensure Server Host & Token are configured in Plex Settings.');
-      setTimeout(() => setPlexampNotice(null), 6000);
-    }
-  };
-
-  const handlePlexampLaunch = async () => {
-    if (!cd) return;
-    if (cd.plex_url) {
-      window.open(cd.plex_url, '_blank');
-      return;
-    }
-    const { query, copied } = await openInPlexamp(cd.artist, cd.title);
-    if (copied) {
-      setPlexampNotice(`Copied "${query}" to clipboard & opened Plexamp! Press Ctrl+V (Cmd+V) in Plexamp search.`);
-    } else {
-      setPlexampNotice(`Opening Plexamp for "${query}"`);
-    }
-    setTimeout(() => setPlexampNotice(null), 8000);
   };
 
   const { cd, previousCd, nextCd } = useMemo(() => {
@@ -331,26 +296,16 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                           href={plexWebUrl} 
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-3.5 rounded-lg transition-colors text-sm shadow-xs"
-                          title={cd.plex_url ? `Open exact Plex item link` : `Search ${cd.title} by ${cd.artist} on Plex Web`}
+                          className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs"
+                          title={cd.plex_url ? `Play ${cd.title} on Plex` : `Search ${cd.title} by ${cd.artist} on Plex`}
                         >
-                          <PlexIcon className="w-5 h-5" />
-                          <span>{cd.plex_url ? 'Open in Plex' : 'Search Plex Web'}</span>
+                          <span>Play</span>
                         </a>
-
-                        <button 
-                          onClick={handlePlexampLaunch}
-                          className="inline-flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-950 text-white font-semibold py-2 px-3 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
-                          title={`Launch Plexamp App & Copy Query`}
-                        >
-                          <PlexIcon className="w-4 h-4 text-amber-400" />
-                          <span>Plexamp App</span>
-                        </button>
 
                         <button
                           onClick={handleOpenPlexModal}
                           className="inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs border border-amber-200 cursor-pointer"
-                          title="Set or auto-detect direct Plex album URL"
+                          title="Set direct Plex share link"
                         >
                           <span>{cd.plex_url ? '⚙️ Edit Plex Link' : '🔗 Link Plex Album'}</span>
                         </button>
@@ -466,21 +421,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                 <p className="text-[11px] text-zinc-500 mt-1">
                   Paste the direct share link from Plexamp ('Share' → 'Copy Link') or your Plex Media Server album details page.
                 </p>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200/80 rounded-lg p-3 text-xs text-amber-950 space-y-2">
-                <p className="font-bold">Auto-Detect from local Plex Media Server:</p>
-                <p className="text-[11px]">
-                  If your local Plex Media Server host URL is set in Plex Settings, click below to query your server for this exact album's metadata rating key.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleAutoDetectPlex}
-                  disabled={isDetectingPlex}
-                  className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg font-bold text-xs transition-colors shadow-xs"
-                >
-                  {isDetectingPlex ? 'Searching Plex Library...' : '🔍 Auto-Detect Match on Plex Server'}
-                </button>
               </div>
             </div>
 
