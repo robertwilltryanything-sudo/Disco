@@ -14,7 +14,6 @@ import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
-import { PlexIcon } from '../components/icons/PlexIcon';
 import { getPlexWebSearchUrl, getPlexConfig } from '../plex';
 
 interface DetailViewProps {
@@ -35,22 +34,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [plexampNotice, setPlexampNotice] = useState<string | null>(null);
-  const [isPlexModalOpen, setIsPlexModalOpen] = useState(false);
-  const [plexInputUrl, setPlexInputUrl] = useState('');
-
-  const handleOpenPlexModal = () => {
-    setPlexInputUrl(cd?.plex_url || '');
-    setIsPlexModalOpen(true);
-  };
-
-  const handleSavePlexUrl = async () => {
-    if (!cd) return;
-    await onUpdateCD({ ...cd, plex_url: plexInputUrl.trim() });
-    setIsPlexModalOpen(false);
-    setPlexampNotice('Plex direct link saved successfully!');
-    setTimeout(() => setPlexampNotice(null), 4000);
-  };
 
   const { cd, previousCd, nextCd } = useMemo(() => {
     const currentIndex = cds.findIndex(c => c.id === id);
@@ -302,14 +285,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                           <span>Play</span>
                         </a>
 
-                        <button
-                          onClick={handleOpenPlexModal}
-                          className="inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs border border-amber-200 cursor-pointer"
-                          title="Set direct Plex share link"
-                        >
-                          <span>{cd.plex_url ? '⚙️ Edit Plex Link' : '🔗 Link Plex Album'}</span>
-                        </button>
-
                         <a 
                           href={wikipediaUrl} 
                           target="_blank" 
@@ -352,12 +327,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     </button>
                   </div>
                 </div>
-                {plexampNotice && (
-                  <div className="text-xs font-medium text-amber-900 bg-amber-50 border border-amber-200/80 rounded-md px-3 py-1.5 flex items-center gap-2 animate-in fade-in">
-                    <span>📋</span>
-                    <span>{plexampNotice}</span>
-                  </div>
-                )}
               </div>
             </div>
         </div>
@@ -382,62 +351,6 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
           <h2 className="text-2xl font-bold text-zinc-950 mb-6">You Might Also Like</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {recommendations.map(r => <RecommendedCDItem key={r.id} cd={r} />)}
-          </div>
-        </div>
-      )}
-
-      {isPlexModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-zinc-200 relative">
-            <button 
-              onClick={() => setIsPlexModalOpen(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition-colors"
-            >
-              ✕
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-lg">
-                <PlexIcon className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-zinc-900">Direct Plex Album Link</h3>
-                <p className="text-xs text-zinc-500">{cd.artist} – {cd.title}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 text-sm">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1">
-                  Plex / Plexamp Direct URL
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://listen.plex.tv/album/... or https://app.plex.tv/desktop..."
-                  value={plexInputUrl}
-                  onChange={(e) => setPlexInputUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                />
-                <p className="text-[11px] text-zinc-500 mt-1">
-                  Paste the direct share link from Plexamp ('Share' → 'Copy Link') or your Plex Media Server album details page.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-end gap-2 pt-4 border-t border-zinc-100">
-              <button
-                onClick={() => setIsPlexModalOpen(false)}
-                className="px-3.5 py-1.5 border border-zinc-300 rounded-lg text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSavePlexUrl}
-                className="px-4 py-1.5 bg-zinc-900 hover:bg-black text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
-              >
-                Save Link
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -543,16 +543,19 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 />
               </div>
 
-              <div className="w-full">
+              <div className="w-full bg-amber-50/50 border border-amber-200/80 rounded-lg p-3">
+                <label className="block text-xs font-bold text-amber-950 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <span className="text-amber-600">🔗</span> Plex / Plexamp Direct Share Link
+                </label>
                 <input
                   type="text"
-                  placeholder="Plex Direct Link (e.g. https://listen.plex.tv/album/... or https://app.plex.tv/desktop...)"
+                  placeholder="e.g. https://listen.plex.tv/album/... or https://app.plex.tv/desktop..."
                   value={plex_url}
                   onChange={(e) => setPlexUrl(e.target.value)}
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm placeholder:text-zinc-400"
+                  className="w-full bg-white border border-amber-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm placeholder:text-zinc-400"
                 />
-                <p className="text-[10px] text-zinc-500 mt-1 ml-1 font-medium">
-                  Optional: Paste a direct Plex / Plexamp share URL or ratingKey link to launch this album directly in 1-click.
+                <p className="text-[11px] text-amber-800/90 mt-1.5 font-medium">
+                  Paste the direct share link from Plexamp ('Share' → 'Copy Link') or Plex Web to launch this album in 1-click when clicking "Play".
                 </p>
               </div>
 
