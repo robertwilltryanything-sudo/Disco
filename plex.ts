@@ -163,6 +163,70 @@ export async function openInPlexamp(artist: string, title?: string): Promise<{ q
   return { query, copied };
 }
 
+export interface DiscoveredPlexServer {
+  name: string;
+  clientIdentifier: string;
+  connections: { uri: string; local: boolean; protocol: string; address: string; port: number }[];
+  bestSecureUrl?: string;
+}
+
+export async function discoverPlexServersFromPlexTv(authToken: string): Promise<DiscoveredPlexServer[]> {
+  if (!authToken || !authToken.trim()) {
+    throw new Error('X-Plex-Token is required to discover your Plex Media Server URLs');
+  }
+  const token = authToken.trim();
+  
+  try {
+    const res = await fetch(`https://plex.tv/api/v2/resources?includeHttps=1&X-Plex-Token=${encodeURIComponent(token)}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Plex-Client-Identifier': 'disco-music-app',
+        'X-Plex-Product': 'Disco Music Manager',
+      }
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error('Invalid X-Plex-Token. Please check your token and try again.');
+      }
+      throw new Error(`plex.tv returned HTTP status ${res.status}`);
+    }
+
+    const data = await res.json();
+    const servers: DiscoveredPlexServer[] = [];
+
+    if (Array.isArray(data)) {
+      for (const item of data) {
+        if (item.provides && item.provides.includes('server')) {
+          const rawConns = item.connections || [];
+          const connections = rawConns.map((c: any) => ({
+            uri: c.uri,
+            local: !!c.local,
+            protocol: c.protocol || 'http',
+            address: c.address,
+            port: c.port,
+          }));
+
+          // Pick best secure HTTPS connection (preferably local https or public https)
+          const secureConns = connections.filter((c: any) => c.uri.startsWith('https://'));
+          const bestSecureUrl = secureConns.find((c: any) => c.local)?.uri || secureConns[0]?.uri || connections[0]?.uri;
+
+          servers.push({
+            name: item.name || 'Plex Media Server',
+            clientIdentifier: item.clientIdentifier,
+            connections,
+            bestSecureUrl,
+          });
+        }
+      }
+    }
+    return servers;
+  } catch (err: any) {
+    console.warn('Failed to discover Plex servers from plex.tv:', err);
+    throw new Error(err.message || 'Failed to fetch servers from plex.tv');
+  }
+}
+
 export async function testPlexServerConnection(serverHost: string, authToken: string): Promise<{ success: boolean; message: string; name?: string }> {
   if (!serverHost) {
     return { success: false, message: 'Server Host URL is required' };
