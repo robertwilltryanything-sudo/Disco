@@ -169,11 +169,21 @@ export async function testPlexServerConnection(serverHost: string, authToken: st
   }
 
   const cleanHost = serverHost.trim().replace(/\/+$/, '');
+  const isAppHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const isServerHttp = cleanHost.startsWith('http://');
+
+  if (isAppHttps && isServerHttp) {
+    return {
+      success: false,
+      message: 'Browser restriction: This app is on HTTPS, so browsers block unencrypted http:// local server calls (Mixed Content). Use your secure Plex URL (e.g. https://...plex.direct:32400 or HTTPS remote address) or your X-Plex-Token.'
+    };
+  }
+
   const testUrl = `${cleanHost}/identity${authToken ? `?X-Plex-Token=${encodeURIComponent(authToken.trim())}` : ''}`;
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     const res = await fetch(testUrl, {
       method: 'GET',
@@ -198,7 +208,10 @@ export async function testPlexServerConnection(serverHost: string, authToken: st
     return { success: true, message: 'Successfully connected to Plex Media Server!', name };
   } catch (err: any) {
     if (err.name === 'AbortError') {
-      return { success: false, message: 'Connection timed out. Ensure host IP is accessible and server is running.' };
+      return { 
+        success: false, 
+        message: 'Connection timed out. Ensure host URL is accessible from your network. If using a local IP (192.168.x.x), use your secure Plex HTTPS URL (https://[ip-with-dashes].[hash].plex.direct:32400).' 
+      };
     }
     return { success: false, message: `Could not reach Plex Server: ${err.message || 'Network error or CORS restriction'}` };
   }

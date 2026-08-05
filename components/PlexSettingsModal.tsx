@@ -134,15 +134,30 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
             </label>
             <input
               type="text"
-              placeholder="e.g. http://192.168.1.100:32400 or http://localhost:32400"
+              placeholder="e.g. https://192-168-1-100.xxxx.plex.direct:32400 or https://plex.mydomain.com"
               value={config.serverHost}
               onChange={e => setConfig(c => ({ ...c, serverHost: e.target.value }))}
               disabled={isBulkMatching}
               className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 disabled:bg-zinc-100"
             />
             <p className="text-[11px] text-zinc-500 mt-1">
-              Your Plex Media Server IP or local domain name.
+              Your Plex Media Server URL (e.g. custom domain or secure Plex URL).
             </p>
+
+            {typeof window !== 'undefined' && window.location.protocol === 'https:' && config.serverHost.trim().startsWith('http://') && (
+              <div className="mt-2 p-2.5 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-950 space-y-1">
+                <p className="font-bold">⚠️ Mixed Content Warning:</p>
+                <p className="text-[11px] text-amber-900">
+                  Because this app runs over <strong>HTTPS</strong>, browsers automatically block raw <code>http://</code> local IP requests.
+                </p>
+                <p className="text-[11px] text-amber-900">
+                  <strong>Solutions:</strong><br />
+                  1. Use your secure Plex URL (e.g. <code>https://192-168-1-xxx.[hash].plex.direct:32400</code>).<br />
+                  2. Use a public/custom domain with SSL (e.g. <code>https://plex.yourdomain.com</code>).<br />
+                  3. Or run/host this application locally on <code>http://localhost</code>.
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
