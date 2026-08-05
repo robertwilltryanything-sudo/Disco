@@ -570,6 +570,8 @@ const AppContent: React.FC = () => {
       <PlexSettingsModal 
         isOpen={isPlexSettingsOpen} 
         onClose={() => setIsPlexSettingsOpen(false)} 
+        collection={collection}
+        onUpdateCollection={setCollection}
       />
       <SyncConfirmationModal 
         isOpen={isSyncConfirmOpen}
