@@ -16,7 +16,7 @@ export function getPlexConfig(): PlexConfig {
       return {
         serverHost: parsed.serverHost || '',
         authToken: parsed.authToken || '',
-        linkFormat: parsed.linkFormat || 'plexamp_app',
+        linkFormat: parsed.linkFormat || 'listen_plex',
       };
     } catch (e) {
       // ignore
@@ -25,7 +25,7 @@ export function getPlexConfig(): PlexConfig {
   return {
     serverHost: '',
     authToken: '',
-    linkFormat: 'plexamp_app',
+    linkFormat: 'listen_plex',
   };
 }
 
@@ -55,7 +55,7 @@ export function extractRatingKeyFromUrl(url: string): string | null {
 export function extractMachineIdFromUrl(url: string): string | null {
   if (!url) return null;
   const decoded = decodeURIComponent(url);
-  const match = decoded.match(/(?:server[=/]|\/server\/)([a-f0-9]+)/i);
+  const match = decoded.match(/(?:server[=/]|\/server\/|source[=/])([a-f0-9]+)/i);
   return match ? match[1] : null;
 }
 

@@ -276,12 +276,11 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     const ratingKey = cd.plex_url ? extractRatingKeyFromUrl(cd.plex_url) : null;
                     const machineId = cd.plex_url ? extractMachineIdFromUrl(cd.plex_url) : null;
 
-                    let playPlexampUrl = cd.plex_url;
+                    // Always preserve the user's exact pasted link (e.g. listen.plex.tv share link)
+                    // so all redirect tags (source, key, parentGuid, accountID) remain intact.
+                    let playPlexampUrl = cd.plex_url ? cd.plex_url.trim() : null;
                     if (!playPlexampUrl) {
                       playPlexampUrl = getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost);
-                    } else if (ratingKey && !playPlexampUrl.startsWith('plexamp://')) {
-                      // Format exact Plexamp protocol link with ratingKey & server machineId so Plexamp opens directly to the album
-                      playPlexampUrl = formatPlexUrl(ratingKey, 'plexamp_app', machineId || undefined, plexConfig.serverHost);
                     }
 
                     let playWebUrl = cd.plex_url && cd.plex_url.startsWith('http') ? cd.plex_url : null;
@@ -289,11 +288,15 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       playWebUrl = formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost);
                     }
 
+                    const isWebLink = playPlexampUrl.startsWith('http://') || playPlexampUrl.startsWith('https://');
+
                     return (
                       <div className="flex flex-wrap items-center gap-2">
                         <a 
                           href={playPlexampUrl} 
-                          className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs"
+                          target={isWebLink ? "_blank" : undefined}
+                          rel={isWebLink ? "noopener noreferrer" : undefined}
+                          className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
                           title={cd.plex_url ? `Play ${cd.title} in Plexamp` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
                         >
                           <PlexIcon className="w-4 h-4 text-white" />
