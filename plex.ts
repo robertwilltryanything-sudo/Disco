@@ -1,6 +1,9 @@
+export type PlexLinkFormat = 'listen_plex' | 'plexamp_app' | 'app_plex_web' | 'local_server';
+
 export interface PlexConfig {
   serverHost: string;
   authToken: string;
+  linkFormat?: PlexLinkFormat;
 }
 
 const PLEX_CONFIG_KEY = 'disco_plex_config';
@@ -9,7 +12,12 @@ export function getPlexConfig(): PlexConfig {
   const saved = localStorage.getItem(PLEX_CONFIG_KEY);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      return {
+        serverHost: parsed.serverHost || '',
+        authToken: parsed.authToken || '',
+        linkFormat: parsed.linkFormat || 'listen_plex',
+      };
     } catch (e) {
       // ignore
     }
@@ -17,11 +25,65 @@ export function getPlexConfig(): PlexConfig {
   return {
     serverHost: '',
     authToken: '',
+    linkFormat: 'listen_plex',
   };
 }
 
 export function savePlexConfig(config: PlexConfig): void {
   localStorage.setItem(PLEX_CONFIG_KEY, JSON.stringify(config));
+}
+
+export function extractRatingKeyFromUrl(url: string): string | null {
+  if (!url) return null;
+  const decoded = decodeURIComponent(url);
+
+  // Match ratingKey=12345
+  const matchRatingKey = decoded.match(/ratingKey=(\d+)/i);
+  if (matchRatingKey) return matchRatingKey[1];
+
+  // Match /library/metadata/12345
+  const matchMetadata = decoded.match(/\/library\/metadata\/(\d+)/i);
+  if (matchMetadata) return matchMetadata[1];
+
+  // Match /album/12345 or /item/12345 or /metadata/12345
+  const matchPath = decoded.match(/\/(?:album|item|metadata)\/(\d+)/i);
+  if (matchPath) return matchPath[1];
+
+  return null;
+}
+
+export function extractMachineIdFromUrl(url: string): string | null {
+  if (!url) return null;
+  const decoded = decodeURIComponent(url);
+  const match = decoded.match(/\/server\/([a-f0-9]+)\//i);
+  return match ? match[1] : null;
+}
+
+export function formatPlexUrl(
+  ratingKey: string,
+  format: PlexLinkFormat = 'listen_plex',
+  machineIdentifier?: string,
+  serverHost?: string
+): string {
+  switch (format) {
+    case 'listen_plex':
+      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
+    case 'plexamp_app':
+      return `plexamp://album?ratingKey=${ratingKey}`;
+    case 'app_plex_web':
+      if (machineIdentifier) {
+        return `https://app.plex.tv/desktop#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`;
+      }
+      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
+    case 'local_server':
+      if (serverHost && machineIdentifier) {
+        const cleanHost = serverHost.trim().replace(/\/+$/, '');
+        return `${cleanHost}/web/index.html#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`;
+      }
+      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
+    default:
+      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
+  }
 }
 
 /**
@@ -68,6 +130,7 @@ export interface PlexSearchResult {
   title: string;
   artist?: string;
   type: 'album' | 'artist';
+  bestPlexUrl: string;
   webUrl: string;
   hostedWebUrl?: string;
   deepLinkUrl?: string;
@@ -112,6 +175,8 @@ export async function searchPlexLibrary(artist: string, title?: string): Promise
       const item = hub.Metadata[0];
       const ratingKey = item.ratingKey;
 
+      const bestPlexUrl = formatPlexUrl(ratingKey, config.linkFormat || 'listen_plex', machineIdentifier, cleanHost);
+
       const webUrl = machineIdentifier
         ? `${cleanHost}/web/index.html#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`
         : `${cleanHost}/web/index.html#!/search?query=${encodeURIComponent(query)}`;
@@ -130,6 +195,7 @@ export async function searchPlexLibrary(artist: string, title?: string): Promise
         title: item.title,
         artist: item.parentTitle || item.grandparentTitle || artist,
         type: item.type === 'artist' ? 'artist' : 'album',
+        bestPlexUrl,
         webUrl,
         hostedWebUrl,
         deepLinkUrl,
