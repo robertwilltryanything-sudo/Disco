@@ -55,7 +55,7 @@ export function extractRatingKeyFromUrl(url: string): string | null {
 export function extractMachineIdFromUrl(url: string): string | null {
   if (!url) return null;
   const decoded = decodeURIComponent(url);
-  const match = decoded.match(/\/server\/([a-f0-9]+)\//i);
+  const match = decoded.match(/(?:server[=/]|\/server\/)([a-f0-9]+)/i);
   return match ? match[1] : null;
 }
 
@@ -67,22 +67,31 @@ export function formatPlexUrl(
 ): string {
   switch (format) {
     case 'plexamp_app':
-      return `plexamp://album?ratingKey=${ratingKey}`;
+      if (machineIdentifier) {
+        return `plexamp://link/play?key=%2Flibrary%2Fmetadata%2F${ratingKey}&server=${machineIdentifier}`;
+      }
+      return `plexamp://play?key=%2Flibrary%2Fmetadata%2F${ratingKey}`;
     case 'listen_plex':
+      if (machineIdentifier) {
+        return `https://listen.plex.tv/link/play?key=%2Flibrary%2Fmetadata%2F${ratingKey}&server=${machineIdentifier}`;
+      }
       return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
     case 'app_plex_web':
       if (machineIdentifier) {
         return `https://app.plex.tv/desktop#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`;
       }
-      return `plexamp://album?ratingKey=${ratingKey}`;
+      return `https://app.plex.tv/desktop#!/search?query=${ratingKey}`;
     case 'local_server':
       if (serverHost && machineIdentifier) {
         const cleanHost = serverHost.trim().replace(/\/+$/, '');
         return `${cleanHost}/web/index.html#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`;
       }
-      return `plexamp://album?ratingKey=${ratingKey}`;
+      return `https://app.plex.tv/desktop#!/search?query=${ratingKey}`;
     default:
-      return `plexamp://album?ratingKey=${ratingKey}`;
+      if (machineIdentifier) {
+        return `plexamp://link/play?key=%2Flibrary%2Fmetadata%2F${ratingKey}&server=${machineIdentifier}`;
+      }
+      return `plexamp://play?key=%2Flibrary%2Fmetadata%2F${ratingKey}`;
   }
 }
 
@@ -113,22 +122,13 @@ export function getPlexampSearchUrl(artist: string, title?: string): string {
 }
 
 export function getPlexWebSearchUrl(artist: string, title?: string, serverHost?: string, customPlexUrl?: string): string {
+  if (customPlexUrl && customPlexUrl.trim()) {
+    return customPlexUrl.trim();
+  }
   const config = getPlexConfig();
   const targetFormat = config.linkFormat || 'plexamp_app';
-
-  if (customPlexUrl && customPlexUrl.trim()) {
-    const trimmed = customPlexUrl.trim();
-    if (trimmed.startsWith('plexamp://')) {
-      return trimmed;
-    }
-    const ratingKey = extractRatingKeyFromUrl(trimmed);
-    if (ratingKey) {
-      const machineId = extractMachineIdFromUrl(trimmed);
-      return formatPlexUrl(ratingKey, targetFormat, machineId || undefined, serverHost || config.serverHost);
-    }
-    return trimmed;
-  }
   const query = getPlexampSearchQuery(artist, title);
+
   if (targetFormat === 'plexamp_app') {
     return `plexamp://search?query=${encodeURIComponent(query)}`;
   }

@@ -14,7 +14,7 @@ import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
-import { getPlexWebSearchUrl, getPlexConfig } from '../plex';
+import { getPlexWebSearchUrl, getPlexConfig, extractRatingKeyFromUrl, extractMachineIdFromUrl, formatPlexUrl } from '../plex';
 import { PlexIcon } from '../components/icons/PlexIcon';
 
 interface DetailViewProps {
@@ -273,11 +273,26 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   {(() => {
                     const plexConfig = getPlexConfig();
-                    const plexWebUrl = getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost, cd.plex_url);
+                    const ratingKey = cd.plex_url ? extractRatingKeyFromUrl(cd.plex_url) : null;
+                    const machineId = cd.plex_url ? extractMachineIdFromUrl(cd.plex_url) : null;
+
+                    let playPlexampUrl = cd.plex_url;
+                    if (!playPlexampUrl) {
+                      playPlexampUrl = getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost);
+                    } else if (ratingKey && !playPlexampUrl.startsWith('plexamp://')) {
+                      // Format exact Plexamp protocol link with ratingKey & server machineId so Plexamp opens directly to the album
+                      playPlexampUrl = formatPlexUrl(ratingKey, 'plexamp_app', machineId || undefined, plexConfig.serverHost);
+                    }
+
+                    let playWebUrl = cd.plex_url && cd.plex_url.startsWith('http') ? cd.plex_url : null;
+                    if (!playWebUrl && ratingKey) {
+                      playWebUrl = formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost);
+                    }
+
                     return (
                       <div className="flex flex-wrap items-center gap-2">
                         <a 
-                          href={plexWebUrl} 
+                          href={playPlexampUrl} 
                           className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs"
                           title={cd.plex_url ? `Play ${cd.title} in Plexamp` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
                         >
@@ -285,11 +300,23 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                           <span>Play in Plexamp</span>
                         </a>
 
+                        {playWebUrl && playWebUrl !== playPlexampUrl && (
+                          <a 
+                            href={playWebUrl} 
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 bg-amber-50/80 hover:bg-amber-100/80 text-amber-900 border border-amber-200/80 font-medium py-2 px-3 rounded-lg transition-colors text-xs"
+                            title="Open album in Plex Web player"
+                          >
+                            <span>Open in Plex Web</span>
+                          </a>
+                        )}
+
                         <a 
                           href={wikipediaUrl} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm ml-1"
+                          className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm"
                         >
                             <WikipediaIcon className="w-5 h-5" />
                             Wikipedia
