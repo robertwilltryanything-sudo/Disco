@@ -113,8 +113,17 @@ export function getPlexampSearchUrl(artist: string, title?: string): string {
 }
 
 export function getPlexWebSearchUrl(artist: string, title?: string, serverHost?: string, customPlexUrl?: string): string {
+  const config = getPlexConfig();
+  const targetFormat = config.linkFormat || 'listen_plex';
+
   if (customPlexUrl && customPlexUrl.trim()) {
-    return customPlexUrl.trim();
+    const trimmed = customPlexUrl.trim();
+    const ratingKey = extractRatingKeyFromUrl(trimmed);
+    if (ratingKey) {
+      const machineId = extractMachineIdFromUrl(trimmed);
+      return formatPlexUrl(ratingKey, targetFormat, machineId || undefined, serverHost || config.serverHost);
+    }
+    return trimmed;
   }
   const query = getPlexampSearchQuery(artist, title);
   if (serverHost && serverHost.trim()) {

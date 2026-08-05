@@ -15,6 +15,7 @@ import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { capitalizeWords } from '../utils';
+import { extractRatingKeyFromUrl, extractMachineIdFromUrl, formatPlexUrl } from '../plex';
 
 interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
@@ -549,14 +550,57 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. https://listen.plex.tv/album/... or https://app.plex.tv/desktop..."
+                  placeholder="e.g. https://listen.plex.tv/album/... or plexamp://album?ratingKey=..."
                   value={plex_url}
                   onChange={(e) => setPlexUrl(e.target.value)}
                   className="w-full bg-white border border-amber-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm placeholder:text-zinc-400"
                 />
-                <p className="text-[11px] text-amber-800/90 mt-1.5 font-medium">
-                  Paste the direct share link from Plexamp ('Share' → 'Copy Link') or Plex Web to launch this album in 1-click when clicking "Play".
-                </p>
+                
+                {(() => {
+                  const ratingKey = extractRatingKeyFromUrl(plex_url);
+                  if (!ratingKey) {
+                    return (
+                      <p className="text-[11px] text-amber-800/90 mt-1.5 font-medium">
+                        Paste the direct share link from Plexamp ('Share' → 'Copy Link') or Plex Web to launch this album in 1-click when clicking "Play".
+                      </p>
+                    );
+                  }
+
+                  const machineId = extractMachineIdFromUrl(plex_url);
+
+                  return (
+                    <div className="mt-2.5 pt-2 border-t border-amber-200/60 space-y-1.5">
+                      <p className="text-[10px] font-bold text-amber-950 uppercase tracking-wider">
+                        Detected RatingKey #{ratingKey} — Quick Format:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setPlexUrl(formatPlexUrl(ratingKey, 'plexamp_app'))}
+                          className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-medium text-[11px] transition-colors cursor-pointer"
+                        >
+                          📱 Plexamp App (plexamp://)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPlexUrl(formatPlexUrl(ratingKey, 'listen_plex'))}
+                          className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded font-medium text-[11px] transition-colors cursor-pointer"
+                        >
+                          🌐 listen.plex.tv
+                        </button>
+                        {machineId && (
+                          <button
+                            type="button"
+                            onClick={() => setPlexUrl(formatPlexUrl(ratingKey, 'app_plex_web', machineId))}
+                            className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded font-medium text-[11px] transition-colors cursor-pointer"
+                          >
+                            🖥️ Plex Web Desktop
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
