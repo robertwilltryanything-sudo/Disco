@@ -27,6 +27,7 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
   const [isBulkMatching, setIsBulkMatching] = useState(false);
   const [matchProgress, setMatchProgress] = useState<{ current: number; total: number; matched: number } | null>(null);
   const [bulkResultMsg, setBulkResultMsg] = useState<string | null>(null);
+  const [formatFilter, setFormatFilter] = useState<'cd_only' | 'all'>('cd_only');
 
   useEffect(() => {
     if (isOpen) {
@@ -92,9 +93,16 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
     if (!config.serverHost) return;
     savePlexConfig(config);
 
-    const itemsToMatch = collection.filter(cd => onlyUnlinked ? !cd.plex_url : true);
+    const eligibleItems = collection.filter(cd => {
+      if (formatFilter === 'cd_only') {
+        return cd.format === 'cd' || !cd.format;
+      }
+      return true;
+    });
+
+    const itemsToMatch = eligibleItems.filter(cd => onlyUnlinked ? !cd.plex_url : true);
     if (itemsToMatch.length === 0) {
-      setBulkResultMsg('All albums already have Plex links!');
+      setBulkResultMsg(formatFilter === 'cd_only' ? 'All CD albums already have Plex links!' : 'All albums already have Plex links!');
       return;
     }
 
@@ -130,7 +138,7 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
 
     setIsBulkMatching(false);
     setMatchProgress(null);
-    setBulkResultMsg(`Finished! Successfully matched & linked ${matchedCount} out of ${itemsToMatch.length} albums on Plex Server.`);
+    setBulkResultMsg(`Finished! Successfully matched & linked ${matchedCount} out of ${itemsToMatch.length} ${formatFilter === 'cd_only' ? 'CDs' : 'albums'} on Plex Server.`);
   };
 
   return (
@@ -283,13 +291,44 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
                 </div>
               )}
 
-              <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-lg space-y-2">
+              <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-lg space-y-2.5">
                 <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
                   <span>⚡</span> Bulk Auto-Link Collection from Plex Server
                 </p>
-                <p className="text-[11px] text-amber-900">
-                  Automatically query your Plex Media Server to match all {collection.length} items in your library and save exact Plexamp rating key links.
-                </p>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-amber-950 uppercase tracking-wider">
+                    Target Format
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormatFilter('cd_only')}
+                      disabled={isBulkMatching}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer flex items-center justify-center gap-1 ${
+                        formatFilter === 'cd_only'
+                          ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                          : 'bg-white text-zinc-700 border-amber-200/80 hover:bg-amber-100/50'
+                      }`}
+                    >
+                      <span>💿 CDs Only</span>
+                      <span className="text-[10px] opacity-80">({collection.filter(c => c.format === 'cd' || !c.format).length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormatFilter('all')}
+                      disabled={isBulkMatching}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer flex items-center justify-center gap-1 ${
+                        formatFilter === 'all'
+                          ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                          : 'bg-white text-zinc-700 border-amber-200/80 hover:bg-amber-100/50'
+                      }`}
+                    >
+                      <span>🎵 All Formats</span>
+                      <span className="text-[10px] opacity-80">({collection.length})</span>
+                    </button>
+                  </div>
+                </div>
 
                 {isBulkMatching && matchProgress && (
                   <div className="space-y-1.5 pt-1">
@@ -312,18 +351,25 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
                   </p>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => handleBulkAutoLink(true)}
-                  disabled={isBulkMatching || isTesting}
-                  className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isBulkMatching ? (
-                    <span>Auto-Linking Albums...</span>
-                  ) : (
-                    <span>🔍 Auto-Link Unlinked Albums ({collection.filter(c => !c.plex_url).length})</span>
-                  )}
-                </button>
+                {(() => {
+                  const eligibleItems = collection.filter(cd => formatFilter === 'cd_only' ? (cd.format === 'cd' || !cd.format) : true);
+                  const unlinkedCount = eligibleItems.filter(cd => !cd.plex_url).length;
+
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleBulkAutoLink(true)}
+                      disabled={isBulkMatching || isTesting}
+                      className="w-full py-2.5 px-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isBulkMatching ? (
+                        <span>Auto-Linking Albums...</span>
+                      ) : (
+                        <span>🔍 Auto-Link Unlinked {formatFilter === 'cd_only' ? 'CDs' : 'Albums'} ({unlinkedCount})</span>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           )}
