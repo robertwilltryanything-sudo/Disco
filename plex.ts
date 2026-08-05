@@ -16,7 +16,7 @@ export function getPlexConfig(): PlexConfig {
       return {
         serverHost: parsed.serverHost || '',
         authToken: parsed.authToken || '',
-        linkFormat: parsed.linkFormat || 'listen_plex',
+        linkFormat: parsed.linkFormat || 'plexamp_app',
       };
     } catch (e) {
       // ignore
@@ -25,7 +25,7 @@ export function getPlexConfig(): PlexConfig {
   return {
     serverHost: '',
     authToken: '',
-    linkFormat: 'listen_plex',
+    linkFormat: 'plexamp_app',
   };
 }
 
@@ -61,28 +61,28 @@ export function extractMachineIdFromUrl(url: string): string | null {
 
 export function formatPlexUrl(
   ratingKey: string,
-  format: PlexLinkFormat = 'listen_plex',
+  format: PlexLinkFormat = 'plexamp_app',
   machineIdentifier?: string,
   serverHost?: string
 ): string {
   switch (format) {
-    case 'listen_plex':
-      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
     case 'plexamp_app':
       return `plexamp://album?ratingKey=${ratingKey}`;
+    case 'listen_plex':
+      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
     case 'app_plex_web':
       if (machineIdentifier) {
         return `https://app.plex.tv/desktop#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`;
       }
-      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
+      return `plexamp://album?ratingKey=${ratingKey}`;
     case 'local_server':
       if (serverHost && machineIdentifier) {
         const cleanHost = serverHost.trim().replace(/\/+$/, '');
         return `${cleanHost}/web/index.html#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`;
       }
-      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
+      return `plexamp://album?ratingKey=${ratingKey}`;
     default:
-      return `https://listen.plex.tv/album?ratingKey=${ratingKey}`;
+      return `plexamp://album?ratingKey=${ratingKey}`;
   }
 }
 
@@ -114,10 +114,13 @@ export function getPlexampSearchUrl(artist: string, title?: string): string {
 
 export function getPlexWebSearchUrl(artist: string, title?: string, serverHost?: string, customPlexUrl?: string): string {
   const config = getPlexConfig();
-  const targetFormat = config.linkFormat || 'listen_plex';
+  const targetFormat = config.linkFormat || 'plexamp_app';
 
   if (customPlexUrl && customPlexUrl.trim()) {
     const trimmed = customPlexUrl.trim();
+    if (trimmed.startsWith('plexamp://')) {
+      return trimmed;
+    }
     const ratingKey = extractRatingKeyFromUrl(trimmed);
     if (ratingKey) {
       const machineId = extractMachineIdFromUrl(trimmed);
@@ -126,11 +129,14 @@ export function getPlexWebSearchUrl(artist: string, title?: string, serverHost?:
     return trimmed;
   }
   const query = getPlexampSearchQuery(artist, title);
+  if (targetFormat === 'plexamp_app') {
+    return `plexamp://search?query=${encodeURIComponent(query)}`;
+  }
   if (serverHost && serverHost.trim()) {
     const cleanHost = serverHost.trim().replace(/\/+$/, '');
     return `${cleanHost}/web/index.html#!/search?query=${encodeURIComponent(query)}`;
   }
-  return `https://app.plex.tv/desktop#!/search?query=${encodeURIComponent(query)}`;
+  return `plexamp://search?query=${encodeURIComponent(query)}`;
 }
 
 export interface PlexSearchResult {
@@ -184,7 +190,7 @@ export async function searchPlexLibrary(artist: string, title?: string): Promise
       const item = hub.Metadata[0];
       const ratingKey = item.ratingKey;
 
-      const bestPlexUrl = formatPlexUrl(ratingKey, config.linkFormat || 'listen_plex', machineIdentifier, cleanHost);
+      const bestPlexUrl = formatPlexUrl(ratingKey, config.linkFormat || 'plexamp_app', machineIdentifier, cleanHost);
 
       const webUrl = machineIdentifier
         ? `${cleanHost}/web/index.html#!/server/${machineIdentifier}/details?key=%2Flibrary%2Fmetadata%2F${ratingKey}`

@@ -15,6 +15,7 @@ import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
 import { getPlexWebSearchUrl, getPlexConfig } from '../plex';
+import { PlexIcon } from '../components/icons/PlexIcon';
 
 interface DetailViewProps {
   cds: CD[];
@@ -277,12 +278,11 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <div className="flex flex-wrap items-center gap-2">
                         <a 
                           href={plexWebUrl} 
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs"
-                          title={cd.plex_url ? `Play ${cd.title} on Plex` : `Search ${cd.title} by ${cd.artist} on Plex`}
+                          className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs"
+                          title={cd.plex_url ? `Play ${cd.title} in Plexamp` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
                         >
-                          <span>Play</span>
+                          <PlexIcon className="w-4 h-4 text-white" />
+                          <span>Play in Plexamp</span>
                         </a>
 
                         <a 
