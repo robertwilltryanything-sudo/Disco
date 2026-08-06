@@ -288,21 +288,48 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       playWebUrl = formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost);
                     }
 
+                    // Detect standalone mode (e.g. iOS PWA / Home Screen WebApp)
+                    const isStandalone = typeof window !== 'undefined' && (
+                      (('standalone' in window.navigator) && (window.navigator as { standalone?: boolean }).standalone === true) ||
+                      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                    );
+
+                    // Custom URL scheme fallback (plexamp://) if ratingKey is extracted
+                    const plexampCustomSchemeUrl = ratingKey 
+                      ? formatPlexUrl(ratingKey, 'plexamp_app', machineId || undefined, plexConfig.serverHost)
+                      : null;
+
                     // Log exact rendered href for verification
                     if (playPlexampUrl) {
                       console.log('[Rendered Plexamp Link href]:', playPlexampUrl);
+                      console.log('[Standalone Mode Active]:', isStandalone);
+                      if (plexampCustomSchemeUrl) {
+                        console.log('[Fallback plexamp:// Scheme href]:', plexampCustomSchemeUrl);
+                      }
                     }
 
                     return (
                       <div className="flex flex-wrap items-center gap-2">
                         <a 
                           href={playPlexampUrl} 
+                          target={isStandalone ? "_blank" : undefined}
+                          rel={isStandalone ? "noopener noreferrer" : undefined}
                           className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
                           title={cd.plex_url ? `Play ${cd.title} in Plexamp (${playPlexampUrl})` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
                         >
                           <PlexIcon className="w-4 h-4 text-white" />
                           <span>Play in Plexamp</span>
                         </a>
+
+                        {plexampCustomSchemeUrl && playPlexampUrl !== plexampCustomSchemeUrl && (
+                          <a 
+                            href={plexampCustomSchemeUrl} 
+                            className="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-medium py-2 px-2.5 rounded-lg transition-colors text-xs"
+                            title="Direct fallback using plexamp:// app protocol"
+                          >
+                            <span>App Protocol (plexamp://)</span>
+                          </a>
+                        )}
 
                         {playWebUrl && playWebUrl !== playPlexampUrl && (
                           <a 
