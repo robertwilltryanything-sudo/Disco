@@ -288,18 +288,10 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       playWebUrl = formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost);
                     }
 
-                    const handlePlayPlexampClick = (e: React.MouseEvent) => {
-                      e.preventDefault();
-                      if (playPlexampUrl) {
-                        window.open(playPlexampUrl, '_blank', 'noopener,noreferrer');
-                      }
-                    };
-
                     return (
                       <div className="flex flex-wrap items-center gap-2">
                         <a 
                           href={playPlexampUrl} 
-                          onClick={handlePlayPlexampClick}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
