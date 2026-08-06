@@ -283,10 +283,9 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       playPlexampUrl = getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost);
                     }
 
-                    let playWebUrl = cd.plex_url && cd.plex_url.startsWith('http') ? cd.plex_url.trim() : null;
-                    if (!playWebUrl && ratingKey) {
-                      playWebUrl = formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost);
-                    }
+                    let playWebUrl = ratingKey 
+                      ? formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost)
+                      : null;
 
                     // Detect standalone mode (e.g. iOS PWA / Home Screen WebApp)
                     const isStandalone = typeof window !== 'undefined' && (
@@ -331,7 +330,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                           </a>
                         )}
 
-                        {playWebUrl && playWebUrl !== playPlexampUrl && (
+                        {playWebUrl && (
                           <a 
                             href={playWebUrl} 
                             target="_blank"
