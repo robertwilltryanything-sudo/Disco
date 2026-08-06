@@ -5,7 +5,6 @@ import { areStringsSimilar } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import CDItem from '../components/CDItem';
 import { getArtistStudioDiscography } from '../gemini';
-import { getPlexWebSearchUrl, getPlexConfig } from '../plex';
 
 interface ArtistDetailViewProps {
   cds: CD[];
@@ -98,23 +97,6 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     </Link>
                     <h1 className="text-3xl font-bold text-zinc-800">{artistName}</h1>
                 </div>
-                {(() => {
-                    const plexConfig = getPlexConfig();
-                    const plexWebUrl = getPlexWebSearchUrl(artistName, undefined, plexConfig.serverHost);
-                    return (
-                        <div className="flex flex-col items-start sm:items-end gap-1.5 shrink-0 self-start sm:self-auto">
-                            <a
-                                href={plexWebUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-bold transition-colors shadow-xs"
-                                title={`Search ${artistName} on Plex`}
-                            >
-                                <span>Play</span>
-                            </a>
-                        </div>
-                    );
-                })()}
             </div>
 
             <div className="bg-white rounded-lg border border-zinc-200 p-6">

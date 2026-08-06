@@ -14,8 +14,6 @@ import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
-import { getPlexWebSearchUrl, getPlexConfig, extractRatingKeyFromUrl, extractMachineIdFromUrl, formatPlexUrl } from '../plex';
-import { PlexIcon } from '../components/icons/PlexIcon';
 
 interface DetailViewProps {
   cds: CD[];
@@ -271,44 +269,17 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               {/* Bottom Actions Row - Aligned Straight */}
               <div className="mt-auto pt-8 flex flex-col gap-2 border-t border-zinc-50">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  {(() => {
-                    const plexConfig = getPlexConfig();
-                    const ratingKey = cd.plex_url ? extractRatingKeyFromUrl(cd.plex_url) : null;
-                    const machineId = cd.plex_url ? extractMachineIdFromUrl(cd.plex_url) : null;
-
-                    let playWebUrl = cd.plex_url && cd.plex_url.startsWith('http')
-                      ? cd.plex_url.trim()
-                      : (ratingKey 
-                          ? formatPlexUrl(ratingKey, plexConfig.linkFormat || 'app_plex_web', machineId || undefined, plexConfig.serverHost)
-                          : getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost));
-
-                    return (
-                      <div className="flex flex-wrap items-center gap-2">
-                        {playWebUrl && (
-                          <a 
-                            href={playWebUrl} 
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
-                            title={cd.plex_url ? `Open ${cd.title} in Plex Web` : `Search ${cd.title} by ${cd.artist} in Plex Web`}
-                          >
-                            <PlexIcon className="w-4 h-4 text-white" />
-                            <span>Open in Plex Web</span>
-                          </a>
-                        )}
-
-                        <a 
-                          href={wikipediaUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm"
-                        >
-                            <WikipediaIcon className="w-5 h-5" />
-                            Wikipedia
-                        </a>
-                      </div>
-                    );
-                  })()}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a 
+                      href={wikipediaUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-800 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm"
+                    >
+                      <WikipediaIcon className="w-5 h-5" />
+                      Wikipedia
+                    </a>
+                  </div>
 
                   <div className="flex items-center gap-1">
                     <button 

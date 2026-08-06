@@ -7,7 +7,6 @@ export interface CD {
   cover_art_url?: string;
   allmusic_url?: string;
   wikipedia_url?: string;
-  plex_url?: string;
   review?: string;
   notes?: string;
   version?: string;
@@ -32,7 +31,6 @@ export interface WantlistItem {
   cover_art_url?: string;
   allmusic_url?: string;
   wikipedia_url?: string;
-  plex_url?: string;
   review?: string;
   notes?: string;
   version?: string;

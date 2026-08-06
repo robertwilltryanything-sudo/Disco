@@ -18,7 +18,6 @@ import { ArrowDownCircleIcon } from './icons/ArrowDownCircleIcon';
 import { SearchIcon } from './icons/SearchIcon';
 
 import { LibraryIcon } from './icons/LibraryIcon';
-import { PlexIcon } from './icons/PlexIcon';
 
 interface HeaderProps {
     onAddClick: () => void;
@@ -26,7 +25,6 @@ interface HeaderProps {
     onImport: () => void;
     onExport: () => void;
     onOpenSyncSettings: () => void;
-    onOpenPlexSettings?: () => void;
     syncStatus: SyncStatus;
     syncError: string | null;
     syncProvider: SyncProvider;
@@ -58,7 +56,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 );
 
 const Header: React.FC<HeaderProps> = ({ 
-    onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings, onOpenPlexSettings,
+    onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings,
     syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut, onSignIn, isSignedIn,
     isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime, onSearchClick
 }) => {
@@ -199,12 +197,6 @@ const Header: React.FC<HeaderProps> = ({
                                 <SettingsIcon className="w-5 h-5" />
                                 <span className="font-medium">Sync Settings</span>
                             </button>
-                            {onOpenPlexSettings && (
-                              <button onClick={() => { onOpenPlexSettings(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 rounded-md text-sm text-zinc-700 focus:outline-none hover:bg-zinc-100 transition-colors text-left">
-                                  <PlexIcon className="w-5 h-5 text-amber-500" />
-                                  <span className="font-medium">Plex Integration</span>
-                              </button>
-                            )}
                         </div>
                     </div>
                     <div className="p-2">
