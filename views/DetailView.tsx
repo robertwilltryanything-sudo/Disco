@@ -312,8 +312,8 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <div className="flex flex-wrap items-center gap-2">
                         <a 
                           href={playPlexampUrl} 
+                          rel="noreferrer"
                           target={isStandalone ? "_blank" : undefined}
-                          rel={isStandalone ? "noopener noreferrer" : undefined}
                           className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
                           title={cd.plex_url ? `Play ${cd.title} in Plexamp (${playPlexampUrl})` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
                         >
