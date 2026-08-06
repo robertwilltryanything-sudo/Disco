@@ -288,14 +288,17 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       playWebUrl = formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost);
                     }
 
+                    // Log exact rendered href for verification
+                    if (playPlexampUrl) {
+                      console.log('[Rendered Plexamp Link href]:', playPlexampUrl);
+                    }
+
                     return (
                       <div className="flex flex-wrap items-center gap-2">
                         <a 
                           href={playPlexampUrl} 
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
-                          title={cd.plex_url ? `Play ${cd.title} in Plexamp` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
+                          title={cd.plex_url ? `Play ${cd.title} in Plexamp (${playPlexampUrl})` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
                         >
                           <PlexIcon className="w-4 h-4 text-white" />
                           <span>Play in Plexamp</span>
