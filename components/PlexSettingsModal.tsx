@@ -6,10 +6,7 @@ import {
   testPlexServerConnection, 
   searchPlexLibrary, 
   discoverPlexServersFromPlexTv, 
-  DiscoveredPlexServer,
-  extractRatingKeyFromUrl,
-  extractMachineIdFromUrl,
-  formatPlexUrl
+  DiscoveredPlexServer
 } from '../plex';
 import { PlexIcon } from './icons/PlexIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
@@ -97,36 +94,6 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
       setDiscoveryError(err.message || 'Failed to discover servers from plex.tv');
     } finally {
       setIsDiscovering(false);
-    }
-  };
-
-  const handleConvertExistingLinks = () => {
-    savePlexConfig(config);
-    const targetFormat = config.linkFormat || 'plexamp_app';
-    let convertedCount = 0;
-
-    const updatedCollection = collection.map(cd => {
-      if (!cd.plex_url) return cd;
-      const rKey = extractRatingKeyFromUrl(cd.plex_url);
-      if (rKey) {
-        const mId = extractMachineIdFromUrl(cd.plex_url);
-        const formattedUrl = formatPlexUrl(rKey, targetFormat, mId || undefined, config.serverHost);
-        if (formattedUrl !== cd.plex_url) {
-          convertedCount++;
-          return { ...cd, plex_url: formattedUrl };
-        }
-      }
-      return cd;
-    });
-
-    if (convertedCount > 0 && onUpdateCollection) {
-      onUpdateCollection(updatedCollection);
-      setBulkResultMsg(`Successfully converted ${convertedCount} existing Plex links to ${
-        targetFormat === 'plexamp_app' ? 'Plexamp App Protocol (plexamp://...)' :
-        targetFormat === 'listen_plex' ? 'Plexamp Share format (https://listen.plex.tv/album...)' : 'Plex Web format'
-      }!`);
-    } else {
-      setBulkResultMsg(`All existing links are already in the selected format!`);
     }
   };
 
@@ -468,17 +435,6 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
                           <span>🔍 Auto-Link Unlinked {formatFilter === 'cd_only' ? 'CDs' : 'Albums'} ({unlinkedCount})</span>
                         )}
                       </button>
-
-                      {collection.some(c => !!c.plex_url) && (
-                        <button
-                          type="button"
-                          onClick={handleConvertExistingLinks}
-                          disabled={isBulkMatching}
-                          className="w-full py-2 px-3 bg-zinc-800 hover:bg-zinc-900 disabled:opacity-50 text-white rounded-lg font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <span>🔄 Convert {collection.filter(c => !!c.plex_url).length} Existing Links to Preferred Format</span>
-                        </button>
-                      )}
                     </div>
                   );
                 })()}

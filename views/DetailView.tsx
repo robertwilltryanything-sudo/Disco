@@ -276,26 +276,32 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     const ratingKey = cd.plex_url ? extractRatingKeyFromUrl(cd.plex_url) : null;
                     const machineId = cd.plex_url ? extractMachineIdFromUrl(cd.plex_url) : null;
 
-                    // Always preserve the user's exact pasted link (e.g. listen.plex.tv share link)
-                    // so all redirect tags (source, key, parentGuid, accountID) remain intact.
+                    // Always use the user's exact pasted link (e.g. listen.plex.tv share link copied from Plexamp)
+                    // so all parameters (source, key, parentGuid, accountID) remain intact.
                     let playPlexampUrl = cd.plex_url ? cd.plex_url.trim() : null;
                     if (!playPlexampUrl) {
                       playPlexampUrl = getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost);
                     }
 
-                    let playWebUrl = cd.plex_url && cd.plex_url.startsWith('http') ? cd.plex_url : null;
+                    let playWebUrl = cd.plex_url && cd.plex_url.startsWith('http') ? cd.plex_url.trim() : null;
                     if (!playWebUrl && ratingKey) {
                       playWebUrl = formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost);
                     }
 
-                    const isWebLink = playPlexampUrl.startsWith('http://') || playPlexampUrl.startsWith('https://');
+                    const handlePlayPlexampClick = (e: React.MouseEvent) => {
+                      e.preventDefault();
+                      if (playPlexampUrl) {
+                        window.open(playPlexampUrl, '_blank', 'noopener,noreferrer');
+                      }
+                    };
 
                     return (
                       <div className="flex flex-wrap items-center gap-2">
                         <a 
                           href={playPlexampUrl} 
-                          target={isWebLink ? "_blank" : undefined}
-                          rel={isWebLink ? "noopener noreferrer" : undefined}
+                          onClick={handlePlayPlexampClick}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
                           title={cd.plex_url ? `Play ${cd.title} in Plexamp` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
                         >
