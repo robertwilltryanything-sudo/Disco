@@ -545,18 +545,18 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
 
               <div className="w-full bg-amber-50/50 border border-amber-200/80 rounded-lg p-3">
                 <label className="block text-xs font-bold text-amber-950 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <span className="text-amber-600">🔗</span> Plex / Plexamp Direct Share Link
+                  <span className="text-amber-600">🔗</span> Plex Direct Album Link
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. https://listen.plex.tv/album/... or plexamp://album?ratingKey=..."
+                  placeholder="e.g. https://app.plex.tv/desktop#!/... or https://listen.plex.tv/album/..."
                   value={plex_url}
                   onChange={(e) => setPlexUrl(e.target.value)}
                   className="w-full bg-white border border-amber-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm placeholder:text-zinc-400"
                 />
                 
                 <p className="text-[11px] text-amber-800/90 mt-1.5 font-medium">
-                  Paste the direct share link copied from Plexamp (&lsquo;Share&rsquo; &rarr; &lsquo;Copy Link&rsquo;) or Plex Web to open this album directly in 1-click when clicking &quot;Play in Plexamp&quot;.
+                  Paste the direct link copied from Plex Web or Plex share to open this album directly in 1-click when clicking &quot;Open in Plex Web&quot;.
                 </p>
               </div>
 

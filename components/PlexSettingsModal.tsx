@@ -165,8 +165,8 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
             <PlexIcon className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-zinc-900">Plexamp Integration</h2>
-            <p className="text-xs text-zinc-500">Configure deep links and local server details</p>
+            <h2 className="text-lg font-bold text-zinc-900">Plex Integration</h2>
+            <p className="text-xs text-zinc-500">Configure links and local server details</p>
           </div>
         </div>
 
@@ -177,7 +177,7 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
               • <strong className="font-semibold text-amber-950">Bulk Auto-Link</strong>: Enter your Plex Server Host & Token below to automatically query your Plex Media Server and match hundreds of albums in 1-click!
             </p>
             <p>
-              • <strong className="font-semibold text-amber-950">Manual Share Link</strong>: You can also paste direct share links from Plexamp (<code className="bg-amber-100/80 px-1 py-0.5 rounded text-[11px]">listen.plex.tv</code>) when editing any album.
+              • <strong className="font-semibold text-amber-950">Manual Link</strong>: You can also paste direct album links (<code className="bg-amber-100/80 px-1 py-0.5 rounded text-[11px]">app.plex.tv</code> or <code className="bg-amber-100/80 px-1 py-0.5 rounded text-[11px]">listen.plex.tv</code>) when editing any album.
             </p>
           </div>
 
@@ -289,15 +289,15 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
                 <input 
                   type="radio" 
                   name="linkFormat" 
-                  checked={(config.linkFormat || 'plexamp_app') === 'plexamp_app'} 
-                  onChange={() => setConfig(c => ({ ...c, linkFormat: 'plexamp_app' }))}
+                  checked={(config.linkFormat || 'app_plex_web') === 'app_plex_web'} 
+                  onChange={() => setConfig(c => ({ ...c, linkFormat: 'app_plex_web' }))}
                   disabled={isBulkMatching}
                   className="mt-0.5 text-amber-500 focus:ring-amber-500"
                 />
                 <div>
-                  <span className="font-bold text-zinc-900 block">Plexamp App Protocol (Recommended)</span>
+                  <span className="font-bold text-zinc-900 block">Plex Web Player (Hosted)</span>
                   <span className="text-[11px] text-zinc-500 block leading-tight mt-0.5">
-                    <code className="bg-zinc-100 px-1 rounded text-[10px] font-mono">plexamp://album?ratingKey=...</code> — Directly launches installed desktop or mobile Plexamp app without opening browser web player
+                    <code className="bg-zinc-100 px-1 rounded text-[10px] font-mono">https://app.plex.tv/desktop#!/...</code> — Opens album in official browser Plex Web player
                   </span>
                 </div>
               </label>
@@ -312,9 +312,9 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
                   className="mt-0.5 text-amber-500 focus:ring-amber-500"
                 />
                 <div>
-                  <span className="font-bold text-zinc-900 block">Plexamp Universal Web Link</span>
+                  <span className="font-bold text-zinc-900 block">Plex Universal Share Link</span>
                   <span className="text-[11px] text-zinc-500 block leading-tight mt-0.5">
-                    <code className="bg-zinc-100 px-1 rounded text-[10px] font-mono">https://listen.plex.tv/album?ratingKey=...</code> — Universal share link from Plexamp
+                    <code className="bg-zinc-100 px-1 rounded text-[10px] font-mono">https://listen.plex.tv/album?ratingKey=...</code> — Universal share link for Plex media
                   </span>
                 </div>
               </label>
@@ -323,15 +323,15 @@ export const PlexSettingsModal: React.FC<PlexSettingsModalProps> = ({ isOpen, on
                 <input 
                   type="radio" 
                   name="linkFormat" 
-                  checked={config.linkFormat === 'app_plex_web'} 
-                  onChange={() => setConfig(c => ({ ...c, linkFormat: 'app_plex_web' }))}
+                  checked={config.linkFormat === 'local_server'} 
+                  onChange={() => setConfig(c => ({ ...c, linkFormat: 'local_server' }))}
                   disabled={isBulkMatching}
                   className="mt-0.5 text-amber-500 focus:ring-amber-500"
                 />
                 <div>
-                  <span className="font-bold text-zinc-900 block">Plex Web Desktop</span>
+                  <span className="font-bold text-zinc-900 block">Local Server Web Player</span>
                   <span className="text-[11px] text-zinc-500 block leading-tight mt-0.5">
-                    <code className="bg-zinc-100 px-1 rounded text-[10px] font-mono">https://app.plex.tv/desktop#!/...</code> — Opens album in standard browser Plex web app
+                    <code className="bg-zinc-100 px-1 rounded text-[10px] font-mono">http://.../web/index.html#!/...</code> — Direct link to your local Plex server web UI
                   </span>
                 </div>
               </label>

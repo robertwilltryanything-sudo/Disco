@@ -276,68 +276,23 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     const ratingKey = cd.plex_url ? extractRatingKeyFromUrl(cd.plex_url) : null;
                     const machineId = cd.plex_url ? extractMachineIdFromUrl(cd.plex_url) : null;
 
-                    // Always use the user's exact pasted link (e.g. listen.plex.tv share link copied from Plexamp)
-                    // so all parameters (source, key, parentGuid, accountID) remain intact.
-                    let playPlexampUrl = cd.plex_url ? cd.plex_url.trim() : null;
-                    if (!playPlexampUrl) {
-                      playPlexampUrl = getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost);
-                    }
-
-                    let playWebUrl = ratingKey 
-                      ? formatPlexUrl(ratingKey, 'app_plex_web', machineId || undefined, plexConfig.serverHost)
-                      : null;
-
-                    // Detect standalone mode (e.g. iOS PWA / Home Screen WebApp)
-                    const isStandalone = typeof window !== 'undefined' && (
-                      (('standalone' in window.navigator) && (window.navigator as { standalone?: boolean }).standalone === true) ||
-                      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
-                    );
-
-                    // Custom URL scheme fallback (plexamp://) if ratingKey is extracted
-                    const plexampCustomSchemeUrl = ratingKey 
-                      ? formatPlexUrl(ratingKey, 'plexamp_app', machineId || undefined, plexConfig.serverHost)
-                      : null;
-
-                    // Log exact rendered href for verification
-                    if (playPlexampUrl) {
-                      console.log('[Rendered Plexamp Link href]:', playPlexampUrl);
-                      console.log('[Standalone Mode Active]:', isStandalone);
-                      if (plexampCustomSchemeUrl) {
-                        console.log('[Fallback plexamp:// Scheme href]:', plexampCustomSchemeUrl);
-                      }
-                    }
+                    let playWebUrl = cd.plex_url && cd.plex_url.startsWith('http')
+                      ? cd.plex_url.trim()
+                      : (ratingKey 
+                          ? formatPlexUrl(ratingKey, plexConfig.linkFormat || 'app_plex_web', machineId || undefined, plexConfig.serverHost)
+                          : getPlexWebSearchUrl(cd.artist, cd.title, plexConfig.serverHost));
 
                     return (
                       <div className="flex flex-wrap items-center gap-2">
-                        <a 
-                          href={playPlexampUrl} 
-                          rel="noreferrer"
-                          target={isStandalone ? "_blank" : undefined}
-                          className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
-                          title={cd.plex_url ? `Play ${cd.title} in Plexamp (${playPlexampUrl})` : `Search ${cd.title} by ${cd.artist} in Plexamp`}
-                        >
-                          <PlexIcon className="w-4 h-4 text-white" />
-                          <span>Play in Plexamp</span>
-                        </a>
-
-                        {plexampCustomSchemeUrl && playPlexampUrl !== plexampCustomSchemeUrl && (
-                          <a 
-                            href={plexampCustomSchemeUrl} 
-                            className="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-medium py-2 px-2.5 rounded-lg transition-colors text-xs"
-                            title="Direct fallback using plexamp:// app protocol"
-                          >
-                            <span>App Protocol (plexamp://)</span>
-                          </a>
-                        )}
-
                         {playWebUrl && (
                           <a 
                             href={playWebUrl} 
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-amber-50/80 hover:bg-amber-100/80 text-amber-900 border border-amber-200/80 font-medium py-2 px-3 rounded-lg transition-colors text-xs"
-                            title="Open album in Plex Web player"
+                            className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm shadow-xs cursor-pointer"
+                            title={cd.plex_url ? `Open ${cd.title} in Plex Web` : `Search ${cd.title} by ${cd.artist} in Plex Web`}
                           >
+                            <PlexIcon className="w-4 h-4 text-white" />
                             <span>Open in Plex Web</span>
                           </a>
                         )}
