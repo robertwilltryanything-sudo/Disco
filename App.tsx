@@ -35,6 +35,34 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (item.recordLabel && !item.record_label) normalized.record_label = item.recordLabel;
     if (item.allMusicUrl && !item.allmusic_url) normalized.allmusic_url = item.allMusicUrl;
     
+    // Fix broken or MoFi URLs for Steely Dan - Aja to standard original album art
+    if (normalized.title === 'Aja' && normalized.artist === 'Steely Dan') {
+        if (!normalized.cover_art_url || normalized.cover_art_url.includes('Steely_Dan_Aja.png') || normalized.cover_art_url.includes('coverartarchive.org')) {
+            normalized.cover_art_url = 'https://upload.wikimedia.org/wikipedia/en/4/49/Aja_album_cover.jpg';
+        }
+    }
+
+    // Fix broken or fan-art URL for Pink Floyd - The Dark Side of the Moon to official album art
+    if ((normalized.title === 'The Dark Side of the Moon' || normalized.title === 'Dark Side of the Moon') && (normalized.artist === 'Pink Floyd' || !normalized.artist)) {
+        if (!normalized.cover_art_url || normalized.cover_art_url.includes('Dark_Side_of_the_Moon.png') || normalized.cover_art_url.includes('DarkSideOfTheMoon1973.jpg')) {
+            normalized.cover_art_url = 'https://upload.wikimedia.org/wikipedia/commons/3/3b/Dark_Side_of_the_Moon.png';
+        }
+    }
+
+    // Fix broken URL for Toto - Hydra
+    if (normalized.title === 'Hydra' && (normalized.artist === 'Toto' || !normalized.artist)) {
+        if (!normalized.cover_art_url || normalized.cover_art_url.includes('Toto-Hydra.JPG')) {
+            normalized.cover_art_url = 'https://upload.wikimedia.org/wikipedia/en/1/19/Hydra_%28Toto_album%29_coverart.jpg';
+        }
+    }
+
+    // Fix broken URL for Mike Oldfield - Tubular Bells
+    if (normalized.title === 'Tubular Bells' && (normalized.artist === 'Mike Oldfield' || !normalized.artist)) {
+        if (!normalized.cover_art_url || normalized.cover_art_url.includes('Tubular_Bells_album_cover.jpg')) {
+            normalized.cover_art_url = 'https://upload.wikimedia.org/wikipedia/en/0/0d/Mike_oldfield_tubular_bells_album_cover.jpg';
+        }
+    }
+
     // Ensure genre is always an array if it exists
     if (normalized.genre && !Array.isArray(normalized.genre)) {
         normalized.genre = [normalized.genre];
@@ -60,7 +88,7 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'The Dark Side of the Moon',
     genre: ['Progressive Rock'],
     year: 1973,
-    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/Dark_Side_of_the_Moon.png',
     allmusic_url: 'https://www.allmusic.com/album/the-dark-side-of-the-moon-mw0000191307',
     notes: 'Classic.',
     created_at: new Date(Date.now() - 50000).toISOString(),
@@ -84,7 +112,7 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'Hydra',
     genre: ['Progressive Rock'],
     year: 1979,
-    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/d/de/Toto-Hydra.JPG',
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/1/19/Hydra_%28Toto_album%29_coverart.jpg',
     allmusic_url: 'https://www.allmusic.com/album/hydra-mw0000192305',
     notes: 'Underrated masterpiece.',
     created_at: new Date(Date.now() - 30000).toISOString(),
@@ -96,7 +124,7 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'Aja',
     genre: ['Jazz Fusion'],
     year: 1977,
-    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/e/e0/Steely_Dan_Aja.png',
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/4/49/Aja_album_cover.jpg',
     allmusic_url: 'https://www.allmusic.com/album/aja-mw0000191950',
     notes: 'Audiophile dream.',
     created_at: new Date(Date.now() - 20000).toISOString(),
@@ -108,7 +136,7 @@ const INITIAL_COLLECTION: CD[] = [
     title: 'Tubular Bells',
     genre: ['Progressive Rock'],
     year: 1973,
-    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/b/b5/Tubular_Bells_album_cover.jpg',
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/0/0d/Mike_oldfield_tubular_bells_album_cover.jpg',
     allmusic_url: 'https://www.allmusic.com/album/tubular-bells-mw0000201416',
     notes: 'Virgin Records first release.',
     created_at: new Date(Date.now() - 10000).toISOString(),
