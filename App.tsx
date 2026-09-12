@@ -72,6 +72,11 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
         normalized.sort_name = 'Costello, Elvis';
     }
 
+    // For Creedence Clearwater Revival items, ensure default sort_name is 'Creedence Clearwater Revival' (under C)
+    if ((artLower.includes('creedence clearwater revival') || artLower === 'ccr') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('revival'))) {
+        normalized.sort_name = 'Creedence Clearwater Revival';
+    }
+
     // Ensure genre is always an array if it exists
     if (normalized.genre && !Array.isArray(normalized.genre)) {
         normalized.genre = [normalized.genre];

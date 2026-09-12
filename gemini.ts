@@ -201,7 +201,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 Year: [4-digit Release Year]
                 Label: [Record Label]
                 Producer: [Album Producer(s)]
-                SortName: [The name used for sorting. For solo artists, use 'Surname, First Name'. For bands, use the full band name (ignoring 'The' if it starts with it). Examples: 'David Bowie' -> 'Bowie, David', 'Pink Floyd' -> 'Pink Floyd', 'The Beatles' -> 'Beatles', 'Ella Fitzgerald & Louis Armstrong' -> 'Fitzgerald, Ella & Louis Armstrong']
+                SortName: [The name used for sorting. For solo artists, use 'Surname, First Name'. For bands, use the full band name (ignoring 'The' if it starts with it). Examples: 'David Bowie' -> 'Bowie, David', 'Pink Floyd' -> 'Pink Floyd', 'The Beatles' -> 'Beatles', 'Creedence Clearwater Revival' -> 'Creedence Clearwater Revival', 'Ella Fitzgerald & Louis Armstrong' -> 'Fitzgerald, Ella & Louis Armstrong']
                 Wikipedia: [Full URL to Wikipedia album page]
                 Review: [A professional 2-3 sentence review of the album's impact]`,
                 config: {

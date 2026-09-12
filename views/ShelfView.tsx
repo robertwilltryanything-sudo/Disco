@@ -342,6 +342,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Creedence Clearwater Revival / CCR (under C)
+      if (lower.includes('creedence clearwater revival') || lower === 'ccr') {
+        return {
+          groupChar: 'C',
+          sortKey: 'creedence clearwater revival'
+        };
+      }
+
       // Special case for Buena Vista Social Club (under B)
       if (lower.includes('buena vista social club')) {
         return {
