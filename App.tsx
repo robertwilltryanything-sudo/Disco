@@ -63,6 +63,12 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
         }
     }
 
+    // For Elvis Costello related items, ensure default sort_name is 'Costello, Elvis' if not set
+    const artLower = (normalized.artist || '').toLowerCase();
+    if ((artLower.includes('elvis costello') || artLower.includes('costello, elvis') || artLower.includes('the costello show') || artLower.includes('the coward brothers')) && !normalized.sort_name) {
+        normalized.sort_name = 'Costello, Elvis';
+    }
+
     // Ensure genre is always an array if it exists
     if (normalized.genre && !Array.isArray(normalized.genre)) {
         normalized.genre = [normalized.genre];

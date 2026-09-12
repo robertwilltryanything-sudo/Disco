@@ -23,9 +23,65 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
     // Initialize groups
     ALPHABET.forEach(char => groups[char] = []);
 
-    const getSurnameInfo = (name: string) => {
-      let cleanName = name.trim();
-      if (!cleanName) return { groupChar: '#', sortKey: '' };
+    const isElvisCostelloRelated = (name: string, cd?: Partial<CD>) => {
+      const cleanName = (name || '').trim().toLowerCase();
+      const sortName = (cd?.sort_name || '').trim().toLowerCase();
+      const title = (cd?.title || '').trim().toLowerCase();
+
+      // 1. Direct artist name / sort name matches
+      if (cleanName.includes('elvis costello') || sortName.includes('elvis costello')) return true;
+      if (cleanName.includes('costello, elvis') || sortName.includes('costello, elvis')) return true;
+
+      // 2. Notable aliases, side-projects & backing bands
+      if (cleanName.includes('the costello show') || cleanName.includes('costello show')) return true;
+      if (sortName.includes('the costello show') || sortName.includes('costello show')) return true;
+      if (cleanName.includes('the coward brothers') || cleanName.includes('coward brothers')) return true;
+      if (sortName.includes('the coward brothers') || sortName.includes('coward brothers')) return true;
+      if (cleanName.includes('declan macmanus') || cleanName.includes('declan mcmanus')) return true;
+      if (sortName.includes('declan macmanus') || sortName.includes('declan mcmanus')) return true;
+      if (cleanName.includes('d.p. costello') || cleanName.includes('dp costello')) return true;
+      if (sortName.includes('d.p. costello') || sortName.includes('dp costello')) return true;
+
+      // 3. The Attractions or The Imposters
+      if (cleanName === 'the attractions' || cleanName === 'the imposters') return true;
+
+      // 4. "Costello" without "Elvis" (e.g. "Costello", "Costello & ...", "... & Costello", "Costello / ...")
+      // excluding other distinct artists named Costello (like Sean Costello, Lou Costello)
+      if (cleanName.includes('costello') && !cleanName.includes('sean costello') && !cleanName.includes('lou costello')) {
+        if (cleanName === 'costello' || cleanName.startsWith('costello,') || cleanName.includes('&') || cleanName.includes('and') || cleanName.includes('/') || cleanName.includes('with') || cleanName.includes('feat')) {
+          return true;
+        }
+      }
+
+      if (sortName.startsWith('costello') && !sortName.includes('sean costello') && !sortName.includes('lou costello')) {
+        return true;
+      }
+
+      // 5. Explicit Elvis Costello tribute or compilation in title
+      if (title.includes('elvis costello')) return true;
+
+      // 6. Explicit tag
+      if (cd?.tags?.some(t => {
+        const tl = t.toLowerCase().trim();
+        return tl === 'elvis costello' || tl === 'costello, elvis' || tl === 'costello';
+      })) {
+        return true;
+      }
+
+      return false;
+    };
+
+    const getSurnameInfo = (name: string, cd?: Partial<CD>) => {
+      let cleanName = (name || cd?.artist || '').trim();
+      if (!cleanName && !cd?.sort_name) return { groupChar: '#', sortKey: '' };
+
+      // Highest priority: Anything related to Elvis Costello sorts under 'C' as 'costello, elvis'
+      if (isElvisCostelloRelated(cleanName, cd)) {
+        return {
+          groupChar: 'C',
+          sortKey: 'costello, elvis'
+        };
+      }
 
       const lower = cleanName.toLowerCase();
       
@@ -42,14 +98,6 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         return {
           groupChar: 'S',
           sortKey: 'springsteen, bruce' + lower.replace('bruce springsteen', '')
-        };
-      }
-
-      // Special case for Elvis Costello (e.g. Elvis Costello & The Attractions -> C)
-      if (lower.includes('elvis costello')) {
-        return {
-          groupChar: 'C',
-          sortKey: 'costello, elvis' + lower.replace('elvis costello', '')
         };
       }
 
@@ -374,7 +422,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
     };
 
     cds.forEach(cd => {
-      const { groupChar } = getSurnameInfo(cd.artist);
+      const { groupChar } = getSurnameInfo(cd.artist, cd);
       
       let targetGroup = '#';
       if (/[A-Z]/.test(groupChar)) {
@@ -388,15 +436,17 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
       }
     });
 
-    // Sort items within each group: Surname Sort Key then Year (Chronological)
+    // Sort items within each group: Surname Sort Key then Year (Chronological) then Title
     Object.keys(groups).forEach(key => {
       groups[key].sort((a, b) => {
-        const infoA = getSurnameInfo(a.artist);
-        const infoB = getSurnameInfo(b.artist);
+        const infoA = getSurnameInfo(a.artist, a);
+        const infoB = getSurnameInfo(b.artist, b);
         
         const artComp = infoA.sortKey.localeCompare(infoB.sortKey);
         if (artComp !== 0) return artComp;
-        return (a.year || 0) - (b.year || 0);
+        const yearComp = (a.year || 0) - (b.year || 0);
+        if (yearComp !== 0) return yearComp;
+        return (a.title || '').localeCompare(b.title || '');
       });
     });
 
