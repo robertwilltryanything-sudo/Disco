@@ -28,6 +28,8 @@ import SyncConfirmationModal from './components/SyncConfirmationModal';
 import DriveImagePickerModal from './components/DriveImagePickerModal';
 import SearchOverlay from './components/SearchOverlay';
 import { AutoSyncBanner } from './components/AutoSyncBanner';
+import ArtistSorterModal from './components/ArtistSorterModal';
+import { determineArtistSortName } from './artistSorter';
 
 const LOCAL_UPDATED_AT_KEY = 'disco_local_updated_at';
 
@@ -102,9 +104,22 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
         normalized.sort_name = 'Dinosaur Jr.';
     }
 
+    // For Dire Straits items, ensure default sort_name is 'Dire Straits' (under D)
+    if (artLower.includes('dire straits') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('straits'))) {
+        normalized.sort_name = 'Dire Straits';
+    }
+
     // For Tangerine Dream items, ensure default sort_name is 'Tangerine Dream' (under T)
     if (artLower.includes('tangerine dream') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('dream'))) {
         normalized.sort_name = 'Tangerine Dream';
+    }
+
+    // Default smart artist sorting normalization
+    if (!normalized.sort_name && normalized.artist) {
+        const sortedInfo = determineArtistSortName(normalized.artist);
+        if (sortedInfo.sort_name) {
+            normalized.sort_name = sortedInfo.sort_name;
+        }
     }
 
     // Ensure genre is always an array if it exists
@@ -223,6 +238,7 @@ const AppContent: React.FC = () => {
   const [pendingImport, setPendingImport] = useState<CD[] | null>(null);
   const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isArtistSorterOpen, setIsArtistSorterOpen] = useState(false);
 
   // Drive Picker States
   const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
@@ -298,6 +314,31 @@ const AppContent: React.FC = () => {
       showBanner('error', 'Auto-save failed to upload to Google Drive', 'Saved locally', 5000);
     }
   }, [syncProvider, driveSignedIn, driveSaveData, showBanner]);
+
+  const handleApplyArtistSortNames = useCallback((updates: Record<string, string>) => {
+    let collectionChanges = 0;
+    const newCollection = collection.map(cd => {
+      const art = (cd.artist || '').trim();
+      if (updates[art] !== undefined && updates[art] !== cd.sort_name) {
+        collectionChanges++;
+        return { ...cd, sort_name: updates[art] };
+      }
+      return cd;
+    });
+
+    const newWantlist = wantlist.map(item => {
+      const art = (item.artist || '').trim();
+      if (updates[art] !== undefined && updates[art] !== item.sort_name) {
+        return { ...item, sort_name: updates[art] };
+      }
+      return item;
+    });
+
+    setCollection(newCollection);
+    setWantlist(newWantlist);
+    triggerAutoUpload(newCollection, newWantlist, `Normalized artist sorting for ${Object.keys(updates).length} artists`);
+    showBanner('synced', `Updated artist sorting for ${collectionChanges} album(s)`, undefined, 4000);
+  }, [collection, wantlist, triggerAutoUpload, showBanner]);
 
   // Check remote Google Drive for newer save on login or page load
   const checkForNewerRemoteSave = useCallback(async () => {
@@ -662,6 +703,7 @@ const AppContent: React.FC = () => {
         onToggleMode={handleToggleMode}
         lastSyncTime={driveLastSyncTime}
         onSearchClick={() => setIsSearchOpen(true)}
+        onOpenArtistSorter={() => setIsArtistSorterOpen(true)}
       />
       <main className="container mx-auto p-4 md:p-6 max-w-full overflow-x-hidden">
         {isGoogleDriveSelectedButLoggedOut && (
@@ -729,10 +771,10 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<ListView cds={currentCollection} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
           <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handlePassiveUpdateCD} collectionMode={collectionMode} />} />
-          <Route path="/artists" element={<ArtistsView cds={currentCollection} collectionMode={collectionMode} />} />
+          <Route path="/artists" element={<ArtistsView cds={currentCollection} collectionMode={collectionMode} onOpenArtistSorter={() => setIsArtistSorterOpen(true)} />} />
           <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/stats" element={<DashboardView cds={currentCollection} collectionMode={collectionMode} />} />
-          <Route path="/shelf" element={<ShelfView cds={currentCollection} collectionMode={collectionMode} />} />
+          <Route path="/shelf" element={<ShelfView cds={currentCollection} collectionMode={collectionMode} onOpenArtistSorter={() => setIsArtistSorterOpen(true)} />} />
           <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} collectionMode={collectionMode} />} />
           <Route path="/wantlist" element={<WantlistView wantlist={currentWantlist} onRequestEdit={(item) => { setWantlistItemToEdit(item); setIsAddWantlistModalOpen(true); }} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
           <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onUpdate={handlePassiveUpdateWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
@@ -821,6 +863,15 @@ const AppContent: React.FC = () => {
       <AutoSyncBanner 
         notification={autoSyncBanner} 
         onDismiss={() => setAutoSyncBanner(null)} 
+      />
+
+      {/* Artist Sorting Normalizer Modal */}
+      <ArtistSorterModal 
+        isOpen={isArtistSorterOpen}
+        onClose={() => setIsArtistSorterOpen(false)}
+        cds={collection}
+        wantlist={wantlist}
+        onApplySortNames={handleApplyArtistSortNames}
       />
     </div>
   );

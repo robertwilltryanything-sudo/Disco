@@ -2,13 +2,15 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
+import { SparklesIcon } from '../components/icons/SparklesIcon';
 
 interface ArtistsViewProps {
   cds: CD[];
   collectionMode: CollectionMode;
+  onOpenArtistSorter?: () => void;
 }
 
-const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
+const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
   const artists = useMemo(() => {
     const artistMap = new Map<string, string>();
     cds.forEach(cd => {
@@ -26,15 +28,28 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode }) => {
 
   return (
     <div>
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-wrap gap-3 justify-between items-center">
         <h1 className="text-3xl font-bold text-zinc-800">All Artists ({artists.length})</h1>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-zinc-600 font-medium"
-        >
-          <ArrowLeftIcon className="h-5 w-5" />
-          Back to Collection
-        </Link>
+        <div className="flex items-center gap-3">
+          {onOpenArtistSorter && (
+            <button
+              type="button"
+              onClick={onOpenArtistSorter}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-all shadow-xs"
+              title="Automatically sort all bands under band names and solo artists by surname"
+            >
+              <SparklesIcon className="w-3.5 h-3.5 text-amber-600" />
+              <span>Fix Artist Sorting</span>
+            </button>
+          )}
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-zinc-600 font-medium"
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+            Back to Collection
+          </Link>
+        </div>
       </div>
 
       {artists.length === 0 ? (

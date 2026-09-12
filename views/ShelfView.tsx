@@ -5,15 +5,18 @@ import { Link } from 'react-router-dom';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
+import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { determineArtistSortName } from '../artistSorter';
 
 interface ShelfViewProps {
   cds: CD[];
   collectionMode: CollectionMode;
+  onOpenArtistSorter?: () => void;
 }
 
 const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
+const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
   // Sections collapsed by default for a better "visual overlook"
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
@@ -74,6 +77,17 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
     const getSurnameInfo = (name: string, cd?: Partial<CD>) => {
       let cleanName = (name || cd?.artist || '').trim();
       if (!cleanName && !cd?.sort_name) return { groupChar: '#', sortKey: '' };
+
+      // Priority 0: Explicit sort_name on the CD record is the ultimate source of truth!
+      if (cd?.sort_name && cd.sort_name.trim()) {
+        const s = cd.sort_name.trim();
+        const cleanSort = s.replace(/^the\s+/i, '').trim();
+        const firstChar = cleanSort.charAt(0).toUpperCase();
+        return {
+          groupChar: /[A-Z]/.test(firstChar) ? firstChar : '#',
+          sortKey: cleanSort.toLowerCase()
+        };
+      }
 
       // Highest priority: Anything related to Elvis Costello sorts under 'C' as 'costello, elvis'
       if (isElvisCostelloRelated(cleanName, cd)) {
@@ -390,6 +404,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Dire Straits (under D)
+      if (lower.includes('dire straits')) {
+        return {
+          groupChar: 'D',
+          sortKey: 'dire straits'
+        };
+      }
+
       // Special case for Buena Vista Social Club (under B)
       if (lower.includes('buena vista social club')) {
         return {
@@ -439,6 +461,15 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
       }
       
       // Handle "The ..." bands - usually sorted by the first word after "The"
+      // Use intelligent artist classifier to catch bands vs solo artists
+      const autoClassification = determineArtistSortName(cleanName);
+      if (autoClassification.sort_name) {
+        return {
+          groupChar: autoClassification.groupChar,
+          sortKey: autoClassification.sort_name.replace(/^the\s+/i, '').toLowerCase()
+        };
+      }
+
       if (lower.startsWith('the ')) {
         const afterThe = cleanName.slice(4).trim();
         return {
@@ -527,25 +558,39 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         </div>
       </div>
 
-      <div className="flex justify-end mb-4">
-        <button 
-          onClick={() => {
-            const allExpanded = ALPHABET.reduce((acc, char) => ({ ...acc, [char]: true }), {});
-            setExpandedSections(allExpanded);
-          }}
-          className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2"
-        >
-          Expand All
-        </button>
-        <button 
-          onClick={() => {
-            const allCollapsed = ALPHABET.reduce((acc, char) => ({ ...acc, [char]: false }), {});
-            setExpandedSections(allCollapsed);
-          }}
-          className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2"
-        >
-          Collapse All
-        </button>
+      <div className="flex items-center justify-between mb-4">
+        {onOpenArtistSorter ? (
+          <button
+            type="button"
+            onClick={onOpenArtistSorter}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-all shadow-xs"
+            title="Automatically sort all bands under band names and solo artists by surname"
+          >
+            <SparklesIcon className="w-3.5 h-3.5 text-amber-600" />
+            <span>Fix Artist Sorting</span>
+          </button>
+        ) : <div />}
+
+        <div className="flex items-center">
+          <button 
+            onClick={() => {
+              const allExpanded = ALPHABET.reduce((acc, char) => ({ ...acc, [char]: true }), {});
+              setExpandedSections(allExpanded);
+            }}
+            className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2"
+          >
+            Expand All
+          </button>
+          <button 
+            onClick={() => {
+              const allCollapsed = ALPHABET.reduce((acc, char) => ({ ...acc, [char]: false }), {});
+              setExpandedSections(allCollapsed);
+            }}
+            className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2"
+          >
+            Collapse All
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">

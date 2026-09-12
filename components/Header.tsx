@@ -37,6 +37,7 @@ interface HeaderProps {
     onToggleMode: () => void;
     lastSyncTime?: string | null;
     onSearchClick?: () => void;
+    onOpenArtistSorter?: () => void;
 }
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
@@ -57,7 +58,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 const Header: React.FC<HeaderProps> = ({ 
     onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings,
     syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut, onSignIn, isSignedIn,
-    isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime
+    isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime, onOpenArtistSorter
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -179,6 +180,16 @@ const Header: React.FC<HeaderProps> = ({
                             <SparklesIcon className="w-5 h-5" />
                             <span className="font-medium">Find Duplicates</span>
                         </NavLink>
+                        {onOpenArtistSorter && (
+                          <button
+                            type="button"
+                            onClick={() => { onOpenArtistSorter(); setIsMenuOpen(false); }}
+                            className="w-full flex items-center gap-3 p-2 rounded-md text-sm text-zinc-700 focus:outline-none hover:bg-amber-50 hover:text-amber-900 transition-colors text-left"
+                          >
+                            <SparklesIcon className="w-5 h-5 text-amber-500" />
+                            <span className="font-medium">Fix Artist Sorting</span>
+                          </button>
+                        )}
                     </div>
                     <div className="p-2">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-2 mb-2">Sync & Integrations</h3>
