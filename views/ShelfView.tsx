@@ -350,6 +350,38 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Grateful Dead / The Grateful Dead (under G)
+      if (lower.includes('grateful dead')) {
+        return {
+          groupChar: 'G',
+          sortKey: 'grateful dead'
+        };
+      }
+
+      // Special case for Vaya Con Dios (under V)
+      if (lower.includes('vaya con dios')) {
+        return {
+          groupChar: 'V',
+          sortKey: 'vaya con dios'
+        };
+      }
+
+      // Special case for Def Leppard (under D)
+      if (lower.includes('def leppard')) {
+        return {
+          groupChar: 'D',
+          sortKey: 'def leppard'
+        };
+      }
+
+      // Special case for Depeche Mode (under D)
+      if (lower.includes('depeche mode')) {
+        return {
+          groupChar: 'D',
+          sortKey: 'depeche mode'
+        };
+      }
+
       // Special case for Buena Vista Social Club (under B)
       if (lower.includes('buena vista social club')) {
         return {

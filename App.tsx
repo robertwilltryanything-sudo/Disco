@@ -77,6 +77,26 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
         normalized.sort_name = 'Creedence Clearwater Revival';
     }
 
+    // For Grateful Dead items, ensure default sort_name is 'Grateful Dead' (under G)
+    if (artLower.includes('grateful dead') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('dead'))) {
+        normalized.sort_name = 'Grateful Dead';
+    }
+
+    // For Vaya Con Dios items, ensure default sort_name is 'Vaya Con Dios' (under V)
+    if (artLower.includes('vaya con dios') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('dios'))) {
+        normalized.sort_name = 'Vaya Con Dios';
+    }
+
+    // For Def Leppard items, ensure default sort_name is 'Def Leppard' (under D)
+    if (artLower.includes('def leppard') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('leppard'))) {
+        normalized.sort_name = 'Def Leppard';
+    }
+
+    // For Depeche Mode items, ensure default sort_name is 'Depeche Mode' (under D)
+    if (artLower.includes('depeche mode') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('mode'))) {
+        normalized.sort_name = 'Depeche Mode';
+    }
+
     // Ensure genre is always an array if it exists
     if (normalized.genre && !Array.isArray(normalized.genre)) {
         normalized.genre = [normalized.genre];
