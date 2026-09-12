@@ -493,15 +493,22 @@ const AppContent: React.FC = () => {
                     sort_name: cd.sort_name || normalizedDetails.sort_name,
                     tags: [...new Set([...(cd.tags || []), ...(normalizedDetails.tags || [])])],
                 };
-                setCollection(prev => {
-                  const newColl = prev.map(c => c.id === cd.id ? updatedCd : c);
-                  triggerAutoUpload(newColl, wantlistRef.current, 'Album metadata');
-                  return newColl;
-                });
+                // Save locally only without triggering a background cloud upload
+                setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
             }
         } catch (e) { console.error("Detail fetch error:", e); }
     }
   };
+
+  // Passive update from album views (e.g., auto-resolving Wikipedia URL or viewing details)
+  // Saves to local state without triggering Google Drive upload
+  const handlePassiveUpdateCD = useCallback(async (updatedCd: CD) => {
+    setCollection(prev => prev.map(c => c.id === updatedCd.id ? updatedCd : c));
+  }, []);
+
+  const handlePassiveUpdateWantlistItem = useCallback(async (updatedItem: WantlistItem) => {
+    setWantlist(prev => prev.map(i => i.id === updatedItem.id ? updatedItem : i));
+  }, []);
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     if (!cdData.id && !duplicateCheckResult) {
@@ -686,14 +693,14 @@ const AppContent: React.FC = () => {
         )}
         <Routes>
           <Route path="/" element={<ListView cds={currentCollection} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
-          <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handleSaveCD} collectionMode={collectionMode} />} />
+          <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handlePassiveUpdateCD} collectionMode={collectionMode} />} />
           <Route path="/artists" element={<ArtistsView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/stats" element={<DashboardView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/shelf" element={<ShelfView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} collectionMode={collectionMode} />} />
           <Route path="/wantlist" element={<WantlistView wantlist={currentWantlist} onRequestEdit={(item) => { setWantlistItemToEdit(item); setIsAddWantlistModalOpen(true); }} onDelete={handleDeleteWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
-          <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onUpdate={handleSaveWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
+          <Route path="/wantlist/:id" element={<WantlistDetailView wantlist={currentWantlist} cds={currentCollection} onDelete={handleDeleteWantlistItem} onUpdate={handlePassiveUpdateWantlistItem} onMoveToCollection={handleMoveToCollection} collectionMode={collectionMode} />} />
         </Routes>
       </main>
       {isAddModalOpen && (
