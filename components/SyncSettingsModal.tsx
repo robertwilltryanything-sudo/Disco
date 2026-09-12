@@ -108,7 +108,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                 <div className="p-6 space-y-4">
                     <ProviderOption
                         title="Google Drive Sync"
-                        description={isGoogleConfigured ? "Manual Load/Save to your private Drive storage." : "Configuration required in Google Cloud Console."}
+                        description={isGoogleConfigured ? "Automatic cloud sync. Auto-downloads newer saves on startup and uploads every save." : "Configuration required in Google Cloud Console."}
                         isSelected={currentProvider === 'google_drive'}
                         isDisabled={!isGoogleConfigured}
                         onSelect={() => onProviderChange('google_drive')}

@@ -26,7 +26,13 @@ declare global {
   }
 }
 
-export const useGoogleDrive = () => {
+export interface DriveMetadata {
+  id: string;
+  modifiedTime: string;
+  version?: string;
+}
+
+export const useGoogleDrive = (onSignInSuccess?: () => void) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
@@ -38,6 +44,8 @@ export const useGoogleDrive = () => {
   const authTimeoutRef = useRef<number | null>(null);
   const syncStatusRef = useRef<SyncStatus>('idle');
   const initStartedRef = useRef(false);
+  const signInSuccessCbRef = useRef(onSignInSuccess);
+  signInSuccessCbRef.current = onSignInSuccess;
   
   const updateSyncStatus = useCallback((newStatus: SyncStatus) => {
     syncStatusRef.current = newStatus;
@@ -125,6 +133,9 @@ export const useGoogleDrive = () => {
             updateSyncStatus('idle');
             setError(null);
             localStorage.setItem(SIGNED_IN_KEY, 'true');
+            if (signInSuccessCbRef.current) {
+              signInSuccessCbRef.current();
+            }
           } else if (tokenResponse && tokenResponse.error) {
             if (tokenResponse.error === 'popup_closed_by_user') {
               setError("Sign-in cancelled. Please try again.");
@@ -200,6 +211,23 @@ export const useGoogleDrive = () => {
       return fileIdRef.current;
     }
   }, [driveApiFetch]);
+
+  // Fast metadata check without loading entire file payload
+  const getRemoteMetadata = useCallback(async (): Promise<DriveMetadata | null> => {
+    if (!isSignedIn) return null;
+    try {
+      const id = await getOrCreateFileId();
+      const metadata = await driveApiFetch(`/drive/v3/files/${id}?fields=id,modifiedTime,version`);
+      return {
+        id: metadata.id,
+        modifiedTime: metadata.modifiedTime,
+        version: metadata.version
+      };
+    } catch (e: any) {
+      console.warn("Could not fetch remote metadata:", e);
+      return null;
+    }
+  }, [isSignedIn, getOrCreateFileId, driveApiFetch]);
 
   const loadData = useCallback(async (): Promise<UnifiedStorage | null> => {
     if (!isSignedIn) return null;
@@ -326,6 +354,7 @@ export const useGoogleDrive = () => {
 
   return useMemo(() => ({ 
     isApiReady, isSignedIn, signIn, signOut, loadData, saveData,
-    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages]);
+    getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages,
+    getRemoteMetadata
+  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata]);
 };

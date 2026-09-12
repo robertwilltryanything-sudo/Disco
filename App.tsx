@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { CD, SyncProvider, SyncStatus, WantlistItem, CollectionMode } from './types';
 import Header from './components/Header';
@@ -27,6 +27,9 @@ import { XCircleIcon } from './components/icons/XCircleIcon';
 import SyncConfirmationModal from './components/SyncConfirmationModal';
 import DriveImagePickerModal from './components/DriveImagePickerModal';
 import SearchOverlay from './components/SearchOverlay';
+import { AutoSyncBanner } from './components/AutoSyncBanner';
+
+const LOCAL_UPDATED_AT_KEY = 'disco_local_updated_at';
 
 const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (!item) return item;
@@ -195,6 +198,22 @@ const AppContent: React.FC = () => {
   const [syncConfirmType, setSyncConfirmType] = useState<'push' | 'pull'>('push');
   const [pendingCloudData, setPendingCloudData] = useState<UnifiedStorage | null>(null);
   const [isPeekingCloud, setIsPeekingCloud] = useState(false);
+  const [autoSyncBanner, setAutoSyncBanner] = useState<{
+    type: 'syncing' | 'synced' | 'downloaded' | 'error';
+    message: string;
+    details?: string;
+  } | null>(null);
+
+  const bannerTimeoutRef = useRef<number | null>(null);
+  const showBanner = useCallback((type: 'syncing' | 'synced' | 'downloaded' | 'error', message: string, details?: string, duration = 4000) => {
+    if (bannerTimeoutRef.current) window.clearTimeout(bannerTimeoutRef.current);
+    setAutoSyncBanner({ type, message, details });
+    if (duration > 0) {
+      bannerTimeoutRef.current = window.setTimeout(() => {
+        setAutoSyncBanner(null);
+      }, duration);
+    }
+  }, []);
 
   const [syncProvider, setSyncProvider] = useState<SyncProvider>(() => {
       const saved = localStorage.getItem('disco_sync_provider');
@@ -212,8 +231,82 @@ const AppContent: React.FC = () => {
     lastSyncTime: driveLastSyncTime,
     isApiReady: driveReady,
     resetSyncStatus: driveResetStatus,
-    fetchDriveImages: driveFetchImages
+    fetchDriveImages: driveFetchImages,
+    getRemoteMetadata: driveGetRemoteMetadata
   } = useGoogleDrive();
+
+  // Track latest collection and wantlist in refs for background sync operations
+  const collectionRef = useRef(collection);
+  collectionRef.current = collection;
+  const wantlistRef = useRef(wantlist);
+  wantlistRef.current = wantlist;
+
+  const hasCheckedRemoteOnLoginRef = useRef(false);
+
+  // Background auto-upload helper
+  const triggerAutoUpload = useCallback(async (updatedCollection: CD[], updatedWantlist: WantlistItem[], actionLabel = 'Changes') => {
+    const timestamp = new Date().toISOString();
+    localStorage.setItem(LOCAL_UPDATED_AT_KEY, timestamp);
+
+    if (syncProvider !== 'google_drive' || !driveSignedIn) return;
+
+    showBanner('syncing', `Uploading ${actionLabel.toLowerCase()} to Google Drive...`, undefined, 0);
+    try {
+      await driveSaveData({
+        collection: updatedCollection,
+        wantlist: updatedWantlist,
+        lastUpdated: timestamp
+      });
+      showBanner('synced', 'Saved to Google Drive', 'Synced just now', 3500);
+    } catch (e: any) {
+      console.error("Auto upload failed:", e);
+      showBanner('error', 'Auto-save failed to upload to Google Drive', 'Saved locally', 5000);
+    }
+  }, [syncProvider, driveSignedIn, driveSaveData, showBanner]);
+
+  // Check remote Google Drive for newer save on login or page load
+  const checkForNewerRemoteSave = useCallback(async () => {
+    if (syncProvider !== 'google_drive' || !driveSignedIn) return;
+    
+    try {
+      const metadata = await driveGetRemoteMetadata();
+      if (!metadata || !metadata.modifiedTime) return;
+
+      const remoteTime = new Date(metadata.modifiedTime).getTime();
+      const localStoredTimeStr = localStorage.getItem(LOCAL_UPDATED_AT_KEY);
+      const localTime = localStoredTimeStr ? new Date(localStoredTimeStr).getTime() : 0;
+
+      // If remote modifiedTime is newer than local by more than 2 seconds (to avoid clock drift)
+      if (remoteTime > localTime + 2000) {
+        showBanner('syncing', 'Found newer backup on Google Drive. Downloading...', undefined, 0);
+        const remoteData = await driveLoadData();
+        if (remoteData && remoteData.collection) {
+          const remoteCol = remoteData.collection.map(normalizeData<CD>);
+          const remoteWant = (remoteData.wantlist || []).map(normalizeData<WantlistItem>);
+          
+          setCollection(remoteCol);
+          setWantlist(remoteWant);
+          localStorage.setItem(LOCAL_UPDATED_AT_KEY, remoteData.lastUpdated || metadata.modifiedTime);
+          
+          const totalCount = remoteCol.length + remoteWant.length;
+          showBanner('downloaded', 'Updated collection from Google Drive', `${totalCount} items loaded`, 4500);
+        }
+      }
+    } catch (err) {
+      console.warn("Auto-check for newer remote save encountered an error:", err);
+    }
+  }, [syncProvider, driveSignedIn, driveGetRemoteMetadata, driveLoadData, showBanner]);
+
+  // Automatically check on initial load or whenever user signs in
+  useEffect(() => {
+    if (driveSignedIn && syncProvider === 'google_drive' && !hasCheckedRemoteOnLoginRef.current) {
+      hasCheckedRemoteOnLoginRef.current = true;
+      checkForNewerRemoteSave();
+    }
+    if (!driveSignedIn) {
+      hasCheckedRemoteOnLoginRef.current = false;
+    }
+  }, [driveSignedIn, syncProvider, checkForNewerRemoteSave]);
 
   // Pick Image Trigger
   const initiateDrivePick = useCallback((): Promise<string | null> => {
@@ -357,14 +450,18 @@ const AppContent: React.FC = () => {
 
   const confirmImport = useCallback((strategy: 'merge' | 'replace') => {
       if (!pendingImport) return;
-      if (strategy === 'replace') { setCollection(pendingImport); } 
-      else {
-          const existingIds = new Set(collection.map(c => c.id));
-          const newItems = pendingImport.filter(c => !existingIds.has(c.id));
-          setCollection([...collection, ...newItems]);
+      let updatedCollection: CD[] = [];
+      if (strategy === 'replace') { 
+        updatedCollection = pendingImport;
+      } else {
+        const existingIds = new Set(collection.map(c => c.id));
+        const newItems = pendingImport.filter(c => !existingIds.has(c.id));
+        updatedCollection = [...collection, ...newItems];
       }
+      setCollection(updatedCollection);
       setPendingImport(null);
-  }, [pendingImport, collection]);
+      triggerAutoUpload(updatedCollection, wantlist, 'Imported items');
+  }, [pendingImport, collection, wantlist, triggerAutoUpload]);
 
   const handleExport = useCallback(() => {
     const dataStr = JSON.stringify({ collection, wantlist, lastUpdated: new Date().toISOString() }, null, 2);
@@ -396,7 +493,11 @@ const AppContent: React.FC = () => {
                     sort_name: cd.sort_name || normalizedDetails.sort_name,
                     tags: [...new Set([...(cd.tags || []), ...(normalizedDetails.tags || [])])],
                 };
-                setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
+                setCollection(prev => {
+                  const newColl = prev.map(c => c.id === cd.id ? updatedCd : c);
+                  triggerAutoUpload(newColl, wantlistRef.current, 'Album metadata');
+                  return newColl;
+                });
             }
         } catch (e) { console.error("Detail fetch error:", e); }
     }
@@ -419,17 +520,32 @@ const AppContent: React.FC = () => {
         created_at: cdData.created_at || new Date().toISOString(),
         format: cdData.format || collectionMode 
     } as CD;
-    if (cdData.id) { setCollection(prev => prev.map(c => c.id === cdData.id ? finalCd : c)); } 
-    else { setCollection(prev => [finalCd, ...prev]); }
+    
+    let updatedCollection: CD[] = [];
+    if (cdData.id) { 
+      updatedCollection = collection.map(c => c.id === cdData.id ? finalCd : c);
+    } else { 
+      updatedCollection = [finalCd, ...collection];
+    }
+    setCollection(updatedCollection);
+
     setIsAddModalOpen(false);
     setCdToEdit(null);
     setPrefillData(null);
     setDuplicateCheckResult(null);
+
+    // Immediately trigger background upload to Google Drive
+    triggerAutoUpload(updatedCollection, wantlist, cdData.id ? `Updated ${finalCd.title}` : `Added ${finalCd.title}`);
+
     fetchAndApplyAlbumDetails(finalCd);
     if (cdData.id) navigate(`/cd/${finalCd.id}`);
-  }, [collectionMode, duplicateCheckResult, navigate, currentCollection]);
+  }, [collectionMode, duplicateCheckResult, navigate, currentCollection, collection, wantlist, triggerAutoUpload]);
 
-  const handleDeleteCD = useCallback(async (id: string) => { setCollection(prev => prev.filter(cd => cd.id !== id)); }, []);
+  const handleDeleteCD = useCallback(async (id: string) => { 
+    const updated = collection.filter(cd => cd.id !== id);
+    setCollection(updated);
+    triggerAutoUpload(updated, wantlist, 'Deleted item');
+  }, [collection, wantlist, triggerAutoUpload]);
   
   const handleSaveWantlistItem = useCallback(async (itemData: Omit<WantlistItem, 'id'> & { id?: string }) => {
       const tempId = itemData.id || generateId();
@@ -439,19 +555,42 @@ const AppContent: React.FC = () => {
           created_at: itemData.created_at || new Date().toISOString(),
           format: itemData.format || collectionMode 
       } as WantlistItem;
-      if (itemData.id) { setWantlist(prev => prev.map(i => i.id === itemData.id ? finalItem : i)); } 
-      else { setWantlist(prev => [finalItem, ...prev]); }
+      
+      let updatedWantlist: WantlistItem[] = [];
+      if (itemData.id) { 
+        updatedWantlist = wantlist.map(i => i.id === itemData.id ? finalItem : i);
+      } else { 
+        updatedWantlist = [finalItem, ...wantlist];
+      }
+      setWantlist(updatedWantlist);
+
       setIsAddWantlistModalOpen(false);
       setWantlistItemToEdit(null);
-      if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
-  }, [collectionMode, navigate]);
 
-  const handleDeleteWantlistItem = useCallback(async (id: string) => { setWantlist(prev => prev.filter(item => item.id !== id)); }, []);
+      // Immediately trigger background upload to Google Drive
+      triggerAutoUpload(collection, updatedWantlist, itemData.id ? `Updated ${finalItem.title}` : `Added ${finalItem.title}`);
+
+      if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
+  }, [collectionMode, navigate, wantlist, collection, triggerAutoUpload]);
+
+  const handleDeleteWantlistItem = useCallback(async (id: string) => { 
+    const updated = wantlist.filter(item => item.id !== id);
+    setWantlist(updated);
+    triggerAutoUpload(collection, updated, 'Deleted wantlist item');
+  }, [wantlist, collection, triggerAutoUpload]);
+
   const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
       const cdData: Omit<CD, 'id'> = { ...item, created_at: new Date().toISOString() };
-      await handleSaveCD(cdData);
-      await handleDeleteWantlistItem(item.id);
-  }, [handleSaveCD, handleDeleteWantlistItem]);
+      const tempId = generateId();
+      const finalCd: CD = { ...cdData, id: tempId, format: cdData.format || collectionMode } as CD;
+      const updatedCollection = [finalCd, ...collection];
+      const updatedWantlist = wantlist.filter(i => i.id !== item.id);
+      
+      setCollection(updatedCollection);
+      setWantlist(updatedWantlist);
+      triggerAutoUpload(updatedCollection, updatedWantlist, `Moved ${item.title} to collection`);
+      fetchAndApplyAlbumDetails(finalCd);
+  }, [collectionMode, collection, wantlist, triggerAutoUpload]);
 
   const location = useLocation();
   const isOnWantlistPage = location.pathname.startsWith('/wantlist');
@@ -635,6 +774,12 @@ const AppContent: React.FC = () => {
 
       <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} onSearchClick={() => setIsSearchOpen(true)} />
       <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30"><PlusIcon className="h-6 w-6" /></button>
+
+      {/* Non-intrusive auto-sync toast indicator */}
+      <AutoSyncBanner 
+        notification={autoSyncBanner} 
+        onDismiss={() => setAutoSyncBanner(null)} 
+      />
     </div>
   );
 };
