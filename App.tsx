@@ -97,6 +97,16 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
         normalized.sort_name = 'Depeche Mode';
     }
 
+    // For Dinosaur Jr. items, ensure default sort_name is 'Dinosaur Jr.' (under D)
+    if ((artLower.includes('dinosaur jr') || artLower.includes('dinosaur junior')) && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('jr'))) {
+        normalized.sort_name = 'Dinosaur Jr.';
+    }
+
+    // For Tangerine Dream items, ensure default sort_name is 'Tangerine Dream' (under T)
+    if (artLower.includes('tangerine dream') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('dream'))) {
+        normalized.sort_name = 'Tangerine Dream';
+    }
+
     // Ensure genre is always an array if it exists
     if (normalized.genre && !Array.isArray(normalized.genre)) {
         normalized.genre = [normalized.genre];

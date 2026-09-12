@@ -382,6 +382,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         };
       }
 
+      // Special case for Dinosaur Jr. (under D)
+      if (lower.includes('dinosaur jr') || lower.includes('dinosaur junior')) {
+        return {
+          groupChar: 'D',
+          sortKey: 'dinosaur jr'
+        };
+      }
+
       // Special case for Buena Vista Social Club (under B)
       if (lower.includes('buena vista social club')) {
         return {
@@ -411,6 +419,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode }) => {
         return {
           groupChar: 'T',
           sortKey: lower
+        };
+      }
+
+      // Special case for Tangerine Dream (under T)
+      if (lower.includes('tangerine dream')) {
+        return {
+          groupChar: 'T',
+          sortKey: 'tangerine dream'
         };
       }
 
