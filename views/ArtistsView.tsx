@@ -14,13 +14,20 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode, onOpenAr
   const artists = useMemo(() => {
     const artistMap = new Map<string, string>();
     cds.forEach(cd => {
-      if (cd && typeof cd.artist === 'string' && cd.artist && !artistMap.has(cd.artist)) {
-        artistMap.set(cd.artist, cd.sort_name || cd.artist);
+      if (cd && typeof cd.artist === 'string' && cd.artist.trim()) {
+        const existing = artistMap.get(cd.artist);
+        if (!existing || (cd.sort_name && cd.sort_name.trim())) {
+          artistMap.set(cd.artist, (cd.sort_name && cd.sort_name.trim()) || cd.artist.trim());
+        }
       }
     });
     
     return Array.from(artistMap.entries())
-      .sort((a, b) => a[1].localeCompare(b[1]))
+      .sort((a, b) => {
+        const keyA = a[1].replace(/^the\s+/i, '').toLowerCase();
+        const keyB = b[1].replace(/^the\s+/i, '').toLowerCase();
+        return keyA.localeCompare(keyB);
+      })
       .map(entry => entry[0]);
   }, [cds]);
 

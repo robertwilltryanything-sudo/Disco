@@ -6,7 +6,6 @@ import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
-import { determineArtistSortName } from '../artistSorter';
 
 interface ShelfViewProps {
   cds: CD[];
@@ -26,508 +25,35 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
     // Initialize groups
     ALPHABET.forEach(char => groups[char] = []);
 
-    const isElvisCostelloRelated = (name: string, cd?: Partial<CD>) => {
-      const cleanName = (name || '').trim().toLowerCase();
-      const sortName = (cd?.sort_name || '').trim().toLowerCase();
-      const title = (cd?.title || '').trim().toLowerCase();
+    // The "Used for shelf organization and artist sorting" field in the Edit window is `sort_name`.
+    // It is the ONE AND ONLY authority for shelf organization and artist sorting.
+    // If empty or unset, it simply falls back to `artist`.
+    const getShelfSortInfo = (cd: CD) => {
+      const raw = (cd.sort_name && cd.sort_name.trim()) ? cd.sort_name.trim() : (cd.artist || '').trim();
+      if (!raw) return { groupChar: '#', sortKey: '' };
 
-      // 1. Direct artist name / sort name matches
-      if (cleanName.includes('elvis costello') || sortName.includes('elvis costello')) return true;
-      if (cleanName.includes('costello, elvis') || sortName.includes('costello, elvis')) return true;
+      // Strip leading "The " for alphabetical group letter and sorting (e.g. "The Clash" -> "Clash")
+      const clean = raw.replace(/^the\s+/i, '').trim();
+      const firstChar = (clean.charAt(0) || '#').toUpperCase();
+      const groupChar = /[A-Z]/.test(firstChar) ? firstChar : '#';
 
-      // 2. Notable aliases, side-projects & backing bands
-      if (cleanName.includes('the costello show') || cleanName.includes('costello show')) return true;
-      if (sortName.includes('the costello show') || sortName.includes('costello show')) return true;
-      if (cleanName.includes('the coward brothers') || cleanName.includes('coward brothers')) return true;
-      if (sortName.includes('the coward brothers') || sortName.includes('coward brothers')) return true;
-      if (cleanName.includes('declan macmanus') || cleanName.includes('declan mcmanus')) return true;
-      if (sortName.includes('declan macmanus') || sortName.includes('declan mcmanus')) return true;
-      if (cleanName.includes('d.p. costello') || cleanName.includes('dp costello')) return true;
-      if (sortName.includes('d.p. costello') || sortName.includes('dp costello')) return true;
-
-      // 3. The Attractions or The Imposters
-      if (cleanName === 'the attractions' || cleanName === 'the imposters') return true;
-
-      // 4. "Costello" without "Elvis" (e.g. "Costello", "Costello & ...", "... & Costello", "Costello / ...")
-      // excluding other distinct artists named Costello (like Sean Costello, Lou Costello)
-      if (cleanName.includes('costello') && !cleanName.includes('sean costello') && !cleanName.includes('lou costello')) {
-        if (cleanName === 'costello' || cleanName.startsWith('costello,') || cleanName.includes('&') || cleanName.includes('and') || cleanName.includes('/') || cleanName.includes('with') || cleanName.includes('feat')) {
-          return true;
-        }
-      }
-
-      if (sortName.startsWith('costello') && !sortName.includes('sean costello') && !sortName.includes('lou costello')) {
-        return true;
-      }
-
-      // 5. Explicit Elvis Costello tribute or compilation in title
-      if (title.includes('elvis costello')) return true;
-
-      // 6. Explicit tag
-      if (cd?.tags?.some(t => {
-        const tl = t.toLowerCase().trim();
-        return tl === 'elvis costello' || tl === 'costello, elvis' || tl === 'costello';
-      })) {
-        return true;
-      }
-
-      return false;
-    };
-
-    const getSurnameInfo = (name: string, cd?: Partial<CD>) => {
-      let cleanName = (name || cd?.artist || '').trim();
-      if (!cleanName && !cd?.sort_name) return { groupChar: '#', sortKey: '' };
-
-      // Priority 0: Explicit sort_name on the CD record is the ultimate source of truth!
-      if (cd?.sort_name && cd.sort_name.trim()) {
-        const s = cd.sort_name.trim();
-        const cleanSort = s.replace(/^the\s+/i, '').trim();
-        const firstChar = cleanSort.charAt(0).toUpperCase();
-        return {
-          groupChar: /[A-Z]/.test(firstChar) ? firstChar : '#',
-          sortKey: cleanSort.toLowerCase()
-        };
-      }
-
-      // Highest priority: Anything related to Elvis Costello sorts under 'C' as 'costello, elvis'
-      if (isElvisCostelloRelated(cleanName, cd)) {
-        return {
-          groupChar: 'C',
-          sortKey: 'costello, elvis'
-        };
-      }
-
-      const lower = cleanName.toLowerCase();
-      
-      // Special case for "Various Artists"
-      if (lower === 'various artists') {
-        return {
-          groupChar: 'V',
-          sortKey: 'various artists'
-        };
-      }
-
-      // Special case for Bruce Springsteen (e.g. Bruce Springsteen & The E Street Band -> S)
-      if (lower.includes('bruce springsteen')) {
-        return {
-          groupChar: 'S',
-          sortKey: 'springsteen, bruce' + lower.replace('bruce springsteen', '')
-        };
-      }
-
-      // Special case for Nick Cave (and Nice Cave) (under C)
-      if (lower.includes('nick cave') || lower.includes('nice cave')) {
-        const nameToUse = lower.includes('nick cave') ? 'nick cave' : 'nice cave';
-        return {
-          groupChar: 'C',
-          sortKey: 'cave, nick' + lower.replace(nameToUse, '')
-        };
-      }
-
-      // Special case for Mumford and Sons (under M)
-      if (lower.includes('mumford and sons')) {
-        return {
-          groupChar: 'M',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Van Morrison (under M)
-      if (lower.includes('van morrison')) {
-        return {
-          groupChar: 'M',
-          sortKey: 'morrison, van' + lower.replace('van morrison', '')
-        };
-      }
-
-      // Special case for Black Sabbath (under B)
-      if (lower.includes('black sabbath')) {
-        return {
-          groupChar: 'B',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Bad News (under B)
-      if (lower.includes('bad news')) {
-        return {
-          groupChar: 'B',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Ryan Adams (e.g. Ryan Adams & The Cardinals -> A)
-      if (lower.includes('ryan adams')) {
-        return {
-          groupChar: 'A',
-          sortKey: 'adams, ryan' + lower.replace('ryan adams', '')
-        };
-      }
-
-      // Special case for Bryan Adams (under A)
-      if (lower.includes('bryan adams')) {
-        return {
-          groupChar: 'A',
-          sortKey: 'adams, bryan' + lower.replace('bryan adams', '')
-        };
-      }
-
-      // Special cases for bands under A
-      if (['air supply', 'aerial m', 'alice in chains', 'aphex twin', 'arch enemy'].some(band => lower.includes(band))) {
-        return {
-          groupChar: 'A',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Queens of the Stone Age (under Q)
-      if (lower.includes('queens of the stone age')) {
-        return {
-          groupChar: 'Q',
-          sortKey: lower
-        };
-      }
-
-      // Special case for The Alan Parsons Project (under P)
-      if (lower.includes('the alan parsons project')) {
-        return {
-          groupChar: 'P',
-          sortKey: 'parsons project, alan'
-        };
-      }
-
-      // Special case for Morbid Angel (under M)
-      if (lower.includes('morbid angel')) {
-        return {
-          groupChar: 'M',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Ella Fitzgerald (e.g. Ella Fitzgerald & Louis Armstrong -> F)
-      if (lower.includes('ella fitzgerald')) {
-        return {
-          groupChar: 'F',
-          sortKey: 'fitzgerald, ella' + lower.replace('ella fitzgerald', '')
-        };
-      }
-
-      // Special case for Massive Attack (under M)
-      if (lower.includes('massive attack')) {
-        return {
-          groupChar: 'M',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Steely Dan (under S)
-      if (lower.includes('steely dan')) {
-        return {
-          groupChar: 'S',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Fairport Convention (under F)
-      if (lower.includes('fairport convention')) {
-        return {
-          groupChar: 'F',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Pink Floyd (under P)
-      if (lower.includes('pink floyd')) {
-        return {
-          groupChar: 'P',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Pet Shop Boys (under P)
-      if (lower.includes('pet shop boys')) {
-        return {
-          groupChar: 'P',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Dave Matthews Band (under M)
-      if (lower.includes('dave matthews band')) {
-        return {
-          groupChar: 'M',
-          sortKey: 'matthews band, dave' + lower.replace('dave matthews band', '')
-        };
-      }
-
-      // Special case for Dave Brubeck Quartet (under B)
-      if (lower.includes('dave brubeck quartet')) {
-        return {
-          groupChar: 'B',
-          sortKey: 'brubeck quartet, dave' + lower.replace('dave brubeck quartet', '')
-        };
-      }
-
-      // Special case for Hootie & The Blowfish (under H)
-      if (lower.includes('hootie & the blowfish')) {
-        return {
-          groupChar: 'H',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Spag Bog (under S)
-      if (lower.includes('spag bog')) {
-        return {
-          groupChar: 'S',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Dimmu Borgir (under D)
-      if (lower.includes('dimmu borgir')) {
-        return {
-          groupChar: 'D',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Echo and the Bunnymen (under E)
-      if (lower.includes('echo and the bunnymen')) {
-        return {
-          groupChar: 'E',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Chris de Burgh (under D)
-      if (lower.includes('chris de burgh')) {
-        return {
-          groupChar: 'D',
-          sortKey: 'de burgh, chris'
-        };
-      }
-
-      // Special case for Killswitch Engage (under K)
-      if (lower.includes('killswitch engage')) {
-        return {
-          groupChar: 'K',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Boards Of Canada (under B)
-      if (lower.includes('boards of canada')) {
-        return {
-          groupChar: 'B',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Belle And Sebastian / Belle & Sebastian (under B)
-      if (lower.includes('belle and sebastian') || lower.includes('belle & sebastian')) {
-        return {
-          groupChar: 'B',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Blind Guardian (under B)
-      if (lower.includes('blind guardian')) {
-        return {
-          groupChar: 'B',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Band of Horses (under B)
-      if (lower.includes('band of horses')) {
-        return {
-          groupChar: 'B',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Coheed and Cambria (under C)
-      if (lower.includes('coheed and cambria')) {
-        return {
-          groupChar: 'C',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Creedence Clearwater Revival / CCR (under C)
-      if (lower.includes('creedence clearwater revival') || lower === 'ccr') {
-        return {
-          groupChar: 'C',
-          sortKey: 'creedence clearwater revival'
-        };
-      }
-
-      // Special case for Grateful Dead / The Grateful Dead (under G)
-      if (lower.includes('grateful dead')) {
-        return {
-          groupChar: 'G',
-          sortKey: 'grateful dead'
-        };
-      }
-
-      // Special case for Vaya Con Dios (under V)
-      if (lower.includes('vaya con dios')) {
-        return {
-          groupChar: 'V',
-          sortKey: 'vaya con dios'
-        };
-      }
-
-      // Special case for Def Leppard (under D)
-      if (lower.includes('def leppard')) {
-        return {
-          groupChar: 'D',
-          sortKey: 'def leppard'
-        };
-      }
-
-      // Special case for Depeche Mode (under D)
-      if (lower.includes('depeche mode')) {
-        return {
-          groupChar: 'D',
-          sortKey: 'depeche mode'
-        };
-      }
-
-      // Special case for Dinosaur Jr. (under D)
-      if (lower.includes('dinosaur jr') || lower.includes('dinosaur junior')) {
-        return {
-          groupChar: 'D',
-          sortKey: 'dinosaur jr'
-        };
-      }
-
-      // Special case for Dire Straits (under D)
-      if (lower.includes('dire straits')) {
-        return {
-          groupChar: 'D',
-          sortKey: 'dire straits'
-        };
-      }
-
-      // Special case for Buena Vista Social Club (under B)
-      if (lower.includes('buena vista social club')) {
-        return {
-          groupChar: 'B',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Blue Pearl (under B)
-      if (lower.includes('blue pearl')) {
-        return {
-          groupChar: 'B',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Global Communication (under G)
-      if (lower.includes('global communication')) {
-        return {
-          groupChar: 'G',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Thievery Corporation (under T)
-      if (lower.includes('thievery corporation')) {
-        return {
-          groupChar: 'T',
-          sortKey: lower
-        };
-      }
-
-      // Special case for Tangerine Dream (under T)
-      if (lower.includes('tangerine dream')) {
-        return {
-          groupChar: 'T',
-          sortKey: 'tangerine dream'
-        };
-      }
-
-      // Special case for Rain Tree Crow (under R)
-      if (lower.includes('rain tree crow')) {
-        return {
-          groupChar: 'R',
-          sortKey: lower
-        };
-      }
-      
-      // Handle "The ..." bands - usually sorted by the first word after "The"
-      // Use intelligent artist classifier to catch bands vs solo artists
-      const autoClassification = determineArtistSortName(cleanName);
-      if (autoClassification.sort_name) {
-        return {
-          groupChar: autoClassification.groupChar,
-          sortKey: autoClassification.sort_name.replace(/^the\s+/i, '').toLowerCase()
-        };
-      }
-
-      if (lower.startsWith('the ')) {
-        const afterThe = cleanName.slice(4).trim();
-        return {
-          groupChar: afterThe.charAt(0).toUpperCase(),
-          sortKey: afterThe.toLowerCase()
-        };
-      }
-
-      const parts = cleanName.split(/\s+/);
-      
-      // If multiple words, assume last is surname (e.g., David Bowie -> Bowie)
-      if (parts.length > 1) {
-        const lastPart = parts[parts.length - 1];
-        
-        // If the last part is a number (e.g., "Jurassic 5", "Maroon 5"), 
-        // treat it as a band name and sort by the first word.
-        if (/^\d+$/.test(lastPart)) {
-          return {
-            groupChar: cleanName.charAt(0).toUpperCase(),
-            sortKey: cleanName.toLowerCase()
-          };
-        }
-
-        const surname = lastPart;
-        const firstName = parts.slice(0, -1).join(' ');
-        return {
-          groupChar: surname.charAt(0).toUpperCase(),
-          sortKey: `${surname.toLowerCase()}, ${firstName.toLowerCase()}`
-        };
-      }
-
-      // Single word name (e.g., Prince)
       return {
-        groupChar: cleanName.charAt(0).toUpperCase(),
-        sortKey: cleanName.toLowerCase()
+        groupChar,
+        sortKey: clean.toLowerCase()
       };
     };
 
     cds.forEach(cd => {
-      const { groupChar } = getSurnameInfo(cd.artist, cd);
-      
-      let targetGroup = '#';
-      if (/[A-Z]/.test(groupChar)) {
-        targetGroup = groupChar;
-      }
-      
-      if (groups[targetGroup]) {
-        groups[targetGroup].push(cd);
-      } else {
-        groups['#'].push(cd);
-      }
+      const { groupChar } = getShelfSortInfo(cd);
+      const targetGroup = groups[groupChar] ? groupChar : '#';
+      groups[targetGroup].push(cd);
     });
 
-    // Sort items within each group: Surname Sort Key then Year (Chronological) then Title
+    // Sort items within each group: Sort Key then Year (Chronological) then Title
     Object.keys(groups).forEach(key => {
       groups[key].sort((a, b) => {
-        const infoA = getSurnameInfo(a.artist, a);
-        const infoB = getSurnameInfo(b.artist, b);
+        const infoA = getShelfSortInfo(a);
+        const infoB = getShelfSortInfo(b);
         
         const artComp = infoA.sortKey.localeCompare(infoB.sortKey);
         if (artComp !== 0) return artComp;
@@ -554,7 +80,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
         </div>
         <div>
           <h1 className="text-3xl font-black text-zinc-950 uppercase tracking-tight">Shelf Organizer</h1>
-          <p className="text-zinc-600 font-medium">Grouped by surname (e.g. Bowie under B) or band name, then chronologically.</p>
+          <p className="text-zinc-600 font-medium">Organized strictly by the Sort Name field in the album details, then chronologically.</p>
         </div>
       </div>
 
@@ -641,8 +167,15 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                                 </div>
                               )}
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-zinc-950 truncate leading-tight group-hover:text-zinc-900">{item.artist}</p>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-bold text-zinc-950 truncate leading-tight group-hover:text-zinc-900">{item.artist}</p>
+                                {item.sort_name && item.sort_name.trim().toLowerCase() !== (item.artist || '').trim().toLowerCase() && (
+                                  <span className="text-[10px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                    Sort: {item.sort_name}
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-zinc-600 truncate">{item.title} {item.year ? `(${item.year})` : ''}</p>
                             </div>
                           </Link>

@@ -29,7 +29,6 @@ import DriveImagePickerModal from './components/DriveImagePickerModal';
 import SearchOverlay from './components/SearchOverlay';
 import { AutoSyncBanner } from './components/AutoSyncBanner';
 import ArtistSorterModal from './components/ArtistSorterModal';
-import { determineArtistSortName } from './artistSorter';
 
 const LOCAL_UPDATED_AT_KEY = 'disco_local_updated_at';
 
@@ -65,60 +64,6 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     if (normalized.title === 'Tubular Bells' && (normalized.artist === 'Mike Oldfield' || !normalized.artist)) {
         if (!normalized.cover_art_url || normalized.cover_art_url.includes('Tubular_Bells_album_cover.jpg')) {
             normalized.cover_art_url = 'https://upload.wikimedia.org/wikipedia/en/0/0d/Mike_oldfield_tubular_bells_album_cover.jpg';
-        }
-    }
-
-    // For Elvis Costello related items, ensure default sort_name is 'Costello, Elvis' if not set
-    const artLower = (normalized.artist || '').toLowerCase();
-    if ((artLower.includes('elvis costello') || artLower.includes('costello, elvis') || artLower.includes('the costello show') || artLower.includes('the coward brothers')) && !normalized.sort_name) {
-        normalized.sort_name = 'Costello, Elvis';
-    }
-
-    // For Creedence Clearwater Revival items, ensure default sort_name is 'Creedence Clearwater Revival' (under C)
-    if ((artLower.includes('creedence clearwater revival') || artLower === 'ccr') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('revival'))) {
-        normalized.sort_name = 'Creedence Clearwater Revival';
-    }
-
-    // For Grateful Dead items, ensure default sort_name is 'Grateful Dead' (under G)
-    if (artLower.includes('grateful dead') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('dead'))) {
-        normalized.sort_name = 'Grateful Dead';
-    }
-
-    // For Vaya Con Dios items, ensure default sort_name is 'Vaya Con Dios' (under V)
-    if (artLower.includes('vaya con dios') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('dios'))) {
-        normalized.sort_name = 'Vaya Con Dios';
-    }
-
-    // For Def Leppard items, ensure default sort_name is 'Def Leppard' (under D)
-    if (artLower.includes('def leppard') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('leppard'))) {
-        normalized.sort_name = 'Def Leppard';
-    }
-
-    // For Depeche Mode items, ensure default sort_name is 'Depeche Mode' (under D)
-    if (artLower.includes('depeche mode') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('mode'))) {
-        normalized.sort_name = 'Depeche Mode';
-    }
-
-    // For Dinosaur Jr. items, ensure default sort_name is 'Dinosaur Jr.' (under D)
-    if ((artLower.includes('dinosaur jr') || artLower.includes('dinosaur junior')) && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('jr'))) {
-        normalized.sort_name = 'Dinosaur Jr.';
-    }
-
-    // For Dire Straits items, ensure default sort_name is 'Dire Straits' (under D)
-    if (artLower.includes('dire straits') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('straits'))) {
-        normalized.sort_name = 'Dire Straits';
-    }
-
-    // For Tangerine Dream items, ensure default sort_name is 'Tangerine Dream' (under T)
-    if (artLower.includes('tangerine dream') && (!normalized.sort_name || normalized.sort_name.toLowerCase().startsWith('dream'))) {
-        normalized.sort_name = 'Tangerine Dream';
-    }
-
-    // Default smart artist sorting normalization
-    if (!normalized.sort_name && normalized.artist) {
-        const sortedInfo = determineArtistSortName(normalized.artist);
-        if (sortedInfo.sort_name) {
-            normalized.sort_name = sortedInfo.sort_name;
         }
     }
 
