@@ -71,13 +71,20 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
     const initialList: EditableArtistItem[] = [];
     uniqueArtistsData.forEach((data, artist) => {
       const result = determineArtistSortName(artist);
-      const isChanged = (data.currentSortName || '').trim() !== result.sort_name.trim();
+      const existing = (data.currentSortName || '').trim();
+      const sortName = existing || result.sort_name;
+      const isGroup = existing ? !existing.includes(',') : result.isGroup;
+      
+      const clean = sortName.replace(/^the\s+/i, '').trim();
+      const firstChar = clean ? clean.charAt(0).toUpperCase() : '#';
+      const groupChar = /[A-Z]/.test(firstChar) ? firstChar : '#';
+      const isChanged = !existing && result.sort_name.trim() !== artist.trim();
 
       initialList.push({
         originalArtist: artist,
-        sortName: result.sort_name,
-        isGroup: result.isGroup,
-        groupChar: result.groupChar,
+        sortName,
+        isGroup,
+        groupChar,
         currentSortName: data.currentSortName,
         isChanged,
         albumCount: data.count,

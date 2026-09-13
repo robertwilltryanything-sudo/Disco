@@ -241,6 +241,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                         {item.country && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Country:</span> {item.country}</p>}
                         {item.producer && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Producer:</span> {item.producer}</p>}
                         {item.version && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Version:</span> {item.version}</p>}
+                        {item.sort_name && <p><span className="font-bold text-zinc-400 uppercase tracking-tight mr-1">Sort Name:</span> {item.sort_name}</p>}
                       </div>
                   </div>
               )}

@@ -132,7 +132,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genres, year, version, country, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes]);
+  }, [artist, sort_name, title, genres, year, version, country, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes]);
   
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -234,7 +234,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, sort_name, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -268,7 +268,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setCoverArtUrl(undefined);
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, country, notes, record_label, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, sort_name, title, genres, year, version, country, notes, record_label, tags, attributes]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);

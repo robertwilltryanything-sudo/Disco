@@ -170,7 +170,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, title, genres, year, version, country, cover_art_url, notes, cdToEdit, onSave, record_label, producer, tags, attributes]);
+  }, [artist, sort_name, title, genres, year, version, country, cover_art_url, notes, cdToEdit, onSave, record_label, producer, tags, attributes]);
 
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -280,7 +280,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, sort_name, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -315,7 +315,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setCoverArtUrl(undefined);
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genres, year, version, notes, record_label, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, sort_name, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);

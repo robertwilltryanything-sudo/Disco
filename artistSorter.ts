@@ -83,7 +83,8 @@ const KNOWN_BANDS = new Set([
   'godsmack', 'gojira', 'grandaddy', 'grizzly bear', 'gang of four', 'golden earring',
 
   // I
-  'iron maiden', 'inxs', 'interpol', 'incubus', 'isley brothers', 'idles',
+  'in flames', 'iron maiden', 'inxs', 'interpol', 'incubus', 'isley brothers', 'idles',
+  'in this moment', 'iron butterfly', 'insane clown posse',
 
   // J
   'judas priest', 'joy division', 'jane\'s addiction', 'jethro tull', 'jefferson airplane',

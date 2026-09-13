@@ -261,20 +261,27 @@ const AppContent: React.FC = () => {
   }, [syncProvider, driveSignedIn, driveSaveData, showBanner]);
 
   const handleApplyArtistSortNames = useCallback((updates: Record<string, string>) => {
+    const lowerMap: Record<string, string> = {};
+    Object.keys(updates).forEach(k => {
+      lowerMap[k.trim().toLowerCase()] = updates[k];
+    });
+
     let collectionChanges = 0;
     const newCollection = collection.map(cd => {
       const art = (cd.artist || '').trim();
-      if (updates[art] !== undefined && updates[art] !== cd.sort_name) {
+      const resolved = updates[art] !== undefined ? updates[art] : lowerMap[art.toLowerCase()];
+      if (resolved !== undefined && resolved !== cd.sort_name) {
         collectionChanges++;
-        return { ...cd, sort_name: updates[art] };
+        return { ...cd, sort_name: resolved };
       }
       return cd;
     });
 
     const newWantlist = wantlist.map(item => {
       const art = (item.artist || '').trim();
-      if (updates[art] !== undefined && updates[art] !== item.sort_name) {
-        return { ...item, sort_name: updates[art] };
+      const resolved = updates[art] !== undefined ? updates[art] : lowerMap[art.toLowerCase()];
+      if (resolved !== undefined && resolved !== item.sort_name) {
+        return { ...item, sort_name: resolved };
       }
       return item;
     });
@@ -548,14 +555,42 @@ const AppContent: React.FC = () => {
         created_at: cdData.created_at || new Date().toISOString(),
         format: cdData.format || collectionMode 
     } as CD;
+
+    const trimmedArtist = (finalCd.artist || '').trim().toLowerCase();
+    const newSortName = finalCd.sort_name !== undefined ? finalCd.sort_name : '';
+    const oldCd = cdData.id ? collection.find(c => c.id === cdData.id) : null;
+    const sortNameChanged = !oldCd || (oldCd.sort_name || '') !== (finalCd.sort_name || '');
     
     let updatedCollection: CD[] = [];
     if (cdData.id) { 
-      updatedCollection = collection.map(c => c.id === cdData.id ? finalCd : c);
+      updatedCollection = collection.map(c => {
+        if (c.id === cdData.id) return finalCd;
+        // Keep sorting consistent across all albums by the same artist
+        if (sortNameChanged && trimmedArtist && (c.artist || '').trim().toLowerCase() === trimmedArtist) {
+          return { ...c, sort_name: newSortName };
+        }
+        return c;
+      });
     } else { 
-      updatedCollection = [finalCd, ...collection];
+      updatedCollection = [finalCd, ...collection.map(c => {
+        if (newSortName && trimmedArtist && (c.artist || '').trim().toLowerCase() === trimmedArtist && !c.sort_name) {
+          return { ...c, sort_name: newSortName };
+        }
+        return c;
+      })];
     }
     setCollection(updatedCollection);
+
+    let updatedWantlist = wantlist;
+    if (sortNameChanged && trimmedArtist) {
+      updatedWantlist = wantlist.map(item => {
+        if ((item.artist || '').trim().toLowerCase() === trimmedArtist) {
+          return { ...item, sort_name: newSortName };
+        }
+        return item;
+      });
+      setWantlist(updatedWantlist);
+    }
 
     setIsAddModalOpen(false);
     setCdToEdit(null);
@@ -563,7 +598,7 @@ const AppContent: React.FC = () => {
     setDuplicateCheckResult(null);
 
     // Immediately trigger background upload to Google Drive
-    triggerAutoUpload(updatedCollection, wantlist, cdData.id ? `Updated ${finalCd.title}` : `Added ${finalCd.title}`);
+    triggerAutoUpload(updatedCollection, updatedWantlist, cdData.id ? `Updated ${finalCd.title}` : `Added ${finalCd.title}`);
 
     fetchAndApplyAlbumDetails(finalCd);
     if (cdData.id) navigate(`/cd/${finalCd.id}`);
@@ -583,20 +618,47 @@ const AppContent: React.FC = () => {
           created_at: itemData.created_at || new Date().toISOString(),
           format: itemData.format || collectionMode 
       } as WantlistItem;
+
+      const trimmedArtist = (finalItem.artist || '').trim().toLowerCase();
+      const newSortName = finalItem.sort_name !== undefined ? finalItem.sort_name : '';
+      const oldItem = itemData.id ? wantlist.find(i => i.id === itemData.id) : null;
+      const sortNameChanged = !oldItem || (oldItem.sort_name || '') !== (finalItem.sort_name || '');
       
       let updatedWantlist: WantlistItem[] = [];
       if (itemData.id) { 
-        updatedWantlist = wantlist.map(i => i.id === itemData.id ? finalItem : i);
+        updatedWantlist = wantlist.map(i => {
+          if (i.id === itemData.id) return finalItem;
+          if (sortNameChanged && trimmedArtist && (i.artist || '').trim().toLowerCase() === trimmedArtist) {
+            return { ...i, sort_name: newSortName };
+          }
+          return i;
+        });
       } else { 
-        updatedWantlist = [finalItem, ...wantlist];
+        updatedWantlist = [finalItem, ...wantlist.map(i => {
+          if (newSortName && trimmedArtist && (i.artist || '').trim().toLowerCase() === trimmedArtist && !i.sort_name) {
+            return { ...i, sort_name: newSortName };
+          }
+          return i;
+        })];
       }
       setWantlist(updatedWantlist);
+
+      let updatedCollection = collection;
+      if (sortNameChanged && trimmedArtist) {
+        updatedCollection = collection.map(cd => {
+          if ((cd.artist || '').trim().toLowerCase() === trimmedArtist) {
+            return { ...cd, sort_name: newSortName };
+          }
+          return cd;
+        });
+        setCollection(updatedCollection);
+      }
 
       setIsAddWantlistModalOpen(false);
       setWantlistItemToEdit(null);
 
       // Immediately trigger background upload to Google Drive
-      triggerAutoUpload(collection, updatedWantlist, itemData.id ? `Updated ${finalItem.title}` : `Added ${finalItem.title}`);
+      triggerAutoUpload(updatedCollection, updatedWantlist, itemData.id ? `Updated ${finalItem.title}` : `Added ${finalItem.title}`);
 
       if (itemData.id) navigate(`/wantlist/${finalItem.id}`);
   }, [collectionMode, navigate, wantlist, collection, triggerAutoUpload]);
