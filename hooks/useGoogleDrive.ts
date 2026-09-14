@@ -16,8 +16,6 @@ export interface DriveFile {
 }
 
 const SIGNED_IN_KEY = 'disco_drive_signed_in';
-const TOKEN_SESSION_KEY = 'disco_drive_access_token';
-const TOKEN_EXPIRY_KEY = 'disco_drive_token_expiry';
 const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
 const AUTH_TIMEOUT_MS = 30000; 
 
@@ -56,12 +54,6 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
   const clearAuthState = useCallback(() => {
     accessTokenRef.current = null;
-    try {
-      sessionStorage.removeItem(TOKEN_SESSION_KEY);
-      sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
-    } catch {
-      // Ignore storage errors
-    }
     localStorage.removeItem(SIGNED_IN_KEY);
     localStorage.removeItem(LAST_SYNC_TIME_KEY);
     setIsSignedIn(false);
@@ -137,14 +129,6 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
           
           if (tokenResponse && tokenResponse.access_token) {
             accessTokenRef.current = tokenResponse.access_token;
-            const expiresIn = (Number(tokenResponse.expires_in) || 3600) * 1000;
-            const expiresAt = Date.now() + expiresIn - 60000;
-            try {
-              sessionStorage.setItem(TOKEN_SESSION_KEY, tokenResponse.access_token);
-              sessionStorage.setItem(TOKEN_EXPIRY_KEY, String(expiresAt));
-            } catch {
-              // Ignore storage errors
-            }
             setIsSignedIn(true);
             updateSyncStatus('idle');
             setError(null);
@@ -165,16 +149,9 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
       setIsApiReady(true);
 
-      // Restore active session token if still unexpired (never prompt automatically)
-      try {
-        const cachedToken = sessionStorage.getItem(TOKEN_SESSION_KEY);
-        const cachedExpiry = Number(sessionStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
-        if (cachedToken && cachedExpiry > Date.now()) {
-          accessTokenRef.current = cachedToken;
-          setIsSignedIn(true);
-        }
-      } catch {
-        // Ignore storage errors
+      // Silent refresh if previously signed in
+      if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
+        window.tokenClient.requestAccessToken({ prompt: '' });
       }
     } catch (e: any) {
       console.error(`Sync Initialization Failed:`, e);
