@@ -771,6 +771,16 @@ const AppContent: React.FC = () => {
                             {driveStatus === 'authenticating' && <SpinnerIcon className="w-5 h-5" />}
                             {driveStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
                         </button>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                setSyncProvider('none');
+                                localStorage.setItem('disco_sync_provider', 'none');
+                            }}
+                            className="text-xs text-zinc-500 hover:text-zinc-800 font-medium py-1.5 transition-colors"
+                        >
+                            Use Local Storage (No sign-in required)
+                        </button>
                     </div>
                 )}
              </div>
