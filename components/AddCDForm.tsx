@@ -14,7 +14,7 @@ import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
-import { capitalizeWords, findDefinedArtistSortName } from '../utils';
+import { findDefinedArtistSortName } from '../utils';
 
 interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
@@ -398,7 +398,8 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   };
 
   const handleAddTag = useCallback(() => {
-    const newTag = currentTag.trim().toLowerCase();
+    // Custom tags have no formatting rules applied and are entered exactly as typed
+    const newTag = currentTag.trim();
     if (newTag && !tags.includes(newTag)) {
       setTags([...tags, newTag]);
     }
@@ -727,6 +728,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                     value={currentTag}
                     onChange={(e) => setCurrentTag(e.target.value)}
                     onKeyDown={handleTagInputKeyDown}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     className="flex-grow w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
                   />
                   <button
@@ -741,7 +745,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                   <div className="mt-2 flex flex-wrap gap-2">
                     {tags.map(tag => (
                       <div key={tag} className="flex items-center bg-zinc-200 text-zinc-800 text-sm font-medium pl-3 pr-2 py-1 rounded-full">
-                        <span>{capitalizeWords(tag)}</span>
+                        <span>{tag}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag)}

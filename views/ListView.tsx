@@ -11,7 +11,7 @@ import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import CDTable from '../components/CDTable';
 import { getArtistStudioDiscography } from '../gemini';
-import { areStringsSimilar } from '../utils';
+import { areStringsSimilar, isCdSingle } from '../utils';
 
 interface ListViewProps {
   cds: CD[];
@@ -303,36 +303,77 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
           comparison = valA - valB;
         }
 
+        // If filtered to a specific artist, sort CD Singles after all full-length albums by the artist
+        if (urlArtistFilter) {
+          const aIsSingle = isCdSingle(a);
+          const bIsSingle = isCdSingle(b);
+          if (aIsSingle !== bIsSingle) {
+            return aIsSingle ? 1 : -1;
+          }
+        }
+
         // Multi-level sorting logic
         if (comparison === 0) {
             // Secondary Sort Keys
             if (sortBy === 'artist') {
-                // Artist -> Year -> Title
-                comparison = (a.year || 0) - (b.year || 0);
-                if (comparison === 0) {
-                    comparison = (a.title || '').localeCompare(b.title || '');
+                // Artist -> (Full-length before CD Single) -> Year -> Title
+                const aIsSingle = isCdSingle(a);
+                const bIsSingle = isCdSingle(b);
+                if (aIsSingle !== bIsSingle) {
+                    return aIsSingle ? 1 : -1;
                 }
+                const yearComp = (a.year || 0) - (b.year || 0);
+                if (yearComp !== 0) {
+                    return sortOrder === 'asc' ? yearComp : -yearComp;
+                }
+                const titleComp = (a.title || '').localeCompare(b.title || '');
+                return sortOrder === 'asc' ? titleComp : -titleComp;
             } else if (sortBy === 'genre' || sortBy === 'record_label') {
-                // Genre/Label -> Artist -> Year -> Title
+                // Genre/Label -> Artist -> (Full-length before CD Single) -> Year -> Title
                 comparison = (a.artist || '').localeCompare(b.artist || '');
                 if (comparison === 0) {
+                    const aIsSingle = isCdSingle(a);
+                    const bIsSingle = isCdSingle(b);
+                    if (aIsSingle !== bIsSingle) {
+                        return aIsSingle ? 1 : -1;
+                    }
                     comparison = (a.year || 0) - (b.year || 0);
                     if (comparison === 0) {
                         comparison = (a.title || '').localeCompare(b.title || '');
                     }
                 }
             } else if (sortBy === 'year') {
-                // Year -> Artist -> Title
+                // Year -> Artist -> (Full-length before CD Single) -> Title
                 comparison = (a.artist || '').localeCompare(b.artist || '');
                 if (comparison === 0) {
+                    const aIsSingle = isCdSingle(a);
+                    const bIsSingle = isCdSingle(b);
+                    if (aIsSingle !== bIsSingle) {
+                        return aIsSingle ? 1 : -1;
+                    }
                     comparison = (a.title || '').localeCompare(b.title || '');
                 }
             } else if (sortBy === 'created_at') {
-                // CreatedAt -> Artist -> Year
+                // CreatedAt -> Artist -> (Full-length before CD Single) -> Year
                 comparison = (a.artist || '').localeCompare(b.artist || '');
+                if (comparison === 0) {
+                    const aIsSingle = isCdSingle(a);
+                    const bIsSingle = isCdSingle(b);
+                    if (aIsSingle !== bIsSingle) {
+                        return aIsSingle ? 1 : -1;
+                    }
+                    comparison = (a.year || 0) - (b.year || 0);
+                }
             } else {
                 // Default fallback
                 comparison = (a.artist || '').localeCompare(b.artist || '');
+                if (comparison === 0) {
+                    const aIsSingle = isCdSingle(a);
+                    const bIsSingle = isCdSingle(b);
+                    if (aIsSingle !== bIsSingle) {
+                        return aIsSingle ? 1 : -1;
+                    }
+                }
             }
         }
 

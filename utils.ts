@@ -137,3 +137,16 @@ export const findDefinedArtistSortName = (
   return found?.sort_name?.trim();
 };
 
+/**
+ * Checks whether an album or wantlist item has the custom tag "CD Single" (case-insensitive).
+ */
+export const isCdSingle = (item: { tags?: string[] } | null | undefined): boolean => {
+  if (!item || !Array.isArray(item.tags)) return false;
+  return item.tags.some(tag => {
+    if (typeof tag !== 'string') return false;
+    const clean = tag.trim().toLowerCase();
+    return clean === 'cd single' || clean === 'cd-single' || clean === 'cdsingle';
+  });
+};
+
+

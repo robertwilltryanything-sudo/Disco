@@ -6,6 +6,7 @@ import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { isCdSingle } from '../utils';
 
 interface ShelfViewProps {
   cds: CD[];
@@ -56,7 +57,18 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
         const infoB = getShelfSortInfo(b);
         
         const artComp = infoA.sortKey.localeCompare(infoB.sortKey);
-        if (artComp !== 0) return artComp;
+        if (artComp !== 0) {
+          const sameArtist = (a.artist || '').trim().toLowerCase() === (b.artist || '').trim().toLowerCase();
+          if (!sameArtist) return artComp;
+        }
+        
+        // Custom tag "CD Single" albums are sorted after all full-length albums by the artist
+        const aIsSingle = isCdSingle(a);
+        const bIsSingle = isCdSingle(b);
+        if (aIsSingle !== bIsSingle) {
+          return aIsSingle ? 1 : -1;
+        }
+
         const yearComp = (a.year || 0) - (b.year || 0);
         if (yearComp !== 0) return yearComp;
         return (a.title || '').localeCompare(b.title || '');

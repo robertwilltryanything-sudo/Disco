@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
-import { areStringsSimilar } from '../utils';
+import { areStringsSimilar, isCdSingle } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import CDItem from '../components/CDItem';
@@ -28,8 +28,17 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
 
     const userAlbumsByArtist = useMemo(() => {
         return cds
-            .filter(cd => areStringsSimilar(cd.artist, artistName))
-            .sort((a, b) => (a.year || 0) - (b.year || 0));
+            .filter(cd => areStringsSimilar(cd.artist, artistName) || (cd.artist || '').trim().toLowerCase() === artistName.trim().toLowerCase())
+            .sort((a, b) => {
+                const aIsSingle = isCdSingle(a);
+                const bIsSingle = isCdSingle(b);
+                if (aIsSingle !== bIsSingle) {
+                    return aIsSingle ? 1 : -1;
+                }
+                const yearComp = (a.year || 0) - (b.year || 0);
+                if (yearComp !== 0) return yearComp;
+                return (a.title || '').localeCompare(b.title || '');
+            });
     }, [cds, artistName]);
 
     useEffect(() => {

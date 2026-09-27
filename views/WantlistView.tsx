@@ -5,6 +5,7 @@ import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import WantlistGrid from '../components/WantlistGrid';
 import WantlistTable from '../components/WantlistTable';
+import { isCdSingle } from '../utils';
 
 interface WantlistViewProps {
     wantlist: WantlistItem[];
@@ -49,11 +50,21 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
     const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
 
     const sortedWantlist = [...wantlist].sort((a, b) => {
-        const nameA = a.sort_name || a.artist;
-        const nameB = b.sort_name || b.artist;
+        const nameA = a.sort_name || a.artist || '';
+        const nameB = b.sort_name || b.artist || '';
         const artComp = nameA.localeCompare(nameB);
-        if (artComp !== 0) return artComp;
-        return (a.year || 0) - (b.year || 0);
+        if (artComp !== 0) {
+            const sameArtist = (a.artist || '').trim().toLowerCase() === (b.artist || '').trim().toLowerCase();
+            if (!sameArtist) return artComp;
+        }
+        const aIsSingle = isCdSingle(a);
+        const bIsSingle = isCdSingle(b);
+        if (aIsSingle !== bIsSingle) {
+            return aIsSingle ? 1 : -1;
+        }
+        const yearComp = (a.year || 0) - (b.year || 0);
+        if (yearComp !== 0) return yearComp;
+        return (a.title || '').localeCompare(b.title || '');
     });
 
     return (

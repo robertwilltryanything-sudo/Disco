@@ -258,7 +258,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <button
                         key={tag}
                         onClick={() => handleSearchFilter(tag)}
-                        className={`${getBrandColor(tag)} text-zinc-950 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
+                        className={`${getBrandColor(tag)} text-zinc-950 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
                       >
                         {tag}
                       </button>
