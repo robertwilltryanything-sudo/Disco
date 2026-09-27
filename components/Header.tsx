@@ -32,6 +32,7 @@ interface HeaderProps {
     onSignOut: () => void;
     onSignIn: () => void;
     isSignedIn: boolean;
+    userEmail?: string | null;
     isOnWantlistPage?: boolean;
     collectionMode: CollectionMode;
     onToggleMode: () => void;
@@ -58,7 +59,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 const Header: React.FC<HeaderProps> = ({ 
     onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings,
     syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut, onSignIn, isSignedIn,
-    isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime, onOpenArtistSorter
+    userEmail, isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime, onOpenArtistSorter
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -152,17 +153,29 @@ const Header: React.FC<HeaderProps> = ({
                 <div className="absolute top-full right-0 mt-2 w-64 md:w-72 bg-white rounded-lg shadow-lg border border-zinc-200 p-2 z-30 divide-y divide-zinc-200" role="menu">
                     {syncProvider === 'google_drive' && isSignedIn && (
                          <div className="p-2">
+                            {userEmail && (
+                              <div className="px-2.5 py-1.5 mb-1.5 bg-zinc-50 rounded text-xs text-zinc-600 truncate flex items-center gap-2 border border-zinc-100">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                <span className="truncate font-medium">{userEmail}</span>
+                              </div>
+                            )}
                             <button onClick={handleSignOutClick} className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none hover:bg-red-50 transition-colors">
-                                <LogoutIcon className="w-5 h-5" />
+                                <LogoutIcon className="w-5 h-5 text-zinc-500" />
                                 <span className="font-medium text-sm">Sign Out from Drive</span>
                             </button>
                         </div>
                     )}
                     {syncProvider === 'google_drive' && !isSignedIn && (
                          <div className="p-2">
+                            {userEmail && (
+                              <div className="px-2.5 py-1.5 mb-1.5 bg-amber-50 rounded text-xs text-amber-900 truncate flex items-center gap-2 border border-amber-200">
+                                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                                <span className="truncate font-medium">{userEmail}</span>
+                              </div>
+                            )}
                             <button onClick={() => { onSignIn(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none hover:bg-zinc-100 transition-colors">
                                 <GoogleDriveIcon className="w-5 h-5" />
-                                <span className="font-medium text-sm">Sign In to Drive</span>
+                                <span className="font-medium text-sm">{userEmail ? 'Resume Drive Session' : 'Sign In to Drive'}</span>
                             </button>
                         </div>
                     )}

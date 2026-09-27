@@ -15,11 +15,21 @@ export interface DriveFile {
   mimeType: string;
 }
 
-const SIGNED_IN_KEY = 'disco_drive_signed_in';
-const TOKEN_SESSION_KEY = 'disco_drive_access_token';
-const TOKEN_EXPIRY_KEY = 'disco_drive_token_expiry';
-const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
+export interface UserProfile {
+  email: string | null;
+  name: string | null;
+  picture: string | null;
+}
+
+export const SIGNED_IN_KEY = 'disco_drive_signed_in';
+export const ACCESS_TOKEN_KEY = 'disco_drive_access_token';
+export const EXPIRES_AT_KEY = 'disco_drive_expires_at';
+export const USER_EMAIL_KEY = 'disco_drive_user_email';
+export const USER_NAME_KEY = 'disco_drive_user_name';
+export const USER_PICTURE_KEY = 'disco_drive_user_picture';
+export const LAST_SYNC_TIME_KEY = 'disco_last_sync_time';
 const AUTH_TIMEOUT_MS = 30000; 
+const DISCO_AUTH_EVENT = 'disco_drive_auth_change';
 
 declare global {
   interface Window {
@@ -34,18 +44,50 @@ export interface DriveMetadata {
   version?: string;
 }
 
+/**
+ * Returns the currently cached access token if it exists and has not yet expired.
+ * Includes a 30-second buffer before true expiry to avoid mid-flight 401s.
+ */
+export const getValidStoredToken = (): string | null => {
+  try {
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    const expiresAtStr = localStorage.getItem(EXPIRES_AT_KEY);
+    if (!token || !expiresAtStr) return null;
+    const expiresAt = Number(expiresAtStr);
+    if (expiresAt > Date.now() + 30000) {
+      return token;
+    }
+  } catch (e) {
+    console.warn("Failed reading cached Google Drive access token:", e);
+  }
+  return null;
+};
+
+export const getStoredUserProfile = (): UserProfile => {
+  return {
+    email: localStorage.getItem(USER_EMAIL_KEY) || null,
+    name: localStorage.getItem(USER_NAME_KEY) || null,
+    picture: localStorage.getItem(USER_PICTURE_KEY) || null,
+  };
+};
+
 export const useGoogleDrive = (onSignInSuccess?: () => void) => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  // Synchronously initialize isSignedIn if a valid, unexpired token exists in localStorage
+  const initialValidToken = getValidStoredToken();
+  const [isSignedIn, setIsSignedIn] = useState<boolean>(() => !!initialValidToken);
+  const [userProfile, setUserProfile] = useState<UserProfile>(getStoredUserProfile);
   const [isApiReady, setIsApiReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => localStorage.getItem(LAST_SYNC_TIME_KEY));
 
-  const accessTokenRef = useRef<string | null>(null);
+  const accessTokenRef = useRef<string | null>(initialValidToken);
   const fileIdRef = useRef<string | null>(null);
   const authTimeoutRef = useRef<number | null>(null);
+  const refreshTimerRef = useRef<number | null>(null);
   const syncStatusRef = useRef<SyncStatus>('idle');
   const initStartedRef = useRef(false);
+  const isSilentRefreshRef = useRef(false);
   const signInSuccessCbRef = useRef(onSignInSuccess);
   signInSuccessCbRef.current = onSignInSuccess;
   
@@ -55,19 +97,28 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
   }, []);
 
   const clearAuthState = useCallback(() => {
-    accessTokenRef.current = null;
-    try {
-      sessionStorage.removeItem(TOKEN_SESSION_KEY);
-      sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
-    } catch {
-      // Ignore storage errors
+    if (refreshTimerRef.current) {
+      window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
     }
+    accessTokenRef.current = null;
     localStorage.removeItem(SIGNED_IN_KEY);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(EXPIRES_AT_KEY);
+    localStorage.removeItem(USER_EMAIL_KEY);
+    localStorage.removeItem(USER_NAME_KEY);
+    localStorage.removeItem(USER_PICTURE_KEY);
     localStorage.removeItem(LAST_SYNC_TIME_KEY);
     setIsSignedIn(false);
+    setUserProfile({ email: null, name: null, picture: null });
     fileIdRef.current = null;
     updateSyncStatus('idle');
     setLastSyncTime(null);
+
+    // Notify other hook instances and tabs
+    window.dispatchEvent(new CustomEvent(DISCO_AUTH_EVENT, {
+      detail: { token: null, isSignedIn: false }
+    }));
   }, [updateSyncStatus]);
 
   const handleApiError = useCallback((e: any, context: string) => {
@@ -77,16 +128,57 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     const status = e?.status;
 
     if (status === 401 || status === 403 || message.includes('invalid_grant')) {
-      clearAuthState();
-      setError("Session expired. Please sign in again.");
+      // Invalidate current cached token, but preserve userEmail & SIGNED_IN_KEY for quick 1-click reconnect
+      accessTokenRef.current = null;
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      localStorage.removeItem(EXPIRES_AT_KEY);
+      setIsSignedIn(false);
+      setError("Session expired. Please click to reconnect to Google Drive.");
       updateSyncStatus('idle');
+      window.dispatchEvent(new CustomEvent(DISCO_AUTH_EVENT, {
+        detail: { token: null, isSignedIn: false }
+      }));
     } else {
       setError(`Sync error: ${message}`);
       updateSyncStatus('error');
     }
-  }, [clearAuthState, updateSyncStatus]);
+  }, [updateSyncStatus]);
+
+  // Synchronize state across multiple instances of useGoogleDrive or browser tabs
+  useEffect(() => {
+    const handleAuthChange = (e: any) => {
+      const detail = e.detail;
+      if (detail) {
+        accessTokenRef.current = detail.token;
+        setIsSignedIn(detail.isSignedIn);
+        if (detail.isSignedIn) {
+          setUserProfile(getStoredUserProfile());
+        }
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === ACCESS_TOKEN_KEY || e.key === SIGNED_IN_KEY) {
+        const valid = getValidStoredToken();
+        accessTokenRef.current = valid;
+        setIsSignedIn(!!valid);
+        setUserProfile(getStoredUserProfile());
+      }
+    };
+
+    window.addEventListener(DISCO_AUTH_EVENT, handleAuthChange);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener(DISCO_AUTH_EVENT, handleAuthChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const driveApiFetch = useCallback(async (path: string, options: RequestInit = {}) => {
+    // If accessTokenRef is empty, check localStorage
+    if (!accessTokenRef.current) {
+      accessTokenRef.current = getValidStoredToken();
+    }
     if (!accessTokenRef.current) throw new Error("Not authenticated");
     
     const url = path.startsWith('http') ? path : `https://www.googleapis.com${path}`;
@@ -106,6 +198,60 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     return response.json();
   }, []);
 
+  // Fetch and store Google user profile (email, name, picture) to display and use as login hint
+  const fetchAndStoreUserProfile = useCallback(async (token: string) => {
+    try {
+      const response = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.user) {
+          const profile: UserProfile = {
+            email: data.user.emailAddress || null,
+            name: data.user.displayName || null,
+            picture: data.user.photoLink || null
+          };
+          if (profile.email) localStorage.setItem(USER_EMAIL_KEY, profile.email);
+          if (profile.name) localStorage.setItem(USER_NAME_KEY, profile.name);
+          if (profile.picture) localStorage.setItem(USER_PICTURE_KEY, profile.picture);
+          setUserProfile(profile);
+        }
+      }
+    } catch (e) {
+      console.debug("Could not fetch user profile details:", e);
+    }
+  }, []);
+
+  // Silently request a renewed token in the background using GIS
+  const triggerSilentRefresh = useCallback(() => {
+    if (!window.tokenClient) return;
+    const userEmail = localStorage.getItem(USER_EMAIL_KEY) || undefined;
+    isSilentRefreshRef.current = true;
+    try {
+      window.tokenClient.requestAccessToken({
+        prompt: '',
+        hint: userEmail
+      });
+    } catch (err) {
+      console.warn("Silent token refresh initiation error:", err);
+      isSilentRefreshRef.current = false;
+    }
+  }, []);
+
+  // Schedule a proactive silent refresh 5 minutes before the token expires
+  const scheduleBackgroundRefresh = useCallback((expiresInSec: number) => {
+    if (refreshTimerRef.current) {
+      window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    // Refresh 5 minutes (300 seconds) before expiry; minimum 15 seconds
+    const delayMs = Math.max((expiresInSec - 300) * 1000, 15000);
+    refreshTimerRef.current = window.setTimeout(() => {
+      triggerSilentRefresh();
+    }, delayMs);
+  }, [triggerSilentRefresh]);
+
   const initializeSync = useCallback(async (retryCount = 0) => {
     if (!GOOGLE_CLIENT_ID || (initStartedRef.current && retryCount === 0)) return;
     initStartedRef.current = true;
@@ -113,7 +259,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     try {
       setError(null);
       
-      // Load only the GIS script (much faster than GAPI)
+      // Load Google Identity Services (GIS) script
       if (!window.google?.accounts?.oauth2) {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script');
@@ -135,27 +281,48 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
             authTimeoutRef.current = null;
           }
           
+          const isSilent = isSilentRefreshRef.current;
+          isSilentRefreshRef.current = false;
+
           if (tokenResponse && tokenResponse.access_token) {
-            accessTokenRef.current = tokenResponse.access_token;
-            const expiresIn = (Number(tokenResponse.expires_in) || 3600) * 1000;
-            const expiresAt = Date.now() + expiresIn - 60000;
-            try {
-              sessionStorage.setItem(TOKEN_SESSION_KEY, tokenResponse.access_token);
-              sessionStorage.setItem(TOKEN_EXPIRY_KEY, String(expiresAt));
-            } catch {
-              // Ignore storage errors
-            }
+            const token = tokenResponse.access_token;
+            accessTokenRef.current = token;
+            
+            // Google access tokens are valid for expiresInSec (typically 3600 seconds)
+            const expiresInSec = Number(tokenResponse.expires_in) || 3600;
+            const expiresAt = Date.now() + expiresInSec * 1000;
+
+            localStorage.setItem(ACCESS_TOKEN_KEY, token);
+            localStorage.setItem(EXPIRES_AT_KEY, expiresAt.toString());
+            localStorage.setItem(SIGNED_IN_KEY, 'true');
+
             setIsSignedIn(true);
             updateSyncStatus('idle');
             setError(null);
-            localStorage.setItem(SIGNED_IN_KEY, 'true');
-            if (signInSuccessCbRef.current) {
+
+            // Fetch profile and schedule seamless renewal
+            fetchAndStoreUserProfile(token);
+            scheduleBackgroundRefresh(expiresInSec);
+
+            // Notify other hook instances & tabs
+            window.dispatchEvent(new CustomEvent(DISCO_AUTH_EVENT, {
+              detail: { token, isSignedIn: true }
+            }));
+
+            if (signInSuccessCbRef.current && !isSilent) {
               signInSuccessCbRef.current();
             }
           } else if (tokenResponse && tokenResponse.error) {
             if (tokenResponse.error === 'popup_closed_by_user') {
               setError("Sign-in cancelled. Please try again.");
               updateSyncStatus('idle');
+            } else if (isSilent) {
+              // Silent background refresh encountered a prompt/cookie requirement.
+              // We preserve account details (email & preferences) so user can resume with 1 click.
+              console.log("Background token refresh required interaction. Preserving account state.");
+              if (!getValidStoredToken()) {
+                setIsSignedIn(false);
+              }
             } else {
               handleApiError(tokenResponse, 'auth_callback');
             }
@@ -165,16 +332,25 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
       setIsApiReady(true);
 
-      // Restore active session token if still unexpired (never prompt automatically)
-      try {
-        const cachedToken = sessionStorage.getItem(TOKEN_SESSION_KEY);
-        const cachedExpiry = Number(sessionStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
-        if (cachedToken && cachedExpiry > Date.now()) {
-          accessTokenRef.current = cachedToken;
-          setIsSignedIn(true);
+      // Check current auth status:
+      const cachedToken = getValidStoredToken();
+      if (cachedToken) {
+        // We already have a valid token! Compute remaining time and schedule proactive renewal.
+        const expiresAtStr = localStorage.getItem(EXPIRES_AT_KEY);
+        if (expiresAtStr) {
+          const remainingSec = Math.floor((Number(expiresAtStr) - Date.now()) / 1000);
+          if (remainingSec > 300) {
+            scheduleBackgroundRefresh(remainingSec);
+          } else {
+            // Less than 5 minutes remaining, renew now in background
+            triggerSilentRefresh();
+          }
         }
-      } catch {
-        // Ignore storage errors
+      } else if (localStorage.getItem(SIGNED_IN_KEY) === 'true') {
+        // Token is missing or expired, but user previously logged in. Attempt silent renewal.
+        const savedEmail = localStorage.getItem(USER_EMAIL_KEY) || undefined;
+        isSilentRefreshRef.current = true;
+        window.tokenClient.requestAccessToken({ prompt: '', hint: savedEmail });
       }
     } catch (e: any) {
       console.error(`Sync Initialization Failed:`, e);
@@ -182,12 +358,13 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
       setError("Google services failed to load. Please check your connection.");
       updateSyncStatus('error');
     }
-  }, [updateSyncStatus, handleApiError]);
+  }, [updateSyncStatus, handleApiError, fetchAndStoreUserProfile, scheduleBackgroundRefresh, triggerSilentRefresh]);
 
   useEffect(() => {
     initializeSync();
     return () => { 
       if (authTimeoutRef.current) window.clearTimeout(authTimeoutRef.current); 
+      if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
     };
   }, [initializeSync]);
 
@@ -195,9 +372,10 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     updateSyncStatus('authenticating');
     setError(null);
 
-    // Reset initialization to ensure a fresh state as requested
-    initStartedRef.current = false;
-    await initializeSync();
+    if (!window.tokenClient) {
+      initStartedRef.current = false;
+      await initializeSync();
+    }
 
     if (!window.tokenClient) {
       setError("Google Auth failed to initialize. Please check your connection.");
@@ -213,7 +391,14 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
       }
     }, AUTH_TIMEOUT_MS);
 
-    window.tokenClient.requestAccessToken({ prompt: 'select_account' });
+    // Provide hint if previously known so Google defaults to the user's selected account
+    const savedEmail = localStorage.getItem(USER_EMAIL_KEY);
+    const options: any = { prompt: 'select_account' };
+    if (savedEmail) {
+      options.hint = savedEmail;
+    }
+
+    window.tokenClient.requestAccessToken(options);
   }, [updateSyncStatus, initializeSync]);
 
   const getOrCreateFileId = useCallback(async () => {
@@ -258,16 +443,16 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     try {
       const id = await getOrCreateFileId();
       
-      // Get file content
+      const activeToken = accessTokenRef.current || getValidStoredToken();
+      if (!activeToken) throw new Error("Not authenticated");
+
       const contentResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
-        headers: { 'Authorization': `Bearer ${accessTokenRef.current}` }
+        headers: { 'Authorization': `Bearer ${activeToken}` }
       });
       
       if (!contentResponse.ok) throw new Error("Failed to load file content");
       
-      let data = await contentResponse.json();
-      
-      // Get metadata for modified time
+      const data = await contentResponse.json();
       const metadata = await driveApiFetch(`/drive/v3/files/${id}?fields=modifiedTime`);
       
       const normalizedData = {
@@ -290,12 +475,13 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     updateSyncStatus('saving');
     try {
       const id = await getOrCreateFileId();
+      const activeToken = accessTokenRef.current || getValidStoredToken();
+      if (!activeToken) throw new Error("Not authenticated");
       
-      // Simple upload for small files
       const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
         method: 'PATCH',
         headers: { 
-          'Authorization': `Bearer ${accessTokenRef.current}`,
+          'Authorization': `Bearer ${activeToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(data),
@@ -327,9 +513,11 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
+      const activeToken = accessTokenRef.current || getValidStoredToken();
+      if (!activeToken) throw new Error("Not authenticated");
       
       const contentResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${id}/revisions/${revisionId}?alt=media`, {
-        headers: { 'Authorization': `Bearer ${accessTokenRef.current}` }
+        headers: { 'Authorization': `Bearer ${activeToken}` }
       });
       
       if (!contentResponse.ok) throw new Error("Failed to load revision content");
@@ -361,8 +549,13 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
   }, [isSignedIn, handleApiError, driveApiFetch]);
 
   const signOut = useCallback(() => {
-    if (accessTokenRef.current && window.google?.accounts?.oauth2) {
-      window.google.accounts.oauth2.revoke(accessTokenRef.current, () => clearAuthState());
+    const currentToken = accessTokenRef.current || localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (currentToken && window.google?.accounts?.oauth2) {
+      try {
+        window.google.accounts.oauth2.revoke(currentToken, () => clearAuthState());
+      } catch (e) {
+        clearAuthState();
+      }
     } else { 
       clearAuthState(); 
     }
@@ -376,8 +569,8 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
   }, [updateSyncStatus, initializeSync]);
 
   return useMemo(() => ({ 
-    isApiReady, isSignedIn, signIn, signOut, loadData, saveData,
+    isApiReady, isSignedIn, userProfile, signIn, signOut, loadData, saveData,
     getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages,
     getRemoteMetadata
-  }), [isApiReady, isSignedIn, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata]);
+  }), [isApiReady, isSignedIn, userProfile, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata]);
 };

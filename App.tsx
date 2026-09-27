@@ -218,6 +218,7 @@ const AppContent: React.FC = () => {
 
   const { 
     isSignedIn: driveSignedIn, 
+    userProfile: driveUserProfile,
     signIn: driveSignIn, 
     signOut: driveSignOut, 
     loadData: driveLoadData, 
@@ -730,6 +731,7 @@ const AppContent: React.FC = () => {
         onSignOut={driveSignOut}
         onSignIn={driveSignIn}
         isSignedIn={driveSignedIn}
+        userEmail={driveUserProfile?.email}
         isOnWantlistPage={isOnWantlistPage}
         collectionMode={collectionMode}
         onToggleMode={handleToggleMode}
@@ -741,7 +743,17 @@ const AppContent: React.FC = () => {
         {isGoogleDriveSelectedButLoggedOut && (
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-950">Google Drive Sync</h2>
-                <p className="text-zinc-700 mt-2">Sign in to your Google account to enable manual Load/Save between devices.</p>
+                <p className="text-zinc-700 mt-2">
+                  {driveUserProfile?.email 
+                    ? `Session paused for ${driveUserProfile.email}. Click below to resume cloud sync.`
+                    : 'Sign in to your Google account to enable cloud sync and backup across devices.'}
+                </p>
+                {driveUserProfile?.email && (
+                  <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-medium text-amber-900">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>{driveUserProfile.email}</span>
+                  </div>
+                )}
                 {driveError && (
                     <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex flex-col gap-3 shadow-inner">
                         <div className="flex items-start gap-2">
@@ -752,7 +764,6 @@ const AppContent: React.FC = () => {
                             <button 
                                 onClick={() => {
                                     driveResetStatus();
-                                    // Small delay to let reset happen before re-trying if they want
                                 }} 
                                 className="text-xs font-bold underline hover:text-red-800"
                             >
@@ -791,11 +802,20 @@ const AppContent: React.FC = () => {
                         )}
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-3">
-                        <button onClick={driveSignIn} disabled={driveStatus === 'authenticating'} className="mt-6 w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+                    <div className="flex flex-col gap-3 mt-6">
+                        <button onClick={driveSignIn} disabled={driveStatus === 'authenticating'} className="w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
                             {driveStatus === 'authenticating' && <SpinnerIcon className="w-5 h-5" />}
-                            {driveStatus === 'authenticating' ? 'Signing in...' : 'Sign in with Google'}
+                            {driveStatus === 'authenticating' 
+                              ? 'Signing in...' 
+                              : driveUserProfile?.email 
+                                ? `Resume Session (${driveUserProfile.email})` 
+                                : 'Sign in with Google'}
                         </button>
+                        {driveUserProfile?.email && (
+                          <button onClick={driveSignOut} className="text-xs text-zinc-500 hover:text-red-600 underline">
+                            Use a different Google account
+                          </button>
+                        )}
                     </div>
                 )}
              </div>
@@ -855,7 +875,9 @@ const AppContent: React.FC = () => {
         syncMode="manual" 
         onSyncModeChange={() => {}} 
         isSignedIn={driveSignedIn}
+        userEmail={driveUserProfile?.email}
         onSignIn={driveSignIn}
+        onSignOut={driveSignOut}
       />
       <SyncConfirmationModal 
         isOpen={isSyncConfirmOpen}

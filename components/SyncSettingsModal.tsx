@@ -17,7 +17,9 @@ interface SyncSettingsModalProps {
     syncMode: string;
     onSyncModeChange: (mode: string) => void;
     isSignedIn: boolean;
+    userEmail?: string | null;
     onSignIn: () => void;
+    onSignOut?: () => void;
 }
 
 const ProviderOption: React.FC<{
@@ -61,7 +63,9 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     currentProvider,
     onProviderChange,
     isSignedIn,
+    userEmail,
     onSignIn,
+    onSignOut,
 }) => {
     const [showDriveHelp, setShowDriveHelp] = useState(false);
     const [showTroubleshooting, setShowTroubleshooting] = useState(false);
@@ -70,15 +74,18 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     const [isLoadingRevisions, setIsLoadingRevisions] = useState(false);
     const googleDrive = useGoogleDrive();
 
+    const activeSignedIn = isSignedIn || googleDrive.isSignedIn;
+    const activeEmail = userEmail || googleDrive.userProfile.email;
+
     useEffect(() => {
-        if (isOpen && currentProvider === 'google_drive' && googleDrive.isSignedIn) {
+        if (isOpen && currentProvider === 'google_drive' && activeSignedIn) {
             setIsLoadingRevisions(true);
             googleDrive.getRevisions().then(revs => {
                 setRevisions(revs.sort((a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime()).slice(0, 10));
                 setIsLoadingRevisions(false);
             });
         }
-    }, [isOpen, currentProvider, googleDrive.isSignedIn, googleDrive]);
+    }, [isOpen, currentProvider, activeSignedIn, googleDrive]);
 
     const handleRestore = async (revId: string) => {
         if (!window.confirm("Restore this version? Your current local changes will be replaced.")) return;
@@ -114,15 +121,53 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                         onSelect={() => onProviderChange('google_drive')}
                     />
 
-                    {currentProvider === 'google_drive' && !isSignedIn && isGoogleConfigured && (
+                    {currentProvider === 'google_drive' && activeSignedIn && (
+                        <div className="mt-2 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-emerald-950 truncate">
+                                            {activeEmail ? activeEmail : 'Google Account Connected'}
+                                        </p>
+                                        <p className="text-xs text-emerald-700">
+                                            Session active • Auto-refreshes in background
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (onSignOut) onSignOut();
+                                        else googleDrive.signOut();
+                                    }}
+                                    className="text-xs text-emerald-800 hover:text-red-700 hover:underline font-medium ml-3 shrink-0"
+                                >
+                                    Sign Out
+                                </button>
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-emerald-100 flex items-center justify-between text-[11px] text-emerald-800">
+                                <span>Stay Logged In: Enabled</span>
+                                <span className="bg-emerald-200/60 px-2 py-0.5 rounded text-[10px] font-semibold">Persists on reload</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {currentProvider === 'google_drive' && !activeSignedIn && isGoogleConfigured && (
                         <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p className="text-sm text-blue-800 mb-3">You are not signed in to Google Drive.</p>
+                            <p className="text-sm text-blue-800 mb-1 font-semibold">
+                                {activeEmail ? `Session paused for ${activeEmail}` : 'You are not signed in to Google Drive.'}
+                            </p>
+                            <p className="text-xs text-blue-600 mb-3">
+                                {activeEmail 
+                                    ? 'Click below to resume your session with 1 click.' 
+                                    : 'Sign in once to keep your collection synced across devices.'}
+                            </p>
                             <button 
                                 onClick={onSignIn}
-                                className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg hover:bg-black transition-colors"
+                                className="w-full flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-black transition-colors"
                             >
                                 <GoogleDriveIcon className="w-5 h-5" />
-                                <span>Sign in with Google</span>
+                                <span>{activeEmail ? `Resume Session (${activeEmail})` : 'Sign in with Google'}</span>
                             </button>
                             
                             <button 
