@@ -115,3 +115,25 @@ export const getBestCD = (cds: CD[]): CD => {
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   })[0];
 };
+
+/**
+ * Looks up whether an artist already has a defined sort_name in an items list (collection or wantlist).
+ * Matches case-insensitively and trimmed.
+ */
+export const findDefinedArtistSortName = (
+  artistName: string | undefined | null,
+  items: Array<{ artist?: string; sort_name?: string }> = []
+): string | undefined => {
+  if (!artistName) return undefined;
+  const clean = artistName.trim().toLowerCase();
+  if (!clean) return undefined;
+
+  const found = items.find(item => 
+    (item.artist || '').trim().toLowerCase() === clean && 
+    typeof item.sort_name === 'string' &&
+    item.sort_name.trim().length > 0
+  );
+
+  return found?.sort_name?.trim();
+};
+

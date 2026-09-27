@@ -3,12 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
 import { areStringsSimilar } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
+import { PlusIcon } from '../components/icons/PlusIcon';
 import CDItem from '../components/CDItem';
 import { getArtistStudioDiscography } from '../gemini';
 
 interface ArtistDetailViewProps {
   cds: CD[];
   collectionMode: CollectionMode;
+  onRequestAdd?: (artist: string, title?: string, year?: number) => void;
 }
 
 interface DiscographyAlbum {
@@ -16,7 +18,7 @@ interface DiscographyAlbum {
   year: number;
 }
 
-const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode }) => {
+const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode, onRequestAdd }) => {
     const { artistName: encodedArtistName } = useParams<{ artistName: string }>();
     const artistName = decodeURIComponent(encodedArtistName || '');
 
@@ -97,6 +99,15 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     </Link>
                     <h1 className="text-3xl font-bold text-zinc-800">{artistName}</h1>
                 </div>
+                {onRequestAdd && (
+                    <button
+                        onClick={() => onRequestAdd(artistName)}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-black text-white rounded-lg text-sm font-semibold transition-colors shadow-xs shrink-0 self-start sm:self-auto"
+                    >
+                        <PlusIcon className="w-4 h-4" />
+                        Add Album by {artistName}
+                    </button>
+                )}
             </div>
 
             <div className="bg-white rounded-lg border border-zinc-200 p-6">
@@ -160,12 +171,24 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
                         {missingAlbums.map((album, idx) => (
                             <div key={idx} className="flex items-center justify-between bg-white border border-zinc-150 rounded-md p-2.5 shadow-xs hover:border-zinc-300 transition-colors">
-                                <span className="font-medium text-zinc-700 text-sm truncate mr-2" title={album.title}>
-                                    {album.title}
-                                </span>
-                                <span className="text-[10px] font-mono px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded shrink-0">
-                                    {album.year}
-                                </span>
+                                <div className="min-w-0 mr-2 flex items-center gap-2">
+                                  <span className="font-medium text-zinc-700 text-sm truncate" title={album.title}>
+                                      {album.title}
+                                  </span>
+                                  <span className="text-[10px] font-mono px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded shrink-0">
+                                      {album.year}
+                                  </span>
+                                </div>
+                                {onRequestAdd && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onRequestAdd(artistName, album.title, album.year)}
+                                    className="text-xs px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded font-medium shrink-0 transition-colors"
+                                    title={`Add ${album.title} to your collection`}
+                                  >
+                                    + Add
+                                  </button>
+                                )}
                             </div>
                         ))}
                     </div>

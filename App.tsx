@@ -9,7 +9,7 @@ import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
 import AddCDForm from './components/AddCDForm';
 import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
-import { areStringsSimilar } from './utils';
+import { areStringsSimilar, findDefinedArtistSortName } from './utils';
 import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
 import DuplicatesView from './views/DuplicatesView';
@@ -557,9 +557,18 @@ const AppContent: React.FC = () => {
     } as CD;
 
     const trimmedArtist = (finalCd.artist || '').trim().toLowerCase();
-    const newSortName = finalCd.sort_name !== undefined ? finalCd.sort_name : '';
+
+    // Check if this artist already has a defined sorting order in existing collection or wantlist
+    const existingDefinedSort = findDefinedArtistSortName(finalCd.artist, collection) || findDefinedArtistSortName(finalCd.artist, wantlist);
+
+    // When adding a new entry without a custom sort_name, apply the defined sorting order
+    if (!cdData.id && (!finalCd.sort_name || !finalCd.sort_name.trim()) && existingDefinedSort) {
+      finalCd.sort_name = existingDefinedSort;
+    }
+
+    const newSortName = (finalCd.sort_name !== undefined && finalCd.sort_name !== null) ? finalCd.sort_name.trim() : '';
     const oldCd = cdData.id ? collection.find(c => c.id === cdData.id) : null;
-    const sortNameChanged = !oldCd || (oldCd.sort_name || '') !== (finalCd.sort_name || '');
+    const sortNameChanged = !oldCd || (oldCd.sort_name || '') !== newSortName;
     
     let updatedCollection: CD[] = [];
     if (cdData.id) { 
@@ -573,7 +582,8 @@ const AppContent: React.FC = () => {
       });
     } else { 
       updatedCollection = [finalCd, ...collection.map(c => {
-        if (newSortName && trimmedArtist && (c.artist || '').trim().toLowerCase() === trimmedArtist && !c.sort_name) {
+        // Ensure all existing albums by this artist share the exact same sorting order
+        if (newSortName && trimmedArtist && (c.artist || '').trim().toLowerCase() === trimmedArtist) {
           return { ...c, sort_name: newSortName };
         }
         return c;
@@ -582,7 +592,7 @@ const AppContent: React.FC = () => {
     setCollection(updatedCollection);
 
     let updatedWantlist = wantlist;
-    if (sortNameChanged && trimmedArtist) {
+    if (trimmedArtist && newSortName) {
       updatedWantlist = wantlist.map(item => {
         if ((item.artist || '').trim().toLowerCase() === trimmedArtist) {
           return { ...item, sort_name: newSortName };
@@ -620,9 +630,18 @@ const AppContent: React.FC = () => {
       } as WantlistItem;
 
       const trimmedArtist = (finalItem.artist || '').trim().toLowerCase();
-      const newSortName = finalItem.sort_name !== undefined ? finalItem.sort_name : '';
+
+      // Check if this artist already has a defined sorting order in existing collection or wantlist
+      const existingDefinedSort = findDefinedArtistSortName(finalItem.artist, collection) || findDefinedArtistSortName(finalItem.artist, wantlist);
+
+      // When adding a new item without a custom sort_name, apply the defined sorting order
+      if (!itemData.id && (!finalItem.sort_name || !finalItem.sort_name.trim()) && existingDefinedSort) {
+        finalItem.sort_name = existingDefinedSort;
+      }
+
+      const newSortName = (finalItem.sort_name !== undefined && finalItem.sort_name !== null) ? finalItem.sort_name.trim() : '';
       const oldItem = itemData.id ? wantlist.find(i => i.id === itemData.id) : null;
-      const sortNameChanged = !oldItem || (oldItem.sort_name || '') !== (finalItem.sort_name || '');
+      const sortNameChanged = !oldItem || (oldItem.sort_name || '') !== newSortName;
       
       let updatedWantlist: WantlistItem[] = [];
       if (itemData.id) { 
@@ -635,7 +654,7 @@ const AppContent: React.FC = () => {
         });
       } else { 
         updatedWantlist = [finalItem, ...wantlist.map(i => {
-          if (newSortName && trimmedArtist && (i.artist || '').trim().toLowerCase() === trimmedArtist && !i.sort_name) {
+          if (newSortName && trimmedArtist && (i.artist || '').trim().toLowerCase() === trimmedArtist) {
             return { ...i, sort_name: newSortName };
           }
           return i;
@@ -644,7 +663,7 @@ const AppContent: React.FC = () => {
       setWantlist(updatedWantlist);
 
       let updatedCollection = collection;
-      if (sortNameChanged && trimmedArtist) {
+      if (trimmedArtist && newSortName) {
         updatedCollection = collection.map(cd => {
           if ((cd.artist || '').trim().toLowerCase() === trimmedArtist) {
             return { ...cd, sort_name: newSortName };
@@ -672,7 +691,13 @@ const AppContent: React.FC = () => {
   const handleMoveToCollection = useCallback(async (item: WantlistItem) => {
       const cdData: Omit<CD, 'id'> = { ...item, created_at: new Date().toISOString() };
       const tempId = generateId();
-      const finalCd: CD = { ...cdData, id: tempId, format: cdData.format || collectionMode } as CD;
+      const existingDefinedSort = findDefinedArtistSortName(item.artist, collection) || item.sort_name;
+      const finalCd: CD = { 
+        ...cdData, 
+        id: tempId, 
+        sort_name: existingDefinedSort || item.sort_name,
+        format: cdData.format || collectionMode 
+      } as CD;
       const updatedCollection = [finalCd, ...collection];
       const updatedWantlist = wantlist.filter(i => i.id !== item.id);
       
@@ -779,7 +804,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<ListView cds={currentCollection} onRequestAdd={(artist) => { setPrefillData(artist ? { artist } : null); setIsAddModalOpen(true); }} onRequestEdit={(cd) => { setCdToEdit(cd); setIsAddModalOpen(true); }} collectionMode={collectionMode} />} />
           <Route path="/cd/:id" element={<DetailView cds={currentCollection} onDeleteCD={handleDeleteCD} onUpdateCD={handlePassiveUpdateCD} collectionMode={collectionMode} />} />
           <Route path="/artists" element={<ArtistsView cds={currentCollection} collectionMode={collectionMode} onOpenArtistSorter={() => setIsArtistSorterOpen(true)} />} />
-          <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} collectionMode={collectionMode} />} />
+          <Route path="/artist/:artistName" element={<ArtistDetailView cds={currentCollection} collectionMode={collectionMode} onRequestAdd={(artist, title, year) => { setPrefillData({ artist, title, year }); setIsAddModalOpen(true); }} />} />
           <Route path="/stats" element={<DashboardView cds={currentCollection} collectionMode={collectionMode} />} />
           <Route path="/shelf" element={<ShelfView cds={currentCollection} collectionMode={collectionMode} onOpenArtistSorter={() => setIsArtistSorterOpen(true)} />} />
           <Route path="/duplicates" element={<DuplicatesView cds={currentCollection} onDeleteCD={handleDeleteCD} collectionMode={collectionMode} />} />
@@ -798,6 +823,8 @@ const AppContent: React.FC = () => {
               isVinyl={collectionMode === 'vinyl'} 
               driveSignedIn={driveSignedIn}
               onPickFromDrive={initiateDrivePick}
+              existingCds={collection}
+              existingWantlist={wantlist}
             />
           </div>
         </div>
@@ -812,6 +839,8 @@ const AppContent: React.FC = () => {
                   isVinyl={collectionMode === 'vinyl'} 
                   driveSignedIn={driveSignedIn}
                   onPickFromDrive={initiateDrivePick}
+                  existingCds={collection}
+                  existingWantlist={wantlist}
                 />
             </div>
         </div>

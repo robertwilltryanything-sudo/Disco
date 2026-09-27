@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { CD } from '../types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { CD, WantlistItem } from '../types';
 import { PlusIcon } from './icons/PlusIcon';
 import AlbumScanner from './AlbumScanner';
 import { getAlbumInfo } from '../gemini';
@@ -14,7 +14,7 @@ import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
-import { capitalizeWords } from '../utils';
+import { capitalizeWords, findDefinedArtistSortName } from '../utils';
 
 interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
@@ -24,6 +24,8 @@ interface AddCDFormProps {
   isVinyl?: boolean;
   driveSignedIn?: boolean;
   onPickFromDrive?: () => Promise<string | null>;
+  existingCds?: CD[];
+  existingWantlist?: WantlistItem[];
 }
 
 const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped", "Snap, Crackle & Pop"];
@@ -34,9 +36,10 @@ const CD_MEDIA_CONDITION = ["Scratches", "Hairlines", "Sticky"];
 const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Surface Tear", "Water damage"];
 const CD_ATTRIBUTES = ["Digipak", "Slipcase", "Obi Strip", "Promo", "Upgradable"];
 
-const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill, isVinyl, driveSignedIn, onPickFromDrive }) => {
+const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill, isVinyl, driveSignedIn, onPickFromDrive, existingCds = [], existingWantlist = [] }) => {
   const [artist, setArtist] = useState('');
   const [sort_name, setSortName] = useState('');
+  const [appliedSortFromExisting, setAppliedSortFromExisting] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [currentGenre, setCurrentGenre] = useState('');
@@ -62,9 +65,17 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
 
+  const uniqueArtistNames = useMemo(() => {
+    const names = new Set<string>();
+    (existingCds || []).forEach(c => { if (c.artist?.trim()) names.add(c.artist.trim()); });
+    (existingWantlist || []).forEach(w => { if (w.artist?.trim()) names.add(w.artist.trim()); });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [existingCds, existingWantlist]);
+
   const resetForm = useCallback(() => {
     setArtist('');
     setSortName('');
+    setAppliedSortFromExisting(null);
     setTitle('');
     setGenres([]);
     setCurrentGenre('');
@@ -86,6 +97,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     if (cdToEdit) {
       setArtist(cdToEdit.artist);
       setSortName(cdToEdit.sort_name || '');
+      setAppliedSortFromExisting(null);
       setTitle(cdToEdit.title);
       setGenres(cdToEdit.genre || []);
       setYear(cdToEdit.year || '');
@@ -100,8 +112,14 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } else {
       resetForm();
       if (prefill) {
+        const defined = findDefinedArtistSortName(prefill.artist, existingCds) || findDefinedArtistSortName(prefill.artist, existingWantlist);
         setArtist(prefill.artist || '');
-        setSortName(prefill.sort_name || '');
+        setSortName(defined || prefill.sort_name || '');
+        if (defined) {
+          setAppliedSortFromExisting(defined);
+        } else {
+          setAppliedSortFromExisting(null);
+        }
         setTitle(prefill.title || '');
         setGenres(prefill.genre || []);
         setYear(prefill.year || '');
@@ -115,13 +133,41 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setNotes(prefill.notes || '');
       }
     }
-  }, [cdToEdit, prefill, resetForm]);
+  }, [cdToEdit, prefill, resetForm, existingCds, existingWantlist]);
+
+  const handleArtistChange = useCallback((newArtist: string) => {
+    setArtist(newArtist);
+    if (!cdToEdit) {
+      const defined = findDefinedArtistSortName(newArtist, existingCds) || findDefinedArtistSortName(newArtist, existingWantlist);
+      if (defined) {
+        setSortName(defined);
+        setAppliedSortFromExisting(defined);
+      } else if (appliedSortFromExisting) {
+        setSortName('');
+        setAppliedSortFromExisting(null);
+      }
+    }
+  }, [cdToEdit, existingCds, existingWantlist, appliedSortFromExisting]);
+
+  const handleSortNameChange = useCallback((newSortName: string) => {
+    setSortName(newSortName);
+    setAppliedSortFromExisting(null);
+  }, []);
 
   const toggleAttribute = (attr: string) => {
     setAttributes(prev => 
       prev.includes(attr) ? prev.filter(a => a !== attr) : [...prev, attr]
     );
   };
+
+  const getResolvedSortName = useCallback(() => {
+    if (sort_name && sort_name.trim()) return sort_name.trim();
+    if (!cdToEdit) {
+      const defined = findDefinedArtistSortName(artist, existingCds) || findDefinedArtistSortName(artist, existingWantlist);
+      if (defined) return defined;
+    }
+    return sort_name || '';
+  }, [sort_name, cdToEdit, artist, existingCds, existingWantlist]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,8 +181,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     setFormError(null);
 
     try {
+        const resolvedSort = getResolvedSortName();
         const cdData: Omit<CD, 'id'> & { id?: string } = {
-            id: cdToEdit?.id, artist, sort_name, title, genre: genres,
+            id: cdToEdit?.id, artist, sort_name: resolvedSort, title, genre: genres,
             year: year ? Number(year) : undefined,
             version, record_label, country, producer, tags, cover_art_url, notes,
             attributes,
@@ -170,7 +217,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, sort_name, title, genres, year, version, country, cover_art_url, notes, cdToEdit, onSave, record_label, producer, tags, attributes]);
+  }, [artist, title, genres, year, version, country, cover_art_url, notes, cdToEdit, onSave, record_label, producer, tags, attributes, getResolvedSortName]);
 
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -183,8 +230,16 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
           // but we can at least set the initial status.
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
-            setArtist(albumInfo.artist || '');
-            setSortName(albumInfo.sort_name || '');
+            const scannedArtist = albumInfo.artist || '';
+            setArtist(scannedArtist);
+            const defined = findDefinedArtistSortName(scannedArtist, existingCds) || findDefinedArtistSortName(scannedArtist, existingWantlist);
+            if (defined) {
+              setSortName(defined);
+              setAppliedSortFromExisting(defined);
+            } else {
+              setSortName(albumInfo.sort_name || '');
+              setAppliedSortFromExisting(null);
+            }
             setTitle(albumInfo.title || '');
             setGenres(albumInfo.genre || []);
             setYear(albumInfo.year || '');
@@ -203,7 +258,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       } finally {
           setIsProcessing(false);
       }
-  }, []);
+  }, [existingCds, existingWantlist]);
 
   const handleSetArtFromUrl = useCallback(() => {
     if (manualUrl.trim()) {
@@ -265,8 +320,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       try {
         setFormErrorTitle("Error Saving Album");
         setProcessingStatus('Saving album...');
+        const resolvedSort = getResolvedSortName();
         await onSave({
-          id: cdToEdit?.id, artist, sort_name, title, genre: genres,
+          id: cdToEdit?.id, artist, sort_name: resolvedSort, title, genre: genres,
           year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
           attributes,
           cover_art_url: url, notes,
@@ -280,7 +336,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, sort_name, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genres, year, version, country, notes, record_label, producer, tags, attributes, getResolvedSortName]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -297,8 +353,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       try {
           setFormErrorTitle("Error Saving Album");
           setProcessingStatus('Saving album...');
+          const resolvedSort = getResolvedSortName();
           await onSave({
-            id: cdToEdit?.id, artist, sort_name, title, genre: genres,
+            id: cdToEdit?.id, artist, sort_name: resolvedSort, title, genre: genres,
             year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
@@ -315,7 +372,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
       setCoverArtUrl(undefined);
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, sort_name, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, cdToEdit, artist, title, genres, year, version, country, notes, record_label, producer, tags, attributes, getResolvedSortName]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);
@@ -479,14 +536,31 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
             </div>
             <div className="flex-1 w-full space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  placeholder="Artist*"
-                  value={artist}
-                  onChange={(e) => setArtist(e.target.value)}
-                  required
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-                />
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Artist*"
+                    list="existing-artists-cd-list"
+                    value={artist}
+                    onChange={(e) => handleArtistChange(e.target.value)}
+                    onBlur={() => {
+                      if (!cdToEdit && !sort_name) {
+                        const defined = findDefinedArtistSortName(artist, existingCds) || findDefinedArtistSortName(artist, existingWantlist);
+                        if (defined) {
+                          setSortName(defined);
+                          setAppliedSortFromExisting(defined);
+                        }
+                      }
+                    }}
+                    required
+                    className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  />
+                  <datalist id="existing-artists-cd-list">
+                    {uniqueArtistNames.map(name => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
                 <input
                   type="text"
                   placeholder="Title*"
@@ -502,10 +576,17 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                   type="text"
                   placeholder="Sort Name (e.g. Bowie, David)"
                   value={sort_name}
-                  onChange={(e) => setSortName(e.target.value)}
+                  onChange={(e) => handleSortNameChange(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
                 />
-                <p className="text-[10px] text-zinc-500 mt-1 ml-1 uppercase font-bold tracking-tighter">Used for shelf organization and artist sorting</p>
+                {appliedSortFromExisting ? (
+                  <p className="text-[11px] text-emerald-600 mt-1 ml-1 font-semibold flex items-center gap-1">
+                    <span className="font-bold">✓</span>
+                    <span>Applied existing sorting order from collection: "{appliedSortFromExisting}"</span>
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-zinc-500 mt-1 ml-1 uppercase font-bold tracking-tighter">Used for shelf organization and artist sorting</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { WantlistItem } from '../types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { CD, WantlistItem } from '../types';
 import { PlusIcon } from './icons/PlusIcon';
 import AlbumScanner from './AlbumScanner';
 import { getAlbumInfo } from '../gemini';
@@ -14,7 +14,7 @@ import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
-import { capitalizeWords } from '../utils';
+import { capitalizeWords, findDefinedArtistSortName } from '../utils';
 
 interface AddWantlistItemFormProps {
   onSave: (item: Omit<WantlistItem, 'id'> & { id?: string }) => Promise<void>;
@@ -23,6 +23,8 @@ interface AddWantlistItemFormProps {
   isVinyl?: boolean;
   driveSignedIn?: boolean;
   onPickFromDrive?: () => Promise<string | null>;
+  existingCds?: CD[];
+  existingWantlist?: WantlistItem[];
 }
 
 const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped", "Snap, Crackle & Pop"];
@@ -33,9 +35,10 @@ const CD_MEDIA_CONDITION = ["Scratches", "Hairlines", "Sticky"];
 const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Surface Tear", "Water damage"];
 const CD_ATTRIBUTES = ["Digipak", "Slipcase", "Obi Strip", "Promo", "Upgradable"];
 
-const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl, driveSignedIn, onPickFromDrive }) => {
+const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl, driveSignedIn, onPickFromDrive, existingCds = [], existingWantlist = [] }) => {
   const [artist, setArtist] = useState('');
   const [sort_name, setSortName] = useState('');
+  const [appliedSortFromExisting, setAppliedSortFromExisting] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [currentGenre, setCurrentGenre] = useState('');
@@ -61,10 +64,18 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
 
+  const uniqueArtistNames = useMemo(() => {
+    const names = new Set<string>();
+    (existingCds || []).forEach(c => { if (c.artist?.trim()) names.add(c.artist.trim()); });
+    (existingWantlist || []).forEach(w => { if (w.artist?.trim()) names.add(w.artist.trim()); });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [existingCds, existingWantlist]);
+
   useEffect(() => {
     if (itemToEdit) {
       setArtist(itemToEdit.artist);
       setSortName(itemToEdit.sort_name || '');
+      setAppliedSortFromExisting(null);
       setTitle(itemToEdit.title);
       setGenres(itemToEdit.genre || []);
       setYear(itemToEdit.year || '');
@@ -76,14 +87,57 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setTags(itemToEdit.tags || []);
       setCoverArtUrl(itemToEdit.cover_art_url);
       setNotes(itemToEdit.notes || '');
+    } else {
+      setArtist('');
+      setSortName('');
+      setAppliedSortFromExisting(null);
+      setTitle('');
+      setGenres([]);
+      setYear('');
+      setVersion('');
+      setRecordLabel('');
+      setCountry('');
+      setProducer('');
+      setAttributes([]);
+      setTags([]);
+      setCoverArtUrl(undefined);
+      setNotes('');
     }
   }, [itemToEdit]);
+
+  const handleArtistChange = useCallback((newArtist: string) => {
+    setArtist(newArtist);
+    if (!itemToEdit) {
+      const defined = findDefinedArtistSortName(newArtist, existingCds) || findDefinedArtistSortName(newArtist, existingWantlist);
+      if (defined) {
+        setSortName(defined);
+        setAppliedSortFromExisting(defined);
+      } else if (appliedSortFromExisting) {
+        setSortName('');
+        setAppliedSortFromExisting(null);
+      }
+    }
+  }, [itemToEdit, existingCds, existingWantlist, appliedSortFromExisting]);
+
+  const handleSortNameChange = useCallback((newSortName: string) => {
+    setSortName(newSortName);
+    setAppliedSortFromExisting(null);
+  }, []);
 
   const toggleAttribute = (attr: string) => {
     setAttributes(prev => 
       prev.includes(attr) ? prev.filter(a => a !== attr) : [...prev, attr]
     );
   };
+
+  const getResolvedSortName = useCallback(() => {
+    if (sort_name && sort_name.trim()) return sort_name.trim();
+    if (!itemToEdit) {
+      const defined = findDefinedArtistSortName(artist, existingCds) || findDefinedArtistSortName(artist, existingWantlist);
+      if (defined) return defined;
+    }
+    return sort_name || '';
+  }, [sort_name, itemToEdit, artist, existingCds, existingWantlist]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,8 +151,9 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     setFormError(null);
 
     try {
+        const resolvedSort = getResolvedSortName();
         const itemData: Omit<WantlistItem, 'id'> & { id?: string } = {
-            id: itemToEdit?.id, artist, sort_name, title, genre: genres,
+            id: itemToEdit?.id, artist, sort_name: resolvedSort, title, genre: genres,
             year: year ? Number(year) : undefined,
             version, record_label, country, producer, tags, cover_art_url, notes,
             attributes,
@@ -132,7 +187,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
     } finally {
         setIsProcessing(false);
     }
-  }, [artist, sort_name, title, genres, year, version, country, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes]);
+  }, [artist, title, genres, year, version, country, cover_art_url, notes, itemToEdit, onSave, record_label, producer, tags, attributes, getResolvedSortName]);
   
   const handleScan = useCallback(async (imageBase64: string) => {
       setIsScannerOpen(false);
@@ -143,8 +198,16 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       try {
           const albumInfo = await getAlbumInfo(imageBase64);
           if (albumInfo) {
-            setArtist(albumInfo.artist || '');
-            setSortName(albumInfo.sort_name || '');
+            const scannedArtist = albumInfo.artist || '';
+            setArtist(scannedArtist);
+            const defined = findDefinedArtistSortName(scannedArtist, existingCds) || findDefinedArtistSortName(scannedArtist, existingWantlist);
+            if (defined) {
+              setSortName(defined);
+              setAppliedSortFromExisting(defined);
+            } else {
+              setSortName(albumInfo.sort_name || '');
+              setAppliedSortFromExisting(null);
+            }
             setTitle(albumInfo.title || '');
             setGenres(albumInfo.genre || []);
             setYear(albumInfo.year || '');
@@ -160,7 +223,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       } finally {
           setIsProcessing(false);
       }
-  }, []);
+  }, [existingCds, existingWantlist]);
 
   const handleSetArtFromUrl = useCallback(() => {
     if (manualUrl.trim()) {
@@ -203,9 +266,9 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
 
   const handlePickFromDrive = useCallback(async () => {
     if (!driveSignedIn || !onPickFromDrive) {
-        setFormErrorTitle("Drive Connection Required");
-        setFormError("Please sign in to Google Drive from the main menu (Top Right) to browse your files.");
-        return;
+      setFormErrorTitle("Drive Connection Required");
+      setFormError("Please sign in to Google Drive from the main menu (Top Right) to browse your files.");
+      return;
     }
     const url = await onPickFromDrive();
     if (url) setCoverArtUrl(url);
@@ -220,8 +283,9 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       try {
         setFormErrorTitle("Error Saving to Wantlist");
         setProcessingStatus('Saving item...');
+        const resolvedSort = getResolvedSortName();
         await onSave({
-          id: itemToEdit?.id, artist, sort_name, title, genre: genres,
+          id: itemToEdit?.id, artist, sort_name: resolvedSort, title, genre: genres,
           year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
           attributes,
           cover_art_url: url, notes,
@@ -234,7 +298,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
         setIsSubmittingWithArtSelection(false);
       }
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, sort_name, title, genres, year, version, country, notes, record_label, producer, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, country, notes, record_label, producer, tags, attributes, getResolvedSortName]);
 
   const handleCancelSelector = useCallback(() => {
     setIsSelectorOpen(false);
@@ -250,8 +314,9 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       try {
           setFormErrorTitle("Error Saving to Wantlist");
           setProcessingStatus('Saving item...');
+          const resolvedSort = getResolvedSortName();
           await onSave({
-            id: itemToEdit?.id, artist, sort_name, title, genre: genres,
+            id: itemToEdit?.id, artist, sort_name: resolvedSort, title, genre: genres,
             year: year ? Number(year) : undefined, version, record_label, country, producer, tags,
             attributes,
             cover_art_url: undefined, notes,
@@ -268,7 +333,7 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
       setCoverArtUrl(undefined);
       setIsProcessing(false);
     }
-  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, sort_name, title, genres, year, version, country, notes, record_label, tags, attributes]);
+  }, [isSubmittingWithArtSelection, onSave, itemToEdit, artist, title, genres, year, version, country, notes, record_label, producer, tags, attributes, getResolvedSortName]);
   
   const handleRemoveArt = () => {
     setCoverArtUrl(undefined);
@@ -432,14 +497,31 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
             </div>
             <div className="flex-1 w-full space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  placeholder="Artist*"
-                  value={artist}
-                  onChange={(e) => setArtist(e.target.value)}
-                  required
-                  className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
-                />
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Artist*"
+                    list="existing-artists-wantlist-list"
+                    value={artist}
+                    onChange={(e) => handleArtistChange(e.target.value)}
+                    onBlur={() => {
+                      if (!itemToEdit && !sort_name) {
+                        const defined = findDefinedArtistSortName(artist, existingCds) || findDefinedArtistSortName(artist, existingWantlist);
+                        if (defined) {
+                          setSortName(defined);
+                          setAppliedSortFromExisting(defined);
+                        }
+                      }
+                    }}
+                    required
+                    className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  />
+                  <datalist id="existing-artists-wantlist-list">
+                    {uniqueArtistNames.map(name => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
                 <input
                   type="text"
                   placeholder="Title*"
@@ -455,10 +537,17 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
                   type="text"
                   placeholder="Sort Name (e.g. Bowie, David)"
                   value={sort_name}
-                  onChange={(e) => setSortName(e.target.value)}
+                  onChange={(e) => handleSortNameChange(e.target.value)}
                   className="w-full bg-white border border-zinc-300 rounded-lg py-2 px-3 text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800 text-sm"
                 />
-                <p className="text-[10px] text-zinc-500 mt-1 ml-1 uppercase font-bold tracking-tighter">Used for wantlist sorting</p>
+                {appliedSortFromExisting ? (
+                  <p className="text-[11px] text-emerald-600 mt-1 ml-1 font-semibold flex items-center gap-1">
+                    <span className="font-bold">✓</span>
+                    <span>Applied existing sorting order from collection: "{appliedSortFromExisting}"</span>
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-zinc-500 mt-1 ml-1 uppercase font-bold tracking-tighter">Used for wantlist sorting</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
