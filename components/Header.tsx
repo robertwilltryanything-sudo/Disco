@@ -33,6 +33,7 @@ interface HeaderProps {
     onSignIn: () => void;
     isSignedIn: boolean;
     userEmail?: string | null;
+    needsTokenRefresh?: boolean;
     isOnWantlistPage?: boolean;
     collectionMode: CollectionMode;
     onToggleMode: () => void;
@@ -59,7 +60,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 const Header: React.FC<HeaderProps> = ({ 
     onAddClick, collectionCount, onImport, onExport, onOpenSyncSettings,
     syncStatus, syncError, syncProvider, onCloudPush, onCloudPull, onSignOut, onSignIn, isSignedIn,
-    userEmail, isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime, onOpenArtistSorter
+    userEmail, needsTokenRefresh, isOnWantlistPage, collectionMode, onToggleMode, lastSyncTime, onOpenArtistSorter
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -154,12 +155,23 @@ const Header: React.FC<HeaderProps> = ({
                     {syncProvider === 'google_drive' && isSignedIn && (
                          <div className="p-2">
                             {userEmail && (
-                              <div className="px-2.5 py-1.5 mb-1.5 bg-zinc-50 rounded text-xs text-zinc-600 truncate flex items-center gap-2 border border-zinc-100">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                                <span className="truncate font-medium">{userEmail}</span>
+                              <div className={`px-2.5 py-1.5 mb-1.5 rounded text-xs truncate flex items-center justify-between gap-2 border ${needsTokenRefresh ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-zinc-50 text-zinc-600 border-zinc-100'}`}>
+                                <div className="flex items-center gap-2 truncate">
+                                  <span className={`w-2 h-2 rounded-full shrink-0 ${needsTokenRefresh ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                                  <span className="truncate font-medium">{userEmail}</span>
+                                </div>
+                                {needsTokenRefresh && (
+                                  <span className="text-[9px] uppercase font-bold text-amber-700 bg-amber-100/80 px-1 py-0.5 rounded">Renew</span>
+                                )}
                               </div>
                             )}
-                            <button onClick={handleSignOutClick} className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none hover:bg-red-50 transition-colors">
+                            {needsTokenRefresh && (
+                              <button onClick={() => { onSignIn(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 p-2 mb-1 rounded-md text-amber-900 bg-amber-50 hover:bg-amber-100 focus:outline-none transition-colors">
+                                <GoogleDriveIcon className="w-5 h-5 text-amber-600" />
+                                <span className="font-medium text-sm">Resume Cloud Sync</span>
+                              </button>
+                            )}
+                            <button onClick={handleSignOutClick} className="w-full flex items-center gap-3 p-2 rounded-md text-zinc-700 focus:outline-none hover:bg-red-50 hover:text-red-700 transition-colors">
                                 <LogoutIcon className="w-5 h-5 text-zinc-500" />
                                 <span className="font-medium text-sm">Sign Out from Drive</span>
                             </button>

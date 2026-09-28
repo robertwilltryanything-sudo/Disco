@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
-import { areStringsSimilar, isCdSingle } from '../utils';
+import { areStringsSimilar, isCdSingle, compareStrings } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import CDItem from '../components/CDItem';
@@ -37,7 +37,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                 }
                 const yearComp = (a.year || 0) - (b.year || 0);
                 if (yearComp !== 0) return yearComp;
-                return (a.title || '').localeCompare(b.title || '');
+                return compareStrings(a.title, b.title);
             });
     }, [cds, artistName]);
 

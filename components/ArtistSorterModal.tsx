@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CD, WantlistItem } from '../types';
 import { determineArtistSortName, batchNormalizeWithGemini } from '../artistSorter';
+import { compareStrings } from '../utils';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -77,7 +78,7 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
       
       const clean = sortName.replace(/^the\s+/i, '').trim();
       const firstChar = clean ? clean.charAt(0).toUpperCase() : '#';
-      const groupChar = /[A-Z]/.test(firstChar) ? firstChar : '#';
+      const groupChar = /[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#';
       const isChanged = !existing && result.sort_name.trim() !== artist.trim();
 
       initialList.push({
@@ -91,8 +92,8 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
       });
     });
 
-    // Sort by original artist name alphabetically
-    initialList.sort((a, b) => a.originalArtist.localeCompare(b.originalArtist));
+    // Sort by original artist name alphabetically using Swedish collation
+    initialList.sort((a, b) => compareStrings(a.originalArtist, b.originalArtist));
     setItems(initialList);
     setAiError(null);
   }, [isOpen, uniqueArtistsData]);
@@ -159,7 +160,7 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
           ...item,
           isGroup: newIsGroup,
           sortName: newSortName,
-          groupChar: /[A-Z]/.test(groupChar) ? groupChar : '#',
+          groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
           isChanged,
         };
       })
@@ -179,7 +180,7 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
         return {
           ...item,
           sortName: newSortName,
-          groupChar: /[A-Z]/.test(groupChar) ? groupChar : '#',
+          groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
           isChanged,
         };
       })

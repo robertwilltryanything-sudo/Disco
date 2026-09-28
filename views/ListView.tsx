@@ -11,7 +11,7 @@ import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import CDTable from '../components/CDTable';
 import { getArtistStudioDiscography } from '../gemini';
-import { areStringsSimilar, isCdSingle } from '../utils';
+import { areStringsSimilar, isCdSingle, compareStrings } from '../utils';
 
 interface ListViewProps {
   cds: CD[];
@@ -298,7 +298,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
 
         let comparison = 0;
         if (typeof valA === 'string' && typeof valB === 'string') {
-          comparison = valA.localeCompare(valB);
+          comparison = compareStrings(valA, valB);
         } else if (typeof valA === 'number' && typeof valB === 'number') {
           comparison = valA - valB;
         }
@@ -326,11 +326,11 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
                 if (yearComp !== 0) {
                     return sortOrder === 'asc' ? yearComp : -yearComp;
                 }
-                const titleComp = (a.title || '').localeCompare(b.title || '');
+                const titleComp = compareStrings(a.title, b.title);
                 return sortOrder === 'asc' ? titleComp : -titleComp;
             } else if (sortBy === 'genre' || sortBy === 'record_label') {
                 // Genre/Label -> Artist -> (Full-length before CD Single) -> Year -> Title
-                comparison = (a.artist || '').localeCompare(b.artist || '');
+                comparison = compareStrings(a.sort_name || a.artist, b.sort_name || b.artist);
                 if (comparison === 0) {
                     const aIsSingle = isCdSingle(a);
                     const bIsSingle = isCdSingle(b);
@@ -339,23 +339,23 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
                     }
                     comparison = (a.year || 0) - (b.year || 0);
                     if (comparison === 0) {
-                        comparison = (a.title || '').localeCompare(b.title || '');
+                        comparison = compareStrings(a.title, b.title);
                     }
                 }
             } else if (sortBy === 'year') {
                 // Year -> Artist -> (Full-length before CD Single) -> Title
-                comparison = (a.artist || '').localeCompare(b.artist || '');
+                comparison = compareStrings(a.sort_name || a.artist, b.sort_name || b.artist);
                 if (comparison === 0) {
                     const aIsSingle = isCdSingle(a);
                     const bIsSingle = isCdSingle(b);
                     if (aIsSingle !== bIsSingle) {
                         return aIsSingle ? 1 : -1;
                     }
-                    comparison = (a.title || '').localeCompare(b.title || '');
+                    comparison = compareStrings(a.title, b.title);
                 }
             } else if (sortBy === 'created_at') {
                 // CreatedAt -> Artist -> (Full-length before CD Single) -> Year
-                comparison = (a.artist || '').localeCompare(b.artist || '');
+                comparison = compareStrings(a.sort_name || a.artist, b.sort_name || b.artist);
                 if (comparison === 0) {
                     const aIsSingle = isCdSingle(a);
                     const bIsSingle = isCdSingle(b);
@@ -366,7 +366,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
                 }
             } else {
                 // Default fallback
-                comparison = (a.artist || '').localeCompare(b.artist || '');
+                comparison = compareStrings(a.sort_name || a.artist, b.sort_name || b.artist);
                 if (comparison === 0) {
                     const aIsSingle = isCdSingle(a);
                     const bIsSingle = isCdSingle(b);

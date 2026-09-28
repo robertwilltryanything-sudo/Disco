@@ -14,7 +14,7 @@ import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
-import { findDefinedArtistSortName } from '../utils';
+import { findDefinedArtistSortName, compareStrings } from '../utils';
 
 interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
@@ -69,7 +69,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     const names = new Set<string>();
     (existingCds || []).forEach(c => { if (c.artist?.trim()) names.add(c.artist.trim()); });
     (existingWantlist || []).forEach(w => { if (w.artist?.trim()) names.add(w.artist.trim()); });
-    return Array.from(names).sort((a, b) => a.localeCompare(b));
+    return Array.from(names).sort((a, b) => compareStrings(a, b));
   }, [existingCds, existingWantlist]);
 
   const resetForm = useCallback(() => {

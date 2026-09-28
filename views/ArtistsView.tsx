@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { compareStrings } from '../utils';
 
 interface ArtistsViewProps {
   cds: CD[];
@@ -24,9 +25,9 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode, onOpenAr
     
     return Array.from(artistMap.entries())
       .sort((a, b) => {
-        const keyA = a[1].replace(/^the\s+/i, '').toLowerCase();
-        const keyB = b[1].replace(/^the\s+/i, '').toLowerCase();
-        return keyA.localeCompare(keyB);
+        const keyA = a[1].replace(/^the\s+/i, '');
+        const keyB = b[1].replace(/^the\s+/i, '');
+        return compareStrings(keyA, keyB);
       })
       .map(entry => entry[0]);
   }, [cds]);

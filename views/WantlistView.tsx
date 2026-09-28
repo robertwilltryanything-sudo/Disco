@@ -5,7 +5,7 @@ import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import WantlistGrid from '../components/WantlistGrid';
 import WantlistTable from '../components/WantlistTable';
-import { isCdSingle } from '../utils';
+import { isCdSingle, compareStrings } from '../utils';
 
 interface WantlistViewProps {
     wantlist: WantlistItem[];
@@ -52,7 +52,7 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
     const sortedWantlist = [...wantlist].sort((a, b) => {
         const nameA = a.sort_name || a.artist || '';
         const nameB = b.sort_name || b.artist || '';
-        const artComp = nameA.localeCompare(nameB);
+        const artComp = compareStrings(nameA, nameB);
         if (artComp !== 0) {
             const sameArtist = (a.artist || '').trim().toLowerCase() === (b.artist || '').trim().toLowerCase();
             if (!sameArtist) return artComp;
@@ -64,7 +64,7 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
         }
         const yearComp = (a.year || 0) - (b.year || 0);
         if (yearComp !== 0) return yearComp;
-        return (a.title || '').localeCompare(b.title || '');
+        return compareStrings(a.title, b.title);
     });
 
     return (

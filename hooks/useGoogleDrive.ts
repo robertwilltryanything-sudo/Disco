@@ -72,9 +72,14 @@ export const getStoredUserProfile = (): UserProfile => {
 };
 
 export const useGoogleDrive = (onSignInSuccess?: () => void) => {
-  // Synchronously initialize isSignedIn if a valid, unexpired token exists in localStorage
+  // Synchronously initialize isSignedIn if a valid token or persistent signed-in flag exists in localStorage
   const initialValidToken = getValidStoredToken();
-  const [isSignedIn, setIsSignedIn] = useState<boolean>(() => !!initialValidToken);
+  const [isSignedIn, setIsSignedIn] = useState<boolean>(() => {
+    return !!initialValidToken || localStorage.getItem(SIGNED_IN_KEY) === 'true';
+  });
+  const [needsTokenRefresh, setNeedsTokenRefresh] = useState<boolean>(() => {
+    return !initialValidToken && localStorage.getItem(SIGNED_IN_KEY) === 'true';
+  });
   const [userProfile, setUserProfile] = useState<UserProfile>(getStoredUserProfile);
   const [isApiReady, setIsApiReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
@@ -110,6 +115,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     localStorage.removeItem(USER_PICTURE_KEY);
     localStorage.removeItem(LAST_SYNC_TIME_KEY);
     setIsSignedIn(false);
+    setNeedsTokenRefresh(false);
     setUserProfile({ email: null, name: null, picture: null });
     fileIdRef.current = null;
     updateSyncStatus('idle');
@@ -128,16 +134,13 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     const status = e?.status;
 
     if (status === 401 || status === 403 || message.includes('invalid_grant')) {
-      // Invalidate current cached token, but preserve userEmail & SIGNED_IN_KEY for quick 1-click reconnect
+      // Invalidate current cached token, but preserve userEmail & SIGNED_IN_KEY so user stays logged in
       accessTokenRef.current = null;
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(EXPIRES_AT_KEY);
-      setIsSignedIn(false);
-      setError("Session expired. Please click to reconnect to Google Drive.");
+      setNeedsTokenRefresh(true);
+      setError("Google Drive session needs to be refreshed. Please click 'Resume Session' to continue.");
       updateSyncStatus('idle');
-      window.dispatchEvent(new CustomEvent(DISCO_AUTH_EVENT, {
-        detail: { token: null, isSignedIn: false }
-      }));
     } else {
       setError(`Sync error: ${message}`);
       updateSyncStatus('error');
@@ -297,6 +300,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
             localStorage.setItem(SIGNED_IN_KEY, 'true');
 
             setIsSignedIn(true);
+            setNeedsTokenRefresh(false);
             updateSyncStatus('idle');
             setError(null);
 
@@ -318,10 +322,10 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
               updateSyncStatus('idle');
             } else if (isSilent) {
               // Silent background refresh encountered a prompt/cookie requirement.
-              // We preserve account details (email & preferences) so user can resume with 1 click.
+              // We preserve account details (email & preferences) so user stays logged in without interruption.
               console.log("Background token refresh required interaction. Preserving account state.");
               if (!getValidStoredToken()) {
-                setIsSignedIn(false);
+                setNeedsTokenRefresh(true);
               }
             } else {
               handleApiError(tokenResponse, 'auth_callback');
@@ -569,8 +573,8 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
   }, [updateSyncStatus, initializeSync]);
 
   return useMemo(() => ({ 
-    isApiReady, isSignedIn, userProfile, signIn, signOut, loadData, saveData,
+    isApiReady, isSignedIn, needsTokenRefresh, userProfile, signIn, signOut, loadData, saveData,
     getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages,
     getRemoteMetadata
-  }), [isApiReady, isSignedIn, userProfile, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata]);
+  }), [isApiReady, isSignedIn, needsTokenRefresh, userProfile, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata]);
 };

@@ -163,7 +163,13 @@ const CLASSICAL_COMPOSERS: Record<string, string> = {
   'dmitri shostakovich': 'Shostakovich, Dmitri',
   'edvard grieg': 'Grieg, Edvard',
   'bela bartok': 'Bartók, Béla',
-  'béla bartók': 'Bartók, Béla'
+  'béla bartók': 'Bartók, Béla',
+  'arvo pärt': 'Pärt, Arvo',
+  'arvo part': 'Pärt, Arvo',
+  'pärt, arvo': 'Pärt, Arvo',
+  'part, arvo': 'Pärt, Arvo',
+  'pärt': 'Pärt',
+  'part': 'Pärt'
 };
 
 /**
@@ -191,7 +197,8 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
   // 2. Classical Composers
   if (CLASSICAL_COMPOSERS[lower]) {
     const sort_name = CLASSICAL_COMPOSERS[lower];
-    const groupChar = sort_name.charAt(0).toUpperCase();
+    const firstLetter = sort_name.replace(/^the\s+/i, '').charAt(0).toUpperCase();
+    const groupChar = /[A-ZÅÄÖ]/.test(firstLetter) ? firstLetter : '#';
     return {
       artist,
       sort_name,
@@ -209,7 +216,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
       artist,
       sort_name: artist,
       isGroup: false,
-      groupChar: /[A-Z]/.test(firstLetter) ? firstLetter : '#',
+      groupChar: /[A-ZÅÄÖ]/.test(firstLetter) ? firstLetter : '#',
       reason: 'Already formatted as Surname, Firstname'
     };
   }
@@ -226,7 +233,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
       artist,
       sort_name: clean,
       isGroup: true,
-      groupChar: /[A-Z]/.test(groupChar) ? groupChar : '#',
+      groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
       reason: 'Recognized band/group'
     };
   }
@@ -239,7 +246,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
       artist,
       sort_name: clean,
       isGroup: true,
-      groupChar: /[A-Z]/.test(groupChar) ? groupChar : '#',
+      groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
       reason: 'Begins with "The" (Musical Group)'
     };
   }
@@ -252,7 +259,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
       artist,
       sort_name: artist,
       isGroup: MONONYMS.has(lower) ? false : false,
-      groupChar: /[A-Z]/.test(char) ? char : '#',
+      groupChar: /[A-ZÅÄÖ]/.test(char) ? char : '#',
       reason: 'Single name / mononym'
     };
   }
@@ -274,7 +281,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
         artist,
         sort_name,
         isGroup: false,
-        groupChar: /[A-Z]/.test(groupChar) ? groupChar : '#',
+        groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
         reason: 'Solo artist with backing group'
       };
     }
@@ -293,7 +300,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
       artist,
       sort_name: clean,
       isGroup: true,
-      groupChar: /[A-Z]/.test(groupChar) ? groupChar : '#',
+      groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
       reason: 'Contains musical group keyword'
     };
   }
@@ -308,7 +315,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
         artist,
         sort_name: artist,
         isGroup: true,
-        groupChar: /[A-Z]/.test(char) ? char : '#',
+        groupChar: /[A-ZÅÄÖ]/.test(char) ? char : '#',
         reason: 'Suffix title (e.g. Dinosaur Jr.)'
       };
     }
@@ -322,7 +329,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
       artist,
       sort_name,
       isGroup: false,
-      groupChar: /[A-Z]/.test(groupChar) ? groupChar : '#',
+      groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
       reason: 'Individual (Surname, Firstname)'
     };
   }
@@ -340,7 +347,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
       artist,
       sort_name: artist,
       isGroup: true,
-      groupChar: /[A-Z]/.test(char) ? char : '#',
+      groupChar: /[A-ZÅÄÖ]/.test(char) ? char : '#',
       reason: 'Numbered group'
     };
   }
@@ -352,7 +359,7 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
     artist,
     sort_name,
     isGroup: false,
-    groupChar: /[A-Z]/.test(groupChar) ? groupChar : '#',
+    groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
     reason: 'Multi-part person name'
   };
 }

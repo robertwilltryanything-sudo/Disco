@@ -149,4 +149,20 @@ export const isCdSingle = (item: { tags?: string[] } | null | undefined): boolea
   });
 };
 
+/**
+ * Compares two strings using Swedish collation rules ('sv') so that
+ * characters like Å, Ä, Ö (e.g. the letter Ä in the name 'Pärt')
+ * sort after Z according to Swedish alphabetical order.
+ * This guarantees that names like 'Pärt' are sorted last under their initial letter 'P'.
+ */
+export const compareStrings = (a: string | null | undefined, b: string | null | undefined): number => {
+  const strA = (a || '').trim();
+  const strB = (b || '').trim();
+  if (strA === strB) return 0;
+  if (!strA) return 1;
+  if (!strB) return -1;
+  return strA.localeCompare(strB, 'sv', { numeric: true, sensitivity: 'base' }) || 
+         strA.localeCompare(strB, 'sv', { numeric: true });
+};
+
 

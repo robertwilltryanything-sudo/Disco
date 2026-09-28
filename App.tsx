@@ -218,6 +218,7 @@ const AppContent: React.FC = () => {
 
   const { 
     isSignedIn: driveSignedIn, 
+    needsTokenRefresh: driveNeedsTokenRefresh,
     userProfile: driveUserProfile,
     signIn: driveSignIn, 
     signOut: driveSignOut, 
@@ -732,6 +733,7 @@ const AppContent: React.FC = () => {
         onSignIn={driveSignIn}
         isSignedIn={driveSignedIn}
         userEmail={driveUserProfile?.email}
+        needsTokenRefresh={driveNeedsTokenRefresh}
         isOnWantlistPage={isOnWantlistPage}
         collectionMode={collectionMode}
         onToggleMode={handleToggleMode}
@@ -740,6 +742,22 @@ const AppContent: React.FC = () => {
         onOpenArtistSorter={() => setIsArtistSorterOpen(true)}
       />
       <main className="container mx-auto p-4 md:p-6 max-w-full overflow-x-hidden">
+        {driveSignedIn && driveNeedsTokenRefresh && (
+          <div className="mb-6 p-3 md:p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm text-amber-950 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+              <span>
+                Google Drive session paused for <strong>{driveUserProfile?.email || 'your account'}</strong>. Reconnect anytime to resume automatic cloud backups.
+              </span>
+            </div>
+            <button
+              onClick={driveSignIn}
+              className="bg-zinc-950 text-white font-bold text-xs py-2 px-3.5 rounded-lg hover:bg-black transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+            >
+              Resume Cloud Sync
+            </button>
+          </div>
+        )}
         {isGoogleDriveSelectedButLoggedOut && (
              <div className="p-8 bg-white rounded-lg border border-zinc-200 max-w-md mx-auto my-8 text-center shadow-xl">
                 <h2 className="text-xl font-bold text-zinc-950">Google Drive Sync</h2>

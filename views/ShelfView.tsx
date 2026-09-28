@@ -6,7 +6,7 @@ import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
-import { isCdSingle } from '../utils';
+import { isCdSingle, compareStrings } from '../utils';
 
 interface ShelfViewProps {
   cds: CD[];
@@ -14,7 +14,7 @@ interface ShelfViewProps {
   onOpenArtistSorter?: () => void;
 }
 
-const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
 
 const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
   // Sections collapsed by default for a better "visual overlook"
@@ -36,11 +36,11 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
       // Strip leading "The " for alphabetical group letter and sorting (e.g. "The Clash" -> "Clash")
       const clean = raw.replace(/^the\s+/i, '').trim();
       const firstChar = (clean.charAt(0) || '#').toUpperCase();
-      const groupChar = /[A-Z]/.test(firstChar) ? firstChar : '#';
+      const groupChar = /[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#';
 
       return {
         groupChar,
-        sortKey: clean.toLowerCase()
+        sortKey: clean
       };
     };
 
@@ -50,13 +50,13 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
       groups[targetGroup].push(cd);
     });
 
-    // Sort items within each group: Sort Key then Year (Chronological) then Title
+    // Sort items within each group: Sort Key then Year (Chronological) then Title using Swedish collation
     Object.keys(groups).forEach(key => {
       groups[key].sort((a, b) => {
         const infoA = getShelfSortInfo(a);
         const infoB = getShelfSortInfo(b);
         
-        const artComp = infoA.sortKey.localeCompare(infoB.sortKey);
+        const artComp = compareStrings(infoA.sortKey, infoB.sortKey);
         if (artComp !== 0) {
           const sameArtist = (a.artist || '').trim().toLowerCase() === (b.artist || '').trim().toLowerCase();
           if (!sameArtist) return artComp;
@@ -71,7 +71,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
 
         const yearComp = (a.year || 0) - (b.year || 0);
         if (yearComp !== 0) return yearComp;
-        return (a.title || '').localeCompare(b.title || '');
+        return compareStrings(a.title, b.title);
       });
     });
 
