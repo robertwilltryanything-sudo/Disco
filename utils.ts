@@ -165,4 +165,61 @@ export const compareStrings = (a: string | null | undefined, b: string | null | 
          strA.localeCompare(strB, 'sv', { numeric: true });
 };
 
+/**
+ * Checks whether an artist or sort_name string signifies "Various Artists",
+ * including compilations, soundtracks, or common multi-artist designations.
+ */
+export const isVariousArtists = (name: string | null | undefined): boolean => {
+  if (!name || typeof name !== 'string') return false;
+  const clean = name.trim().toLowerCase();
+  if (!clean) return false;
+
+  // Direct matches
+  if (
+    clean === 'various artists' ||
+    clean === 'various artist' ||
+    clean === 'various' ||
+    clean === 'v.a.' ||
+    clean === 'v/a' ||
+    clean === 'va' ||
+    clean === 'soundtrack' ||
+    clean === 'soundtracks' ||
+    clean === 'original soundtrack' ||
+    clean === 'original motion picture soundtrack' ||
+    clean === 'ost' ||
+    clean === 'diverse' ||
+    clean === 'blandade artister'
+  ) {
+    return true;
+  }
+
+  // Prefix matches (e.g. "Various Artists - ...", "Soundtrack - ...")
+  if (
+    clean.startsWith('various artists') ||
+    clean.startsWith('various artist') ||
+    clean.startsWith('various -') ||
+    clean.startsWith('various /') ||
+    clean.startsWith('v/a ') ||
+    clean.startsWith('v.a. ') ||
+    clean.startsWith('soundtrack -') ||
+    clean.startsWith('original soundtrack -') ||
+    clean.startsWith('ost -') ||
+    clean.startsWith('blandade artister')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * Checks whether an album or wantlist item belongs to the "Various Artists" category.
+ */
+export const isCdVariousArtists = (
+  item: { artist?: string; sort_name?: string } | null | undefined
+): boolean => {
+  if (!item) return false;
+  return isVariousArtists(item.sort_name) || isVariousArtists(item.artist);
+};
+
 

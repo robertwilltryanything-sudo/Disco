@@ -145,6 +145,19 @@ const INITIAL_COLLECTION: CD[] = [
     notes: 'Virgin Records first release.',
     created_at: new Date(Date.now() - 10000).toISOString(),
     format: 'vinyl'
+  },
+  {
+    id: '6',
+    artist: 'Various Artists',
+    sort_name: 'Various Artists',
+    title: 'Pulp Fiction (Music from the Motion Picture)',
+    genre: ['Soundtrack', 'Surf Rock', 'Rock & Roll'],
+    year: 1994,
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/e/e0/Pulp_Fiction_%28soundtrack%29.jpg',
+    allmusic_url: 'https://www.allmusic.com/album/pulp-fiction-mw0000120286',
+    notes: 'Legendary soundtrack collection featuring Dick Dale, Chuck Berry, Kool & The Gang, and Al Green.',
+    created_at: new Date(Date.now() - 5000).toISOString(),
+    format: 'cd'
   }
 ];
 

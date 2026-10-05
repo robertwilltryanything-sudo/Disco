@@ -6,7 +6,7 @@ import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
-import { isCdSingle, compareStrings } from '../utils';
+import { isCdSingle, compareStrings, isVariousArtists } from '../utils';
 
 interface ShelfViewProps {
   cds: CD[];
@@ -14,7 +14,9 @@ interface ShelfViewProps {
   onOpenArtistSorter?: () => void;
 }
 
+export const VARIOUS_ARTISTS_SECTION = 'Various Artists';
 const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
+const SHELF_SECTIONS = [...ALPHABET, VARIOUS_ARTISTS_SECTION];
 
 const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
   // Sections collapsed by default for a better "visual overlook"
@@ -23,15 +25,27 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
   const groupedCds = useMemo(() => {
     const groups: Record<string, CD[]> = {};
     
-    // Initialize groups
-    ALPHABET.forEach(char => groups[char] = []);
+    // Initialize groups for all alphabetical letters and Various Artists at the end
+    SHELF_SECTIONS.forEach(sec => groups[sec] = []);
 
     // The "Used for shelf organization and artist sorting" field in the Edit window is `sort_name`.
     // It is the ONE AND ONLY authority for shelf organization and artist sorting.
     // If empty or unset, it simply falls back to `artist`.
     const getShelfSortInfo = (cd: CD) => {
-      const raw = (cd.sort_name && cd.sort_name.trim()) ? cd.sort_name.trim() : (cd.artist || '').trim();
-      if (!raw) return { groupChar: '#', sortKey: '' };
+      const rawSort = (cd.sort_name && cd.sort_name.trim()) ? cd.sort_name.trim() : '';
+      const rawArtist = (cd.artist && cd.artist.trim()) ? cd.artist.trim() : '';
+
+      // Check if this album belongs to Various Artists (separate section at end of shelf)
+      if (isVariousArtists(rawSort) || isVariousArtists(rawArtist)) {
+        return {
+          isVarious: true,
+          groupChar: VARIOUS_ARTISTS_SECTION,
+          sortKey: (cd.title || '').trim() || rawArtist
+        };
+      }
+
+      const raw = rawSort || rawArtist;
+      if (!raw) return { isVarious: false, groupChar: '#', sortKey: '' };
 
       // Strip leading "The " for alphabetical group letter and sorting (e.g. "The Clash" -> "Clash")
       const clean = raw.replace(/^the\s+/i, '').trim();
@@ -39,6 +53,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
       const groupChar = /[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#';
 
       return {
+        isVarious: false,
         groupChar,
         sortKey: clean
       };
@@ -46,33 +61,54 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
 
     cds.forEach(cd => {
       const { groupChar } = getShelfSortInfo(cd);
-      const targetGroup = groups[groupChar] ? groupChar : '#';
+      const targetGroup = groups[groupChar] !== undefined ? groupChar : '#';
       groups[targetGroup].push(cd);
     });
 
-    // Sort items within each group: Sort Key then Year (Chronological) then Title using Swedish collation
+    // Sort items within each group
     Object.keys(groups).forEach(key => {
-      groups[key].sort((a, b) => {
-        const infoA = getShelfSortInfo(a);
-        const infoB = getShelfSortInfo(b);
-        
-        const artComp = compareStrings(infoA.sortKey, infoB.sortKey);
-        if (artComp !== 0) {
-          const sameArtist = (a.artist || '').trim().toLowerCase() === (b.artist || '').trim().toLowerCase();
-          if (!sameArtist) return artComp;
-        }
-        
-        // Custom tag "CD Single" albums are sorted after all full-length albums by the artist
-        const aIsSingle = isCdSingle(a);
-        const bIsSingle = isCdSingle(b);
-        if (aIsSingle !== bIsSingle) {
-          return aIsSingle ? 1 : -1;
-        }
+      if (key === VARIOUS_ARTISTS_SECTION) {
+        // Various Artists section: sorted by Title A-Z, then Year (Chronological)
+        groups[key].sort((a, b) => {
+          // If a custom non-"Various Artists" sort_name was specified, use it as priority sort key
+          const keyA = (a.sort_name && !isVariousArtists(a.sort_name)) ? a.sort_name : a.title;
+          const keyB = (b.sort_name && !isVariousArtists(b.sort_name)) ? b.sort_name : b.title;
+          const titleComp = compareStrings(keyA, keyB);
+          if (titleComp !== 0) return titleComp;
 
-        const yearComp = (a.year || 0) - (b.year || 0);
-        if (yearComp !== 0) return yearComp;
-        return compareStrings(a.title, b.title);
-      });
+          // CD Singles after full albums
+          const aIsSingle = isCdSingle(a);
+          const bIsSingle = isCdSingle(b);
+          if (aIsSingle !== bIsSingle) return aIsSingle ? 1 : -1;
+
+          const yearComp = (a.year || 0) - (b.year || 0);
+          if (yearComp !== 0) return yearComp;
+          return compareStrings(a.artist, b.artist);
+        });
+      } else {
+        // Standard alphabetical shelf sorting: Sort Key then Year then Title using Swedish collation
+        groups[key].sort((a, b) => {
+          const infoA = getShelfSortInfo(a);
+          const infoB = getShelfSortInfo(b);
+          
+          const artComp = compareStrings(infoA.sortKey, infoB.sortKey);
+          if (artComp !== 0) {
+            const sameArtist = (a.artist || '').trim().toLowerCase() === (b.artist || '').trim().toLowerCase();
+            if (!sameArtist) return artComp;
+          }
+          
+          // Custom tag "CD Single" albums are sorted after all full-length albums by the artist
+          const aIsSingle = isCdSingle(a);
+          const bIsSingle = isCdSingle(b);
+          if (aIsSingle !== bIsSingle) {
+            return aIsSingle ? 1 : -1;
+          }
+
+          const yearComp = (a.year || 0) - (b.year || 0);
+          if (yearComp !== 0) return yearComp;
+          return compareStrings(a.title, b.title);
+        });
+      }
     });
 
     return groups;
@@ -92,11 +128,11 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
         </div>
         <div>
           <h1 className="text-3xl font-black text-zinc-950 uppercase tracking-tight">Shelf Organizer</h1>
-          <p className="text-zinc-600 font-medium">Organized strictly by the Sort Name field in the album details, then chronologically.</p>
+          <p className="text-zinc-600 font-medium">Organized strictly by artist sort name (#, A-Z, Å, Ä, Ö), with Various Artists at the end of the shelf.</p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         {onOpenArtistSorter ? (
           <button
             type="button"
@@ -112,44 +148,105 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
         <div className="flex items-center">
           <button 
             onClick={() => {
-              const allExpanded = ALPHABET.reduce((acc, char) => ({ ...acc, [char]: true }), {});
+              const allExpanded = SHELF_SECTIONS.reduce((acc, sec) => ({ ...acc, [sec]: true }), {});
               setExpandedSections(allExpanded);
             }}
-            className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2"
+            className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2 cursor-pointer"
           >
             Expand All
           </button>
           <button 
             onClick={() => {
-              const allCollapsed = ALPHABET.reduce((acc, char) => ({ ...acc, [char]: false }), {});
+              const allCollapsed = SHELF_SECTIONS.reduce((acc, sec) => ({ ...acc, [sec]: false }), {});
               setExpandedSections(allCollapsed);
             }}
-            className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2"
+            className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 px-2 cursor-pointer"
           >
             Collapse All
           </button>
         </div>
       </div>
 
+      {/* Quick Jump Bar */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-6 p-2.5 bg-zinc-100/80 rounded-2xl border border-zinc-200">
+        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 px-1.5">Jump to:</span>
+        {SHELF_SECTIONS.map((sec) => {
+          const count = groupedCds[sec]?.length || 0;
+          const hasItems = count > 0;
+          const isVa = sec === VARIOUS_ARTISTS_SECTION;
+          return (
+            <button
+              key={sec}
+              type="button"
+              disabled={!hasItems}
+              onClick={() => {
+                setExpandedSections(prev => ({ ...prev, [sec]: true }));
+                const el = document.getElementById(`shelf-section-${sec}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className={`px-2 py-1 text-xs rounded-lg transition-all ${
+                !hasItems
+                  ? 'text-zinc-300 opacity-40 cursor-not-allowed'
+                  : isVa
+                  ? 'bg-amber-400 hover:bg-amber-500 text-zinc-950 font-black shadow-xs cursor-pointer ring-1 ring-amber-500/30'
+                  : 'bg-white hover:bg-zinc-950 hover:text-white text-zinc-800 font-bold shadow-xs cursor-pointer'
+              }`}
+              title={isVa ? `Various Artists (${count} items)` : `${sec === '#' ? '0-9' : sec} (${count} items)`}
+            >
+              {isVa ? 'Various Artists' : (sec === '#' ? '0-9' : sec)}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="space-y-4">
-        {ALPHABET.map((char) => {
-          const items = groupedCds[char] || [];
+        {SHELF_SECTIONS.map((section) => {
+          const items = groupedCds[section] || [];
           if (items.length === 0) return null;
 
+          const isVarious = section === VARIOUS_ARTISTS_SECTION;
           // Default to collapsed (false) if not explicitly set
-          const isExpanded = expandedSections[char] ?? false;
+          const isExpanded = expandedSections[section] ?? false;
 
           return (
-            <div key={char} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <div 
+              key={section} 
+              id={`shelf-section-${section}`}
+              className={`bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
+                isVarious ? 'border-amber-300 ring-2 ring-amber-200/60' : 'border-zinc-200'
+              }`}
+            >
               <button 
-                onClick={() => toggleSection(char)}
-                className="w-full flex items-center justify-between p-5 text-left hover:bg-zinc-50 transition-colors"
+                onClick={() => toggleSection(section)}
+                className={`w-full flex items-center justify-between p-5 text-left transition-colors cursor-pointer ${
+                  isVarious ? 'hover:bg-amber-50/60 bg-linear-to-r from-amber-50/40 via-white to-amber-50/20' : 'hover:bg-zinc-50'
+                }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xl font-black text-zinc-950 uppercase tracking-wide">
-                    {char === '#' ? '0-9' : char}
+                  {isVarious ? (
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="px-2.5 py-1 bg-amber-500 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-lg shadow-xs">
+                        VA
+                      </span>
+                      <span className="text-xl font-black text-zinc-950 uppercase tracking-wide">
+                        Various Artists
+                      </span>
+                      <span className="text-xs text-zinc-500 font-medium hidden sm:inline">
+                        (Compilations & Soundtracks · End of Shelf)
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xl font-black text-zinc-950 uppercase tracking-wide">
+                      {section === '#' ? '0-9' : section}
+                    </span>
+                  )}
+                  <span className={`text-xs font-black px-2 py-0.5 rounded-full ${
+                    isVarious ? 'bg-amber-200 text-amber-950' : 'bg-zinc-100 text-zinc-600'
+                  }`}>
+                    {items.length}
                   </span>
-                  <span className="text-xs font-black bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-full">{items.length}</span>
                 </div>
                 {isExpanded ? <ChevronDownIcon className="w-5 h-5 text-zinc-400" /> : <ChevronRightIcon className="w-5 h-5 text-zinc-400" />}
               </button>
@@ -168,9 +265,13 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                           <Link 
                             key={item.id} 
                             to={`/cd/${item.id}`}
-                            className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-colors group"
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors group ${
+                              isVarious
+                                ? 'bg-amber-50/30 border-amber-100 hover:border-amber-300'
+                                : 'bg-zinc-50 border-zinc-100 hover:border-zinc-300'
+                            }`}
                           >
-                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-200 flex-shrink-0 shadow-sm">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-200 shrink-0 shadow-sm">
                               {item.cover_art_url ? (
                                 <img src={item.cover_art_url} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                               ) : (
@@ -182,10 +283,16 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-bold text-zinc-950 truncate leading-tight group-hover:text-zinc-900">{item.artist}</p>
-                                {item.sort_name && item.sort_name.trim().toLowerCase() !== (item.artist || '').trim().toLowerCase() && (
-                                  <span className="text-[10px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                                    Sort: {item.sort_name}
+                                {isVarious ? (
+                                  <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+                                    Various Artists Section
                                   </span>
+                                ) : (
+                                  item.sort_name && item.sort_name.trim().toLowerCase() !== (item.artist || '').trim().toLowerCase() && (
+                                    <span className="text-[10px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                      Sort: {item.sort_name}
+                                    </span>
+                                  )
                                 )}
                               </div>
                               <p className="text-xs text-zinc-600 truncate">{item.title} {item.year ? `(${item.year})` : ''}</p>

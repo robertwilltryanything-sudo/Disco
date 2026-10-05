@@ -1,4 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
+import { isVariousArtists } from "./utils";
 
 export interface ArtistSortResult {
   artist: string;
@@ -184,13 +185,13 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
   const lower = artist.toLowerCase();
 
   // 1. Check for Various Artists
-  if (lower === 'various artists' || lower === 'various' || lower === 'soundtrack' || lower === 'v/a' || lower === 'va') {
+  if (isVariousArtists(artist)) {
     return {
       artist,
       sort_name: 'Various Artists',
       isGroup: true,
-      groupChar: 'V',
-      reason: 'Various Artists collection'
+      groupChar: 'VA',
+      reason: 'Various Artists collection (placed in dedicated section at end of shelf)'
     };
   }
 
@@ -400,6 +401,8 @@ RULES:
    sort_name MUST be "Surname, First Name & The [Band]" (e.g. "Petty, Tom & The Heartbreakers").
 4. MONONYMS / STAGE MONIKERS (e.g., Prince, Madonna, Cher, Sting, Bjork, Beck, Seal):
    sort_name is the moniker as-is (e.g. "Prince").
+5. VARIOUS ARTISTS / COMPILATIONS / SOUNDTRACKS (e.g., Various Artists, Various, Soundtrack, V/A):
+   sort_name MUST be "Various Artists", is_group: true, sort_letter: "VA".
 
 Artists to catalog:
 ${JSON.stringify(batch)}
@@ -408,7 +411,7 @@ Respond ONLY with a JSON array of objects with these keys:
 - "artist": exact string from input
 - "is_group": boolean (true if band/group/ensemble, false if individual solo artist)
 - "sort_name": string (the exact formatted sort name)
-- "sort_letter": single uppercase character A-Z or # for the alphabet section`;
+- "sort_letter": single uppercase character A-Z or # (or "VA" for Various Artists)`;
 
       const response: GenerateContentResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -425,13 +428,14 @@ Respond ONLY with a JSON array of objects with these keys:
         if (Array.isArray(parsed)) {
           parsed.forEach((item: any) => {
             if (item && item.artist && item.sort_name) {
+              const isVA = isVariousArtists(item.artist) || isVariousArtists(item.sort_name) || String(item.sort_letter || '').toUpperCase() === 'VA';
               const letter = (item.sort_letter || item.sort_name.charAt(0)).toUpperCase();
               results[item.artist] = {
                 artist: item.artist,
-                sort_name: item.sort_name,
-                isGroup: Boolean(item.is_group),
-                groupChar: /[A-Z]/.test(letter) ? letter : '#',
-                reason: item.is_group ? 'AI verified band/group' : 'AI verified solo artist'
+                sort_name: isVA ? 'Various Artists' : item.sort_name,
+                isGroup: isVA ? true : Boolean(item.is_group),
+                groupChar: isVA ? 'VA' : (/[A-ZÅÄÖ]/.test(letter) ? letter : '#'),
+                reason: isVA ? 'Various Artists collection (end of shelf)' : (item.is_group ? 'AI verified band/group' : 'AI verified solo artist')
               };
             }
           });

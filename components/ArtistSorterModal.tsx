@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CD, WantlistItem } from '../types';
 import { determineArtistSortName, batchNormalizeWithGemini } from '../artistSorter';
-import { compareStrings } from '../utils';
+import { compareStrings, isVariousArtists } from '../utils';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { XIcon } from './icons/XIcon';
 import { CheckIcon } from './icons/CheckIcon';
@@ -76,9 +76,10 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
       const sortName = existing || result.sort_name;
       const isGroup = existing ? !existing.includes(',') : result.isGroup;
       
+      const isVA = isVariousArtists(artist) || isVariousArtists(sortName) || result.groupChar === 'VA';
       const clean = sortName.replace(/^the\s+/i, '').trim();
       const firstChar = clean ? clean.charAt(0).toUpperCase() : '#';
-      const groupChar = /[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#';
+      const groupChar = isVA ? 'VA' : (/[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#');
       const isChanged = !existing && result.sort_name.trim() !== artist.trim();
 
       initialList.push({
@@ -92,8 +93,14 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
       });
     });
 
-    // Sort by original artist name alphabetically using Swedish collation
-    initialList.sort((a, b) => compareStrings(a.originalArtist, b.originalArtist));
+    // Sort by artist name alphabetically, placing Various Artists at the very end
+    initialList.sort((a, b) => {
+      const isVaA = a.groupChar === 'VA' || isVariousArtists(a.originalArtist);
+      const isVaB = b.groupChar === 'VA' || isVariousArtists(b.originalArtist);
+      if (isVaA && !isVaB) return 1;
+      if (!isVaA && isVaB) return -1;
+      return compareStrings(a.originalArtist, b.originalArtist);
+    });
     setItems(initialList);
     setAiError(null);
   }, [isOpen, uniqueArtistsData]);
@@ -152,15 +159,17 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
           }
         }
 
+        const isVA = isVariousArtists(item.originalArtist) || isVariousArtists(newSortName);
         const clean = newSortName.replace(/^the\s+/i, '').trim();
-        const groupChar = clean ? clean.charAt(0).toUpperCase() : '#';
+        const firstChar = clean ? clean.charAt(0).toUpperCase() : '#';
+        const groupChar = isVA ? 'VA' : (/[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#');
         const isChanged = (item.currentSortName || '').trim() !== newSortName.trim();
 
         return {
           ...item,
           isGroup: newIsGroup,
           sortName: newSortName,
-          groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
+          groupChar,
           isChanged,
         };
       })
@@ -173,14 +182,16 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
       prev.map(item => {
         if (item.originalArtist !== artistName) return item;
 
+        const isVA = isVariousArtists(item.originalArtist) || isVariousArtists(newSortName);
         const clean = newSortName.replace(/^the\s+/i, '').trim();
-        const groupChar = clean ? clean.charAt(0).toUpperCase() : '#';
+        const firstChar = clean ? clean.charAt(0).toUpperCase() : '#';
+        const groupChar = isVA ? 'VA' : (/[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#');
         const isChanged = (item.currentSortName || '').trim() !== newSortName.trim();
 
         return {
           ...item,
           sortName: newSortName,
-          groupChar: /[A-ZÅÄÖ]/.test(groupChar) ? groupChar : '#',
+          groupChar,
           isChanged,
         };
       })
@@ -357,7 +368,11 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
                 >
                   <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
                     {/* Alphabet letter badge */}
-                    <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
+                    <div className={`w-8 h-8 rounded-lg font-black text-xs flex items-center justify-center shrink-0 shadow-xs ${
+                      item.groupChar === 'VA'
+                        ? 'bg-amber-400 text-zinc-950 font-black ring-1 ring-amber-500/40'
+                        : 'bg-zinc-900 text-white'
+                    }`} title={item.groupChar === 'VA' ? 'Various Artists (End of shelf)' : `Section ${item.groupChar}`}>
                       {item.groupChar}
                     </div>
 
@@ -372,28 +387,34 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2 mt-1">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleType(item.originalArtist)}
-                          className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
-                            item.isGroup
-                              ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
-                              : 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
-                          }`}
-                          title="Click to switch between Band and Solo"
-                        >
-                          {item.isGroup ? (
-                            <>
-                              <UserGroupIcon className="w-3 h-3" />
-                              <span>Band / Group</span>
-                            </>
-                          ) : (
-                            <>
-                              <UserIcon className="w-3 h-3" />
-                              <span>Solo Artist</span>
-                            </>
-                          )}
-                        </button>
+                        {item.groupChar === 'VA' ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border bg-amber-100 text-amber-950 border-amber-300">
+                            <span>Various Artists (End of Shelf)</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleType(item.originalArtist)}
+                            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                              item.isGroup
+                                ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
+                                : 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
+                            }`}
+                            title="Click to switch between Band and Solo"
+                          >
+                            {item.isGroup ? (
+                              <>
+                                <UserGroupIcon className="w-3 h-3" />
+                                <span>Band / Group</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserIcon className="w-3 h-3" />
+                                <span>Solo Artist</span>
+                              </>
+                            )}
+                          </button>
+                        )}
 
                         {item.currentSortName && item.currentSortName !== item.sortName && (
                           <span className="text-[10px] text-zinc-400 line-through truncate max-w-[150px]">

@@ -11,7 +11,7 @@ import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import CDTable from '../components/CDTable';
 import { getArtistStudioDiscography } from '../gemini';
-import { areStringsSimilar, isCdSingle, compareStrings } from '../utils';
+import { areStringsSimilar, isCdSingle, compareStrings, isCdVariousArtists } from '../utils';
 
 interface ListViewProps {
   cds: CD[];
@@ -286,6 +286,12 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
         if (sortBy === 'artist') {
           valA = a.sort_name || a.artist;
           valB = b.sort_name || b.artist;
+
+          const isVaA = isCdVariousArtists(a);
+          const isVaB = isCdVariousArtists(b);
+          if (isVaA !== isVaB) {
+            return isVaA ? 1 : -1;
+          }
         }
         
         if (sortBy === 'genre') {

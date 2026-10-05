@@ -14,7 +14,7 @@ import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
-import { findDefinedArtistSortName, compareStrings } from '../utils';
+import { findDefinedArtistSortName, compareStrings, isVariousArtists } from '../utils';
 
 interface AddCDFormProps {
   onSave: (cd: Omit<CD, 'id'> & { id?: string }) => Promise<void>;
@@ -138,6 +138,11 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const handleArtistChange = useCallback((newArtist: string) => {
     setArtist(newArtist);
     if (!cdToEdit) {
+      if (isVariousArtists(newArtist)) {
+        setSortName('Various Artists');
+        setAppliedSortFromExisting('Various Artists (Places at end of shelf)');
+        return;
+      }
       const defined = findDefinedArtistSortName(newArtist, existingCds) || findDefinedArtistSortName(newArtist, existingWantlist);
       if (defined) {
         setSortName(defined);
@@ -162,6 +167,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
 
   const getResolvedSortName = useCallback(() => {
     if (sort_name && sort_name.trim()) return sort_name.trim();
+    if (isVariousArtists(artist)) return 'Various Artists';
     if (!cdToEdit) {
       const defined = findDefinedArtistSortName(artist, existingCds) || findDefinedArtistSortName(artist, existingWantlist);
       if (defined) return defined;

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
-import { compareStrings } from '../utils';
+import { compareStrings, isVariousArtists } from '../utils';
 
 interface ArtistsViewProps {
   cds: CD[];
@@ -25,6 +25,10 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode, onOpenAr
     
     return Array.from(artistMap.entries())
       .sort((a, b) => {
+        const isVaA = isVariousArtists(a[0]) || isVariousArtists(a[1]);
+        const isVaB = isVariousArtists(b[0]) || isVariousArtists(b[1]);
+        if (isVaA && !isVaB) return 1;
+        if (!isVaA && isVaB) return -1;
         const keyA = a[1].replace(/^the\s+/i, '');
         const keyB = b[1].replace(/^the\s+/i, '');
         return compareStrings(keyA, keyB);
@@ -68,16 +72,23 @@ const ArtistsView: React.FC<ArtistsViewProps> = ({ cds, collectionMode, onOpenAr
       ) : (
         <div className="bg-white rounded-lg border border-zinc-200 p-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-4">
-            {artists.map(artist => (
+            {artists.map(artist => {
+              const isVA = isVariousArtists(artist);
+              return (
                 <Link
-                key={artist}
-                to={`/?artist=${encodeURIComponent(artist)}&sort=year&order=asc`}
-                className="block text-zinc-700 p-2 rounded-lg truncate"
-                title={artist}
+                  key={artist}
+                  to={`/?artist=${encodeURIComponent(artist)}&sort=year&order=asc`}
+                  className={`block p-2 rounded-lg truncate transition-colors ${
+                    isVA
+                      ? 'bg-amber-50 text-amber-950 font-bold border border-amber-200 hover:bg-amber-100'
+                      : 'text-zinc-700 hover:bg-zinc-50'
+                  }`}
+                  title={isVA ? `${artist} (Compilations & Soundtracks)` : artist}
                 >
-                {artist}
+                  {isVA ? `★ ${artist}` : artist}
                 </Link>
-            ))}
+              );
+            })}
             </div>
         </div>
       )}
