@@ -150,12 +150,26 @@ const INITIAL_COLLECTION: CD[] = [
     id: '6',
     artist: 'Various Artists',
     sort_name: 'Various Artists',
+    title: 'Woodstock: Music from the Original Soundtrack and More',
+    genre: ['Rock', 'Folk Rock', 'Psychedelic Rock'],
+    year: 1970,
+    cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/6/60/Woodstock_album.jpg',
+    allmusic_url: 'https://www.allmusic.com/album/woodstock-mw0000195655',
+    notes: 'Historic 1969 festival recording featuring Jimi Hendrix, The Who, Santana, and Sly & The Family Stone.',
+    created_at: new Date(Date.now() - 6000).toISOString(),
+    format: 'vinyl'
+  },
+  {
+    id: '7',
+    artist: 'Various Artists',
+    sort_name: 'Various Artists',
     title: 'Pulp Fiction (Music from the Motion Picture)',
     genre: ['Soundtrack', 'Surf Rock', 'Rock & Roll'],
     year: 1994,
+    tags: ['Soundtrack'],
     cover_art_url: 'https://upload.wikimedia.org/wikipedia/en/e/e0/Pulp_Fiction_%28soundtrack%29.jpg',
     allmusic_url: 'https://www.allmusic.com/album/pulp-fiction-mw0000120286',
-    notes: 'Legendary soundtrack collection featuring Dick Dale, Chuck Berry, Kool & The Gang, and Al Green.',
+    notes: 'Legendary Quentin Tarantino soundtrack featuring Dick Dale, Chuck Berry, Kool & The Gang, and Al Green.',
     created_at: new Date(Date.now() - 5000).toISOString(),
     format: 'cd'
   }

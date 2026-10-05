@@ -150,6 +150,24 @@ export const isCdSingle = (item: { tags?: string[] } | null | undefined): boolea
 };
 
 /**
+ * Checks whether an album or wantlist item is tagged with "Soundtrack" (case-insensitive).
+ */
+export const isSoundtrackTagged = (item: { tags?: string[] } | null | undefined): boolean => {
+  if (!item || !Array.isArray(item.tags)) return false;
+  return item.tags.some(tag => {
+    if (typeof tag !== 'string') return false;
+    const clean = tag.trim().toLowerCase();
+    return (
+      clean === 'soundtrack' ||
+      clean === 'soundtracks' ||
+      clean === 'ost' ||
+      clean === 'original soundtrack' ||
+      clean.includes('soundtrack')
+    );
+  });
+};
+
+/**
  * Compares two strings using Swedish collation rules ('sv') so that
  * characters like Å, Ä, Ö (e.g. the letter Ä in the name 'Pärt')
  * sort after Z according to Swedish alphabetical order.

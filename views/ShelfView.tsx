@@ -6,7 +6,7 @@ import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
-import { isCdSingle, compareStrings, isVariousArtists } from '../utils';
+import { isCdSingle, compareStrings, isVariousArtists, isSoundtrackTagged } from '../utils';
 
 interface ShelfViewProps {
   cds: CD[];
@@ -15,8 +15,9 @@ interface ShelfViewProps {
 }
 
 export const VARIOUS_ARTISTS_SECTION = 'Various Artists';
+export const SOUNDTRACK_SECTION = 'Soundtrack';
 const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
-const SHELF_SECTIONS = [...ALPHABET, VARIOUS_ARTISTS_SECTION];
+const SHELF_SECTIONS = [...ALPHABET, VARIOUS_ARTISTS_SECTION, SOUNDTRACK_SECTION];
 
 const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
   // Sections collapsed by default for a better "visual overlook"
@@ -25,27 +26,34 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
   const groupedCds = useMemo(() => {
     const groups: Record<string, CD[]> = {};
     
-    // Initialize groups for all alphabetical letters and Various Artists at the end
+    // Initialize groups for all alphabetical letters, Various Artists, and Soundtrack at the end
     SHELF_SECTIONS.forEach(sec => groups[sec] = []);
 
     // The "Used for shelf organization and artist sorting" field in the Edit window is `sort_name`.
     // It is the ONE AND ONLY authority for shelf organization and artist sorting.
     // If empty or unset, it simply falls back to `artist`.
     const getShelfSortInfo = (cd: CD) => {
+      // 1. Check if album is tagged with "Soundtrack" -> placed in dedicated Soundtrack section after Various Artists
+      if (isSoundtrackTagged(cd)) {
+        return {
+          groupChar: SOUNDTRACK_SECTION,
+          sortKey: (cd.title || '').trim() || cd.artist || ''
+        };
+      }
+
       const rawSort = (cd.sort_name && cd.sort_name.trim()) ? cd.sort_name.trim() : '';
       const rawArtist = (cd.artist && cd.artist.trim()) ? cd.artist.trim() : '';
 
-      // Check if this album belongs to Various Artists (separate section at end of shelf)
+      // 2. Check if this album belongs to Various Artists (section before Soundtrack)
       if (isVariousArtists(rawSort) || isVariousArtists(rawArtist)) {
         return {
-          isVarious: true,
           groupChar: VARIOUS_ARTISTS_SECTION,
           sortKey: (cd.title || '').trim() || rawArtist
         };
       }
 
       const raw = rawSort || rawArtist;
-      if (!raw) return { isVarious: false, groupChar: '#', sortKey: '' };
+      if (!raw) return { groupChar: '#', sortKey: '' };
 
       // Strip leading "The " for alphabetical group letter and sorting (e.g. "The Clash" -> "Clash")
       const clean = raw.replace(/^the\s+/i, '').trim();
@@ -53,7 +61,6 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
       const groupChar = /[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#';
 
       return {
-        isVarious: false,
         groupChar,
         sortKey: clean
       };
@@ -67,7 +74,28 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
 
     // Sort items within each group
     Object.keys(groups).forEach(key => {
-      if (key === VARIOUS_ARTISTS_SECTION) {
+      if (key === SOUNDTRACK_SECTION) {
+        // Soundtrack section: sorted primarily by Title A-Z, then Year (Chronological)
+        groups[key].sort((a, b) => {
+          const keyA = (a.sort_name && !isVariousArtists(a.sort_name) && a.sort_name.trim().toLowerCase() !== 'soundtrack')
+            ? a.sort_name
+            : a.title;
+          const keyB = (b.sort_name && !isVariousArtists(b.sort_name) && b.sort_name.trim().toLowerCase() !== 'soundtrack')
+            ? b.sort_name
+            : b.title;
+          const titleComp = compareStrings(keyA, keyB);
+          if (titleComp !== 0) return titleComp;
+
+          // CD Singles after full albums
+          const aIsSingle = isCdSingle(a);
+          const bIsSingle = isCdSingle(b);
+          if (aIsSingle !== bIsSingle) return aIsSingle ? 1 : -1;
+
+          const yearComp = (a.year || 0) - (b.year || 0);
+          if (yearComp !== 0) return yearComp;
+          return compareStrings(a.artist, b.artist);
+        });
+      } else if (key === VARIOUS_ARTISTS_SECTION) {
         // Various Artists section: sorted by Title A-Z, then Year (Chronological)
         groups[key].sort((a, b) => {
           // If a custom non-"Various Artists" sort_name was specified, use it as priority sort key
