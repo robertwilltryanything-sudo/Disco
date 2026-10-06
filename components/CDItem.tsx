@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { CD } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
+import { PlexIcon } from './icons/PlexIcon';
+import { usePlex } from '../context/PlexContext';
 
 interface CDItemProps {
   cd: CD;
@@ -11,6 +13,8 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
   const [isIntersecting, setIsIntersecting] = useState(false);
   const ref = useRef<HTMLAnchorElement>(null);
   const navigate = useNavigate();
+  const { isAvailableInPlex } = usePlex();
+  const inPlex = isAvailableInPlex(cd.artist, cd.title);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
@@ -58,7 +62,14 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
         )}
       </div>
       <div className="p-4">
-        <h3 className="font-bold text-sm text-zinc-950 truncate mb-0.5" title={cd.title}>{cd.title}</h3>
+        <div className="flex items-center justify-between gap-1.5 mb-0.5">
+          <h3 className="font-bold text-sm text-zinc-950 truncate flex-1" title={cd.title}>{cd.title}</h3>
+          {inPlex && (
+            <span title="Available in Plex" className="shrink-0 text-[#e5a00d]" aria-label="Available in Plex">
+              <PlexIcon className="w-3.5 h-3.5" />
+            </span>
+          )}
+        </div>
         <button
           onClick={handleArtistClick}
           className="text-left w-full text-xs text-zinc-500 font-bold uppercase tracking-tight truncate"

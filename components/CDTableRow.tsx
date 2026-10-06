@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { CD } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { EditIcon } from './icons/EditIcon';
+import { PlexIcon } from './icons/PlexIcon';
+import { usePlex } from '../context/PlexContext';
 
 interface CDTableRowProps {
   cd: CD;
@@ -11,6 +13,8 @@ interface CDTableRowProps {
 
 const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
   const navigate = useNavigate();
+  const { isAvailableInPlex } = usePlex();
+  const inPlex = isAvailableInPlex(cd.artist, cd.title);
 
   const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
     // Prevent navigation when clicking on the button inside the row
@@ -51,7 +55,14 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
           </div>
           {/* Info Stack for Mobile */}
           <div className="flex-grow md:hidden">
-            <p className="font-bold text-zinc-950" title={cd.title}>{cd.title}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="font-bold text-zinc-950 truncate" title={cd.title}>{cd.title}</p>
+              {inPlex && (
+                <span title="Available in Plex" className="shrink-0 text-[#e5a00d]" aria-label="Available in Plex">
+                  <PlexIcon className="w-3.5 h-3.5" />
+                </span>
+              )}
+            </div>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -80,7 +91,16 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
       </td>
 
       {/* Desktop-only cells. Hidden on mobile. */}
-      <td className="hidden md:table-cell p-3 font-bold text-zinc-950 align-middle" title={cd.title}>{cd.title}</td>
+      <td className="hidden md:table-cell p-3 font-bold text-zinc-950 align-middle" title={cd.title}>
+        <div className="flex items-center gap-1.5">
+          <span className="truncate">{cd.title}</span>
+          {inPlex && (
+            <span title="Available in Plex" className="shrink-0 text-[#e5a00d]" aria-label="Available in Plex">
+              <PlexIcon className="w-3.5 h-3.5" />
+            </span>
+          )}
+        </div>
+      </td>
       <td className="hidden md:table-cell p-3 text-zinc-800 align-middle" title={cd.artist}>
         <button 
           onClick={(e) => {

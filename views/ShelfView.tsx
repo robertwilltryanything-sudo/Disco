@@ -6,6 +6,8 @@ import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
+import { PlexIcon } from '../components/icons/PlexIcon';
+import { usePlex } from '../context/PlexContext';
 import { isCdSingle, compareStrings, isVariousArtists, isSoundtrackTagged } from '../utils';
 
 interface ShelfViewProps {
@@ -20,6 +22,7 @@ const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
 const SHELF_SECTIONS = [...ALPHABET, VARIOUS_ARTISTS_SECTION, SOUNDTRACK_SECTION];
 
 const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
+  const { isAvailableInPlex } = usePlex();
   // Sections collapsed by default for a better "visual overlook"
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
@@ -261,7 +264,14 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-zinc-600 truncate">{item.title} {item.year ? `(${item.year})` : ''}</p>
+                              <p className="text-xs text-zinc-600 truncate flex items-center gap-1.5">
+                                <span className="truncate">{item.title} {item.year ? `(${item.year})` : ''}</span>
+                                {isAvailableInPlex(item.artist, item.title) && (
+                                  <span title="Available in Plex" className="shrink-0 text-[#e5a00d]" aria-label="Available in Plex">
+                                    <PlexIcon className="w-3 h-3" />
+                                  </span>
+                                )}
+                              </p>
                             </div>
                           </Link>
                         ))}

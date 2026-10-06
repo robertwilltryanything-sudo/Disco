@@ -737,9 +737,65 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     };
   }, [checkPlexDataDiagnostic]);
 
+  /**
+   * Reads 'disco_plex_data.json' from Google Drive in read-only mode.
+   * Returns a Set of exact "artist:::title" keys for fast O(1) matching.
+   * Gracefully returns null on any error without displaying error modals or altering collection state.
+   */
+  const loadPlexData = useCallback(async (): Promise<Set<string> | null> => {
+    const activeToken = accessTokenRef.current || getValidStoredToken();
+    if (!activeToken) return null;
+
+    try {
+      const query = encodeURIComponent(`name = '${PLEX_DATA_FILENAME}' and trashed = false`);
+      const listUrl = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name)`;
+      
+      const listResponse = await fetch(listUrl, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+
+      if (!listResponse.ok) return null;
+
+      const listData = await listResponse.json();
+      const files = listData.files || [];
+      if (files.length === 0) return null;
+
+      const fileId = files[0].id;
+      const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+      const downloadResponse = await fetch(downloadUrl, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+
+      if (!downloadResponse.ok) return null;
+
+      const parsed = await downloadResponse.json();
+      const albumList: any[] = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.albums)
+        ? parsed.albums
+        : Array.isArray(parsed?.items)
+        ? parsed.items
+        : Array.isArray(parsed?.collection)
+        ? parsed.collection
+        : [];
+
+      const lookupSet = new Set<string>();
+      for (const item of albumList) {
+        if (item && typeof item.artist === 'string' && typeof item.title === 'string') {
+          lookupSet.add(`${item.artist}:::${item.title}`);
+        }
+      }
+
+      return lookupSet;
+    } catch (e) {
+      // Graceful fallback: return null without showing error modals
+      return null;
+    }
+  }, []);
+
   return useMemo(() => ({ 
     isApiReady, isSignedIn, needsTokenRefresh, userProfile, signIn, signOut, loadData, saveData,
     getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages,
-    getRemoteMetadata, checkPlexDataDiagnostic
-  }), [isApiReady, isSignedIn, needsTokenRefresh, userProfile, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata, checkPlexDataDiagnostic]);
+    getRemoteMetadata, checkPlexDataDiagnostic, loadPlexData
+  }), [isApiReady, isSignedIn, needsTokenRefresh, userProfile, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata, checkPlexDataDiagnostic, loadPlexData]);
 };

@@ -11,6 +11,8 @@ import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
+import { PlexIcon } from '../components/icons/PlexIcon';
+import { usePlex } from '../context/PlexContext';
 import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
@@ -31,6 +33,7 @@ const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Surface Tear", "Wa
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAvailableInPlex } = usePlex();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -141,7 +144,18 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
             </div>
             <div className="p-6 md:p-8 flex flex-col flex-grow min-h-0">
               <div className="flex flex-col mb-6">
-                  <h1 className="text-xl font-bold text-zinc-950 leading-tight">{cd.title}</h1>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl font-bold text-zinc-950 leading-tight">{cd.title}</h1>
+                    {isAvailableInPlex(cd.artist, cd.title) && (
+                      <span 
+                        title="Available in Plex" 
+                        className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-950 border border-amber-200/80 shrink-0"
+                      >
+                        <PlexIcon className="w-3.5 h-3.5 text-[#e5a00d]" />
+                        <span>Plex</span>
+                      </span>
+                    )}
+                  </div>
                   <h2 
                     className="text-base text-zinc-600 hover:text-zinc-950 transition-colors mt-1 cursor-pointer" 
                     onClick={() => navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` })}

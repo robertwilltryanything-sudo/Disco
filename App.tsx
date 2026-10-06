@@ -29,6 +29,7 @@ import DriveImagePickerModal from './components/DriveImagePickerModal';
 import SearchOverlay from './components/SearchOverlay';
 import { AutoSyncBanner } from './components/AutoSyncBanner';
 import ArtistSorterModal from './components/ArtistSorterModal';
+import { PlexProvider } from './context/PlexContext';
 
 const LOCAL_UPDATED_AT_KEY = 'disco_local_updated_at';
 
@@ -257,7 +258,8 @@ const AppContent: React.FC = () => {
     isApiReady: driveReady,
     resetSyncStatus: driveResetStatus,
     fetchDriveImages: driveFetchImages,
-    getRemoteMetadata: driveGetRemoteMetadata
+    getRemoteMetadata: driveGetRemoteMetadata,
+    loadPlexData: driveLoadPlexData
   } = useGoogleDrive();
 
   // Track latest collection and wantlist in refs for background sync operations
@@ -741,7 +743,8 @@ const AppContent: React.FC = () => {
   const isGoogleDriveSelectedButLoggedOut = syncProvider === 'google_drive' && !driveSignedIn;
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0 font-sans selection:bg-zinc-200 overflow-x-hidden w-full">
+    <PlexProvider driveSignedIn={driveSignedIn} loadPlexData={driveLoadPlexData}>
+      <div className="min-h-screen pb-20 md:pb-0 font-sans selection:bg-zinc-200 overflow-x-hidden w-full">
       <Header 
         onAddClick={() => {
             if (isOnWantlistPage) { setIsAddWantlistModalOpen(true); setWantlistItemToEdit(null); } 
@@ -977,6 +980,7 @@ const AppContent: React.FC = () => {
         onApplySortNames={handleApplyArtistSortNames}
       />
     </div>
+    </PlexProvider>
   );
 };
 
