@@ -149,10 +149,10 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     {isAvailableInPlex(cd.artist, cd.title) && (
                       <span 
                         title="Available in Plex" 
-                        className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-950 border border-amber-200/80 shrink-0"
+                        className="shrink-0 inline-flex items-center"
+                        aria-label="Available in Plex"
                       >
-                        <PlexIcon className="w-3.5 h-3.5 text-[#e5a00d]" />
-                        <span>Plex</span>
+                        <PlexIcon className="w-4 h-4" />
                       </span>
                     )}
                   </div>

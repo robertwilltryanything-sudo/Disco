@@ -58,7 +58,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
             <div className="flex items-center gap-1.5">
               <p className="font-bold text-zinc-950 truncate" title={cd.title}>{cd.title}</p>
               {inPlex && (
-                <span title="Available in Plex" className="shrink-0 text-[#e5a00d]" aria-label="Available in Plex">
+                <span title="Available in Plex" className="shrink-0 inline-flex items-center" aria-label="Available in Plex">
                   <PlexIcon className="w-3.5 h-3.5" />
                 </span>
               )}
@@ -95,7 +95,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
         <div className="flex items-center gap-1.5">
           <span className="truncate">{cd.title}</span>
           {inPlex && (
-            <span title="Available in Plex" className="shrink-0 text-[#e5a00d]" aria-label="Available in Plex">
+            <span title="Available in Plex" className="shrink-0 inline-flex items-center" aria-label="Available in Plex">
               <PlexIcon className="w-3.5 h-3.5" />
             </span>
           )}

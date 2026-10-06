@@ -267,7 +267,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                               <p className="text-xs text-zinc-600 truncate flex items-center gap-1.5">
                                 <span className="truncate">{item.title} {item.year ? `(${item.year})` : ''}</span>
                                 {isAvailableInPlex(item.artist, item.title) && (
-                                  <span title="Available in Plex" className="shrink-0 text-[#e5a00d]" aria-label="Available in Plex">
+                                  <span title="Available in Plex" className="shrink-0 inline-flex items-center" aria-label="Available in Plex">
                                     <PlexIcon className="w-3 h-3" />
                                   </span>
                                 )}

@@ -65,7 +65,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
         <div className="flex items-center justify-between gap-1.5 mb-0.5">
           <h3 className="font-bold text-sm text-zinc-950 truncate flex-1" title={cd.title}>{cd.title}</h3>
           {inPlex && (
-            <span title="Available in Plex" className="shrink-0 text-[#e5a00d]" aria-label="Available in Plex">
+            <span title="Available in Plex" className="shrink-0 inline-flex items-center" aria-label="Available in Plex">
               <PlexIcon className="w-3.5 h-3.5" />
             </span>
           )}
