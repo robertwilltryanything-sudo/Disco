@@ -33,7 +33,7 @@ const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Surface Tear", "Wa
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAvailableInPlex } = usePlex();
+  const { isAvailableInPlex, getPlexUrl } = usePlex();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -147,13 +147,20 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="text-xl font-bold text-zinc-950 leading-tight">{cd.title}</h1>
                     {isAvailableInPlex(cd.artist, cd.title) && (
-                      <span 
-                        title="Available in Plex" 
-                        className="shrink-0 inline-flex items-center"
-                        aria-label="Available in Plex"
+                      <a 
+                        href={getPlexUrl(cd.artist, cd.title) || undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!getPlexUrl(cd.artist, cd.title)) e.preventDefault();
+                        }}
+                        className="shrink-0 inline-flex items-center hover:opacity-75 transition-opacity cursor-pointer p-0.5 rounded"
+                        title="Open album in Plex"
+                        aria-label="Open album in Plex"
                       >
                         <PlexIcon className="w-4 h-4" />
-                      </span>
+                      </a>
                     )}
                   </div>
                   <h2 

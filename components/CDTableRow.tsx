@@ -13,12 +13,13 @@ interface CDTableRowProps {
 
 const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
   const navigate = useNavigate();
-  const { isAvailableInPlex } = usePlex();
+  const { isAvailableInPlex, getPlexUrl } = usePlex();
   const inPlex = isAvailableInPlex(cd.artist, cd.title);
+  const plexUrl = inPlex ? getPlexUrl(cd.artist, cd.title) : null;
 
   const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
-    // Prevent navigation when clicking on the button inside the row
-    if ((e.target as HTMLElement).closest('button')) {
+    // Prevent navigation when clicking on a button or link inside the row
+    if ((e.target as HTMLElement).closest('button, a')) {
       return;
     }
     navigate(`/cd/${cd.id}`);
@@ -58,9 +59,20 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
             <div className="flex items-center gap-1.5">
               <p className="font-bold text-zinc-950 truncate" title={cd.title}>{cd.title}</p>
               {inPlex && (
-                <span title="Available in Plex" className="shrink-0 inline-flex items-center" aria-label="Available in Plex">
+                <a
+                  href={plexUrl || undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!plexUrl) e.preventDefault();
+                  }}
+                  className="shrink-0 inline-flex items-center hover:opacity-75 transition-opacity cursor-pointer p-0.5 rounded"
+                  title="Open album in Plex"
+                  aria-label="Open album in Plex"
+                >
                   <PlexIcon className="w-3.5 h-3.5" />
-                </span>
+                </a>
               )}
             </div>
             <button 
@@ -95,9 +107,20 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
         <div className="flex items-center gap-1.5">
           <span className="truncate">{cd.title}</span>
           {inPlex && (
-            <span title="Available in Plex" className="shrink-0 inline-flex items-center" aria-label="Available in Plex">
+            <a
+              href={plexUrl || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!plexUrl) e.preventDefault();
+              }}
+              className="shrink-0 inline-flex items-center hover:opacity-75 transition-opacity cursor-pointer p-0.5 rounded"
+              title="Open album in Plex"
+              aria-label="Open album in Plex"
+            >
               <PlexIcon className="w-3.5 h-3.5" />
-            </span>
+            </a>
           )}
         </div>
       </td>

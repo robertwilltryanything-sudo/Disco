@@ -739,10 +739,10 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
   /**
    * Reads 'disco_plex_data.json' from Google Drive in read-only mode.
-   * Returns a Set of exact "artist:::title" keys for fast O(1) matching.
+   * Returns a Map of exact "artist:::title" keys to their corresponding plexKey for fast O(1) matching and direct Web linking.
    * Gracefully returns null on any error without displaying error modals or altering collection state.
    */
-  const loadPlexData = useCallback(async (): Promise<Set<string> | null> => {
+  const loadPlexData = useCallback(async (): Promise<Map<string, string> | null> => {
     const activeToken = accessTokenRef.current || getValidStoredToken();
     if (!activeToken) return null;
 
@@ -779,14 +779,16 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
         ? parsed.collection
         : [];
 
-      const lookupSet = new Set<string>();
+      const lookupMap = new Map<string, string>();
       for (const item of albumList) {
         if (item && typeof item.artist === 'string' && typeof item.title === 'string') {
-          lookupSet.add(`${item.artist}:::${item.title}`);
+          const key = `${item.artist}:::${item.title}`;
+          const plexKey = item.plexKey ?? item.ratingKey ?? item.key ?? (item.id != null ? String(item.id) : '');
+          lookupMap.set(key, String(plexKey || ''));
         }
       }
 
-      return lookupSet;
+      return lookupMap;
     } catch (e) {
       // Graceful fallback: return null without showing error modals
       return null;

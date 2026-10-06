@@ -22,7 +22,7 @@ const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
 const SHELF_SECTIONS = [...ALPHABET, VARIOUS_ARTISTS_SECTION, SOUNDTRACK_SECTION];
 
 const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
-  const { isAvailableInPlex } = usePlex();
+  const { isAvailableInPlex, getPlexUrl } = usePlex();
   // Sections collapsed by default for a better "visual overlook"
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
@@ -267,9 +267,20 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                               <p className="text-xs text-zinc-600 truncate flex items-center gap-1.5">
                                 <span className="truncate">{item.title} {item.year ? `(${item.year})` : ''}</span>
                                 {isAvailableInPlex(item.artist, item.title) && (
-                                  <span title="Available in Plex" className="shrink-0 inline-flex items-center" aria-label="Available in Plex">
+                                  <a
+                                    href={getPlexUrl(item.artist, item.title) || undefined}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!getPlexUrl(item.artist, item.title)) e.preventDefault();
+                                    }}
+                                    className="shrink-0 inline-flex items-center hover:opacity-75 transition-opacity cursor-pointer p-0.5 rounded"
+                                    title="Open album in Plex"
+                                    aria-label="Open album in Plex"
+                                  >
                                     <PlexIcon className="w-3 h-3" />
-                                  </span>
+                                  </a>
                                 )}
                               </p>
                             </div>
