@@ -1,6 +1,26 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME } from '../googleConfig';
+import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME, PLEX_DATA_FILENAME } from '../googleConfig';
 import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
+
+export interface PlexDiagnosticResult {
+  success: boolean;
+  fileFound: boolean;
+  fileId?: string;
+  fileName?: string;
+  summary?: {
+    schemaVersion?: number | string;
+    plexServer?: string;
+    libraryName?: string;
+    albumCount?: number;
+    modifiedTime?: string;
+  };
+  error?: {
+    message: string;
+    status?: number;
+    code?: string | number;
+    details?: any;
+  } | null;
+}
 
 export interface UnifiedStorage {
     collection: CD[];
@@ -572,9 +592,154 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     initializeSync(); 
   }, [updateSyncStatus, initializeSync]);
 
+  /**
+   * Temporary read-only diagnostic for Plex integration.
+   * Searches for 'disco_plex_data.json' in Google Drive without creating or modifying any files.
+   * Downloads and parses content as JSON, returning a concise summary without exposing the full album array.
+   */
+  const checkPlexDataDiagnostic = useCallback(async (): Promise<PlexDiagnosticResult> => {
+    const activeToken = accessTokenRef.current || getValidStoredToken();
+    if (!activeToken) {
+      return {
+        success: false,
+        fileFound: false,
+        error: {
+          message: "Not authenticated with Google Drive. Please sign in first.",
+          status: 401
+        }
+      };
+    }
+
+    try {
+      // Strictly read-only file query (never creates or writes)
+      const query = encodeURIComponent(`name = '${PLEX_DATA_FILENAME}' and trashed = false`);
+      const listUrl = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name,mimeType,size,modifiedTime)`;
+      
+      const listResponse = await fetch(listUrl, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+
+      if (!listResponse.ok) {
+        const errorData = await listResponse.json().catch(() => ({}));
+        return {
+          success: false,
+          fileFound: false,
+          error: {
+            message: errorData.error?.message || listResponse.statusText,
+            status: listResponse.status,
+            code: errorData.error?.code,
+            details: errorData.error
+          }
+        };
+      }
+
+      const listData = await listResponse.json();
+      const files = listData.files || [];
+
+      if (files.length === 0) {
+        return {
+          success: false,
+          fileFound: false,
+          error: {
+            message: `File '${PLEX_DATA_FILENAME}' was not found in Google Drive.`,
+            status: 404
+          }
+        };
+      }
+
+      const targetFile = files[0];
+      const fileId = targetFile.id;
+
+      // Download file content (read-only)
+      const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+      const downloadResponse = await fetch(downloadUrl, {
+        headers: { 'Authorization': `Bearer ${activeToken}` }
+      });
+
+      if (!downloadResponse.ok) {
+        const errorData = await downloadResponse.json().catch(() => ({}));
+        return {
+          success: false,
+          fileFound: true,
+          fileId,
+          fileName: targetFile.name,
+          error: {
+            message: errorData.error?.message || downloadResponse.statusText,
+            status: downloadResponse.status,
+            code: errorData.error?.code,
+            details: errorData.error
+          }
+        };
+      }
+
+      const text = await downloadResponse.text();
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch (parseErr: any) {
+        return {
+          success: false,
+          fileFound: true,
+          fileId,
+          fileName: targetFile.name,
+          error: {
+            message: `Failed to parse file contents as JSON: ${parseErr.message}`,
+            details: parseErr
+          }
+        };
+      }
+
+      // Extract lightweight diagnostic summary without returning the full payload
+      const albumList = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.albums)
+        ? parsed.albums
+        : Array.isArray(parsed?.items)
+        ? parsed.items
+        : Array.isArray(parsed?.collection)
+        ? parsed.collection
+        : [];
+
+      const summary = {
+        schemaVersion: parsed?.schemaVersion ?? parsed?.schema_version ?? parsed?.version,
+        plexServer: parsed?.plexServer ?? parsed?.server ?? parsed?.serverName,
+        libraryName: parsed?.libraryName ?? parsed?.library ?? parsed?.section,
+        albumCount: albumList.length,
+        modifiedTime: targetFile.modifiedTime || parsed?.lastUpdated || parsed?.updatedAt || parsed?.exportedAt
+      };
+
+      return {
+        success: true,
+        fileFound: true,
+        fileId,
+        fileName: targetFile.name,
+        summary,
+        error: null
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        fileFound: false,
+        error: {
+          message: err?.message || String(err),
+          status: err?.status,
+          details: err
+        }
+      };
+    }
+  }, []);
+
+  // Attach to window for direct browser DevTools diagnostic execution
+  useEffect(() => {
+    (window as any).__discoCheckPlexDiagnostic = checkPlexDataDiagnostic;
+    return () => {
+      delete (window as any).__discoCheckPlexDiagnostic;
+    };
+  }, [checkPlexDataDiagnostic]);
+
   return useMemo(() => ({ 
     isApiReady, isSignedIn, needsTokenRefresh, userProfile, signIn, signOut, loadData, saveData,
     getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages,
-    getRemoteMetadata
-  }), [isApiReady, isSignedIn, needsTokenRefresh, userProfile, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata]);
+    getRemoteMetadata, checkPlexDataDiagnostic
+  }), [isApiReady, isSignedIn, needsTokenRefresh, userProfile, signIn, signOut, loadData, saveData, getRevisions, loadRevision, syncStatus, error, lastSyncTime, resetSyncStatus, fetchDriveImages, getRemoteMetadata, checkPlexDataDiagnostic]);
 };

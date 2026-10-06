@@ -74,44 +74,16 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
 
     // Sort items within each group
     Object.keys(groups).forEach(key => {
-      if (key === SOUNDTRACK_SECTION) {
-        // Soundtrack section: sorted primarily by Title A-Z, then Year (Chronological)
+      if (key === SOUNDTRACK_SECTION || key === VARIOUS_ARTISTS_SECTION) {
+        // Both Various Artists and Soundtrack sections are sorted strictly by album titles
         groups[key].sort((a, b) => {
-          const keyA = (a.sort_name && !isVariousArtists(a.sort_name) && a.sort_name.trim().toLowerCase() !== 'soundtrack')
-            ? a.sort_name
-            : a.title;
-          const keyB = (b.sort_name && !isVariousArtists(b.sort_name) && b.sort_name.trim().toLowerCase() !== 'soundtrack')
-            ? b.sort_name
-            : b.title;
-          const titleComp = compareStrings(keyA, keyB);
-          if (titleComp !== 0) return titleComp;
-
-          // CD Singles after full albums
-          const aIsSingle = isCdSingle(a);
-          const bIsSingle = isCdSingle(b);
-          if (aIsSingle !== bIsSingle) return aIsSingle ? 1 : -1;
-
-          const yearComp = (a.year || 0) - (b.year || 0);
-          if (yearComp !== 0) return yearComp;
-          return compareStrings(a.artist, b.artist);
-        });
-      } else if (key === VARIOUS_ARTISTS_SECTION) {
-        // Various Artists section: sorted by Title A-Z, then Year (Chronological)
-        groups[key].sort((a, b) => {
-          // If a custom non-"Various Artists" sort_name was specified, use it as priority sort key
-          const keyA = (a.sort_name && !isVariousArtists(a.sort_name)) ? a.sort_name : a.title;
-          const keyB = (b.sort_name && !isVariousArtists(b.sort_name)) ? b.sort_name : b.title;
-          const titleComp = compareStrings(keyA, keyB);
-          if (titleComp !== 0) return titleComp;
-
-          // CD Singles after full albums
-          const aIsSingle = isCdSingle(a);
-          const bIsSingle = isCdSingle(b);
-          if (aIsSingle !== bIsSingle) return aIsSingle ? 1 : -1;
-
-          const yearComp = (a.year || 0) - (b.year || 0);
-          if (yearComp !== 0) return yearComp;
-          return compareStrings(a.artist, b.artist);
+          const titleA = (a.title || '').trim();
+          const titleB = (b.title || '').trim();
+          const cleanA = titleA.replace(/^the\s+/i, '').trim();
+          const cleanB = titleB.replace(/^the\s+/i, '').trim();
+          const comp = compareStrings(cleanA, cleanB);
+          if (comp !== 0) return comp;
+          return compareStrings(titleA, titleB);
         });
       } else {
         // Standard alphabetical shelf sorting: Sort Key then Year then Title using Swedish collation
@@ -283,7 +255,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-bold text-zinc-950 truncate leading-tight group-hover:text-zinc-900">{item.artist}</p>
-                                {item.sort_name && item.sort_name.trim().toLowerCase() !== (item.artist || '').trim().toLowerCase() && (
+                                {section !== VARIOUS_ARTISTS_SECTION && section !== SOUNDTRACK_SECTION && item.sort_name && item.sort_name.trim().toLowerCase() !== (item.artist || '').trim().toLowerCase() && (
                                   <span className="text-[10px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                                     Sort: {item.sort_name}
                                   </span>

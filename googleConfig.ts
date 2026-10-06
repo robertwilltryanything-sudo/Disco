@@ -15,3 +15,6 @@ export const GOOGLE_DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file h
 
 // The name of the file where the collection data will be stored in Google Drive.
 export const COLLECTION_FILENAME = 'disco_collection_data.json';
+
+// Temporary diagnostic filename for Plex integration test
+export const PLEX_DATA_FILENAME = 'disco_plex_data.json';
