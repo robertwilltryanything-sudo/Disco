@@ -72,12 +72,23 @@ export const getPlexLinkTarget = (): string => {
   return isAppleMobileDevice() ? '_blank' : PLEX_TARGET_NAME;
 };
 
+/**
+ * For named target 'disco-plex' on desktop, omit rel="noopener noreferrer"
+ * because noopener/noreferrer causes modern browsers to treat it as a new
+ * isolated context and prevents reusing the named tab.
+ * On Apple mobile devices targeting '_blank' for Plexamp, use 'noopener noreferrer'.
+ */
+export const getPlexLinkRel = (): string | undefined => {
+  return isAppleMobileDevice() ? 'noopener noreferrer' : undefined;
+};
+
 interface PlexContextType {
   isAvailableInPlex: (artist?: string | null, title?: string | null) => boolean;
   getPlexUrl: (artist?: string | null, title?: string | null) => string | null;
   getPlexKey: (artist?: string | null, title?: string | null) => string | null;
   getPlexGuid: (artist?: string | null, title?: string | null) => string | null;
   getPlexTarget: () => string;
+  getPlexRel: () => string | undefined;
   plexAlbumCount: number;
 }
 
@@ -87,6 +98,7 @@ const PlexContext = createContext<PlexContextType>({
   getPlexKey: () => null,
   getPlexGuid: () => null,
   getPlexTarget: () => PLEX_TARGET_NAME,
+  getPlexRel: () => undefined,
   plexAlbumCount: 0,
 });
 
@@ -164,6 +176,7 @@ export const PlexProvider: React.FC<PlexProviderProps> = ({ children, driveSigne
     getPlexKey,
     getPlexGuid,
     getPlexTarget: getPlexLinkTarget,
+    getPlexRel: getPlexLinkRel,
     plexAlbumCount: plexMap ? plexMap.size : 0,
   }), [isAvailableInPlex, getPlexUrl, getPlexKey, getPlexGuid, plexMap]);
 

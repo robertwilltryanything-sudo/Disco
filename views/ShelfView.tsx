@@ -22,7 +22,7 @@ const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
 const SHELF_SECTIONS = [...ALPHABET, VARIOUS_ARTISTS_SECTION, SOUNDTRACK_SECTION];
 
 const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
-  const { isAvailableInPlex, getPlexUrl, getPlexTarget } = usePlex();
+  const { isAvailableInPlex, getPlexUrl, getPlexTarget, getPlexRel } = usePlex();
   // Sections collapsed by default for a better "visual overlook"
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
@@ -270,7 +270,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                                   <a
                                     href={getPlexUrl(item.artist, item.title) || undefined}
                                     target={getPlexTarget()}
-                                    rel="noopener noreferrer"
+                                    rel={getPlexRel()}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (!getPlexUrl(item.artist, item.title)) e.preventDefault();

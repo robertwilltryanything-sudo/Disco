@@ -13,7 +13,7 @@ interface CDTableRowProps {
 
 const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
   const navigate = useNavigate();
-  const { isAvailableInPlex, getPlexUrl, getPlexTarget } = usePlex();
+  const { isAvailableInPlex, getPlexUrl, getPlexTarget, getPlexRel } = usePlex();
   const inPlex = isAvailableInPlex(cd.artist, cd.title);
   const plexUrl = inPlex ? getPlexUrl(cd.artist, cd.title) : null;
 
@@ -62,7 +62,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
                 <a
                   href={plexUrl || undefined}
                   target={getPlexTarget()}
-                  rel="noopener noreferrer"
+                  rel={getPlexRel()}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!plexUrl) e.preventDefault();
@@ -110,7 +110,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
             <a
               href={plexUrl || undefined}
               target={getPlexTarget()}
-              rel="noopener noreferrer"
+              rel={getPlexRel()}
               onClick={(e) => {
                 e.stopPropagation();
                 if (!plexUrl) e.preventDefault();
