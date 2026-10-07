@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { GOOGLE_CLIENT_ID, GOOGLE_DRIVE_SCOPES, COLLECTION_FILENAME, PLEX_DATA_FILENAME } from '../googleConfig';
 import { CD, WantlistItem, DriveRevision, SyncStatus } from '../types';
+import type { PlexAlbumRecord } from '../context/PlexContext';
 
 export interface PlexDiagnosticResult {
   success: boolean;
@@ -739,10 +740,10 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
   /**
    * Reads 'disco_plex_data.json' from Google Drive in read-only mode.
-   * Returns a Map of exact "artist:::title" keys to their corresponding plexKey for fast O(1) matching and direct Web linking.
+   * Returns a Map of exact "artist:::title" keys to their corresponding PlexAlbumRecord (plexKey and plexGuid) for fast O(1) matching and direct Web/mobile linking.
    * Gracefully returns null on any error without displaying error modals or altering collection state.
    */
-  const loadPlexData = useCallback(async (): Promise<Map<string, string> | null> => {
+  const loadPlexData = useCallback(async (): Promise<Map<string, PlexAlbumRecord> | null> => {
     const activeToken = accessTokenRef.current || getValidStoredToken();
     if (!activeToken) return null;
 
@@ -779,12 +780,16 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
         ? parsed.collection
         : [];
 
-      const lookupMap = new Map<string, string>();
+      const lookupMap = new Map<string, PlexAlbumRecord>();
       for (const item of albumList) {
         if (item && typeof item.artist === 'string' && typeof item.title === 'string') {
           const key = `${item.artist}:::${item.title}`;
           const plexKey = item.plexKey ?? item.ratingKey ?? item.key ?? (item.id != null ? String(item.id) : '');
-          lookupMap.set(key, String(plexKey || ''));
+          const plexGuid = typeof item.plexGuid === 'string' ? item.plexGuid.trim() : undefined;
+          lookupMap.set(key, {
+            plexKey: String(plexKey || ''),
+            plexGuid: plexGuid || undefined
+          });
         }
       }
 
