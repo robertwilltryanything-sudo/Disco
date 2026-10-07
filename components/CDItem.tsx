@@ -13,7 +13,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
   const [isIntersecting, setIsIntersecting] = useState(false);
   const ref = useRef<HTMLAnchorElement>(null);
   const navigate = useNavigate();
-  const { isAvailableInPlex, getPlexUrl } = usePlex();
+  const { isAvailableInPlex, getPlexUrl, getPlexTarget } = usePlex();
   const inPlex = isAvailableInPlex(cd.artist, cd.title);
   const plexUrl = inPlex ? getPlexUrl(cd.artist, cd.title) : null;
 
@@ -68,7 +68,7 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
           {inPlex && (
             <a
               href={plexUrl || undefined}
-              target="_blank"
+              target={getPlexTarget()}
               rel="noopener noreferrer"
               onClick={(e) => {
                 e.stopPropagation();

@@ -33,7 +33,7 @@ const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Surface Tear", "Wa
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAvailableInPlex, getPlexUrl } = usePlex();
+  const { isAvailableInPlex, getPlexUrl, getPlexTarget } = usePlex();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -149,7 +149,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     {isAvailableInPlex(cd.artist, cd.title) && (
                       <a 
                         href={getPlexUrl(cd.artist, cd.title) || undefined}
-                        target="_blank"
+                        target={getPlexTarget()}
                         rel="noopener noreferrer"
                         onClick={(e) => {
                           e.stopPropagation();

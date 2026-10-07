@@ -62,11 +62,22 @@ export const isAppleMobileDevice = (): boolean => {
   return false;
 };
 
+export const PLEX_TARGET_NAME = 'disco-plex';
+
+/**
+ * Returns 'disco-plex' on desktop to reuse the single Plex Web tab,
+ * and '_blank' on Apple mobile devices for Plexamp.
+ */
+export const getPlexLinkTarget = (): string => {
+  return isAppleMobileDevice() ? '_blank' : PLEX_TARGET_NAME;
+};
+
 interface PlexContextType {
   isAvailableInPlex: (artist?: string | null, title?: string | null) => boolean;
   getPlexUrl: (artist?: string | null, title?: string | null) => string | null;
   getPlexKey: (artist?: string | null, title?: string | null) => string | null;
   getPlexGuid: (artist?: string | null, title?: string | null) => string | null;
+  getPlexTarget: () => string;
   plexAlbumCount: number;
 }
 
@@ -75,6 +86,7 @@ const PlexContext = createContext<PlexContextType>({
   getPlexUrl: () => null,
   getPlexKey: () => null,
   getPlexGuid: () => null,
+  getPlexTarget: () => PLEX_TARGET_NAME,
   plexAlbumCount: 0,
 });
 
@@ -151,6 +163,7 @@ export const PlexProvider: React.FC<PlexProviderProps> = ({ children, driveSigne
     getPlexUrl,
     getPlexKey,
     getPlexGuid,
+    getPlexTarget: getPlexLinkTarget,
     plexAlbumCount: plexMap ? plexMap.size : 0,
   }), [isAvailableInPlex, getPlexUrl, getPlexKey, getPlexGuid, plexMap]);
 
