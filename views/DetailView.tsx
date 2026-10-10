@@ -67,11 +67,8 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
       lastPlayed = 'No date recorded';
     }
 
-    const playCountText = `${playCount} ${playCount === 1 ? 'play' : 'plays'}`;
-
     return {
       lastPlayed,
-      playCountText,
     };
   }, [cd, isAvailableInPlex, getPlexRecord]);
 
@@ -237,14 +234,10 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
                     Plex listening history
                   </h3>
-                  <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+                  <div className="text-sm">
                     <div>
                       <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Last played</p>
                       <p className="text-zinc-950 font-medium">{plexHistory.lastPlayed}</p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Play count</p>
-                      <p className="text-zinc-950 font-medium">{plexHistory.playCountText}</p>
                     </div>
                   </div>
                 </div>
