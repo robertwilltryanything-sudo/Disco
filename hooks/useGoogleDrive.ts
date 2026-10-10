@@ -786,9 +786,20 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
           const key = `${item.artist}:::${item.title}`;
           const plexKey = item.plexKey ?? item.ratingKey ?? item.key ?? (item.id != null ? String(item.id) : '');
           const plexGuid = typeof item.plexGuid === 'string' ? item.plexGuid.trim() : undefined;
+          const rawPlayCount = item.playCount ?? item.viewCount;
+          const playCount = typeof rawPlayCount === 'number' && !isNaN(rawPlayCount)
+            ? Math.max(0, Math.floor(rawPlayCount))
+            : (typeof rawPlayCount === 'string' && !isNaN(parseInt(rawPlayCount.trim(), 10)))
+            ? Math.max(0, parseInt(rawPlayCount.trim(), 10))
+            : 0;
+          const rawLastPlayed = item.lastPlayedAt ?? item.lastViewedAt;
+          const lastPlayedAt = rawLastPlayed != null ? rawLastPlayed : null;
+
           lookupMap.set(key, {
             plexKey: String(plexKey || ''),
-            plexGuid: plexGuid || undefined
+            plexGuid: plexGuid || undefined,
+            lastPlayedAt,
+            playCount,
           });
         }
       }

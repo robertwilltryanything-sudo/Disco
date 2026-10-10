@@ -12,7 +12,7 @@ import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { PlexIcon } from '../components/icons/PlexIcon';
-import { usePlex } from '../context/PlexContext';
+import { usePlex, formatPlexDate } from '../context/PlexContext';
 import { getBrandColor } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
@@ -33,7 +33,7 @@ const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Surface Tear", "Wa
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAvailableInPlex, getPlexUrl, getPlexTarget, getPlexRel } = usePlex();
+  const { isAvailableInPlex, getPlexUrl, getPlexTarget, getPlexRel, getPlexRecord } = usePlex();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -49,6 +49,31 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
     const recs = cds.filter(c => c.id !== cd.id && (c.artist === cd.artist || c.genre === cd.genre));
     return recs.slice(0, MAX);
   }, [cd, cds]);
+
+  const plexHistory = useMemo(() => {
+    if (!cd || !isAvailableInPlex(cd.artist, cd.title)) return null;
+    const record = getPlexRecord(cd.artist, cd.title);
+    if (!record) return null;
+
+    const playCount = typeof record.playCount === 'number' ? Math.max(0, record.playCount) : 0;
+    const formattedDate = formatPlexDate(record.lastPlayedAt);
+
+    let lastPlayed: string;
+    if (formattedDate) {
+      lastPlayed = formattedDate;
+    } else if (playCount === 0) {
+      lastPlayed = 'Never played';
+    } else {
+      lastPlayed = 'No date recorded';
+    }
+
+    const playCountText = `${playCount} ${playCount === 1 ? 'play' : 'plays'}`;
+
+    return {
+      lastPlayed,
+      playCountText,
+    };
+  }, [cd, isAvailableInPlex, getPlexRecord]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
   
@@ -205,6 +230,25 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   {cd.producer && <div><p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Producer</p><p className="text-zinc-950 font-medium">{cd.producer}</p></div>}
                   {cd.version && <div><p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Version</p><p className="text-zinc-950 font-medium">{cd.version}</p></div>}
               </div>
+
+              {/* Plex listening history */}
+              {plexHistory && (
+                <div className="mt-6 pt-6 border-t border-zinc-100">
+                  <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
+                    Plex listening history
+                  </h3>
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+                    <div>
+                      <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Last played</p>
+                      <p className="text-zinc-950 font-medium">{plexHistory.lastPlayed}</p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Play count</p>
+                      <p className="text-zinc-950 font-medium">{plexHistory.playCountText}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {cd.review && (
                 <div className="mt-6 pt-6 border-t border-zinc-100">

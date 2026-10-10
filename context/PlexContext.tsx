@@ -5,7 +5,60 @@ export const PLEX_SERVER_ID = 'a28ad8bce9efafd6bb189ece805f9f280011caa3';
 export interface PlexAlbumRecord {
   plexKey: string;
   plexGuid?: string;
+  lastPlayedAt?: string | number | null;
+  playCount?: number;
 }
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+/**
+ * Formats a Plex date value safely into an unambiguous English date string, e.g. "29 May 2026".
+ * Returns null if the value is missing or unparseable.
+ */
+export const formatPlexDate = (val?: string | number | null): string | null => {
+  if (val == null || val === '') return null;
+
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+
+    // Handle pure YYYY-MM-DD strings without timezone shift
+    const dateMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateMatch) {
+      const year = dateMatch[1];
+      const mIdx = parseInt(dateMatch[2], 10) - 1;
+      const day = parseInt(dateMatch[3], 10);
+      if (mIdx >= 0 && mIdx < 12 && day >= 1 && day <= 31) {
+        return `${day} ${MONTH_NAMES[mIdx]} ${year}`;
+      }
+    }
+  }
+
+  let d: Date;
+  if (typeof val === 'number') {
+    d = new Date(val < 10000000000 ? val * 1000 : val);
+  } else if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const num = Number(trimmed);
+      d = new Date(num < 10000000000 ? num * 1000 : num);
+    } else {
+      d = new Date(trimmed);
+    }
+  } else {
+    d = new Date(val);
+  }
+
+  if (isNaN(d.getTime())) return null;
+
+  const day = d.getDate();
+  const month = MONTH_NAMES[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
+};
 
 /**
  * Builds the verified direct Plex Web URL for an album by its plexKey.
@@ -87,6 +140,7 @@ interface PlexContextType {
   getPlexUrl: (artist?: string | null, title?: string | null) => string | null;
   getPlexKey: (artist?: string | null, title?: string | null) => string | null;
   getPlexGuid: (artist?: string | null, title?: string | null) => string | null;
+  getPlexRecord: (artist?: string | null, title?: string | null) => PlexAlbumRecord | null;
   getPlexTarget: () => string;
   getPlexRel: () => string | undefined;
   plexAlbumCount: number;
@@ -97,6 +151,7 @@ const PlexContext = createContext<PlexContextType>({
   getPlexUrl: () => null,
   getPlexKey: () => null,
   getPlexGuid: () => null,
+  getPlexRecord: () => null,
   getPlexTarget: () => PLEX_TARGET_NAME,
   getPlexRel: () => undefined,
   plexAlbumCount: 0,
@@ -152,6 +207,11 @@ export const PlexProvider: React.FC<PlexProviderProps> = ({ children, driveSigne
     return plexMap.get(`${artist}:::${title}`)?.plexGuid || null;
   }, [plexMap]);
 
+  const getPlexRecord = useCallback((artist?: string | null, title?: string | null): PlexAlbumRecord | null => {
+    if (!plexMap || !artist || !title) return null;
+    return plexMap.get(`${artist}:::${title}`) || null;
+  }, [plexMap]);
+
   const getPlexUrl = useCallback((artist?: string | null, title?: string | null): string | null => {
     if (!plexMap || !artist || !title) return null;
     const record = plexMap.get(`${artist}:::${title}`);
@@ -175,10 +235,11 @@ export const PlexProvider: React.FC<PlexProviderProps> = ({ children, driveSigne
     getPlexUrl,
     getPlexKey,
     getPlexGuid,
+    getPlexRecord,
     getPlexTarget: getPlexLinkTarget,
     getPlexRel: getPlexLinkRel,
     plexAlbumCount: plexMap ? plexMap.size : 0,
-  }), [isAvailableInPlex, getPlexUrl, getPlexKey, getPlexGuid, plexMap]);
+  }), [isAvailableInPlex, getPlexUrl, getPlexKey, getPlexGuid, getPlexRecord, plexMap]);
 
   return (
     <PlexContext.Provider value={value}>
