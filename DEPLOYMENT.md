@@ -45,8 +45,12 @@ Vercel automatically detects that you're using Vite. You only need to add your e
 #### Add Environment Variables
 Expand the **Environment Variables** section in Vercel and add your secret keys:
 
--   **Key:** `VITE_API_KEY`
+-   **Key:** `GEMINI_API_KEY`
 -   **Value:** *Your Google Gemini API Key*
+-   *(Optional)* **Key:** `VITE_GOOGLE_CLIENT_ID`
+-   **Value:** *Your Google OAuth Client ID (if using Google Drive Sync)*
+
+> **Security Note:** Do NOT use the `VITE_` prefix for the Gemini key. With `GEMINI_API_KEY`, Vercel only makes it available to the `/api/gemini` serverless function in Node.js, so the key is never sent to or bundled into the client browser. If you previously configured `VITE_API_KEY` in Vercel, delete it and rotate your key in Google AI Studio.
 
 The install command is handled by the `vercel.json` file in the repository.
 

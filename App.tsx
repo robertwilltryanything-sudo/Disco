@@ -984,5 +984,10 @@ const AppContent: React.FC = () => {
   );
 };
 
-const App: React.FC = () => (<HashRouter><ScrollToTop /><AppContent /></HashRouter>);
+const App: React.FC = () => (
+  <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <ScrollToTop />
+    <AppContent />
+  </HashRouter>
+);
 export default App;

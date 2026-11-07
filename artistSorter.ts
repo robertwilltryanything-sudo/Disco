@@ -1,4 +1,3 @@
-import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import { isVariousArtists } from "./utils";
 
 export interface ArtistSortResult {
@@ -376,72 +375,45 @@ export async function batchNormalizeWithGemini(artists: string[]): Promise<Recor
     results[a] = determineArtistSortName(a);
   });
 
-  const apiKey = process.env.API_KEY;
-  if (!apiKey || artists.length === 0) {
+  if (artists.length === 0) {
     return results;
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
-    
     // Process in batches of 30 to stay well within token limits and maintain quality
     const BATCH_SIZE = 30;
     for (let i = 0; i < artists.length; i += BATCH_SIZE) {
       const batch = artists.slice(i, i + BATCH_SIZE);
-      const prompt = `You are an expert music archivist and librarian cataloger.
-For each music artist in this list, determine if they are a BAND / MUSICAL GROUP or an INDIVIDUAL / SOLO ARTIST.
-Format their official library "sort_name" following standard record store / library catalog rules:
 
-RULES:
-1. BANDS/GROUPS (e.g., Dire Straits, Def Leppard, Tangerine Dream, Dinosaur Jr., Fleetwood Mac, Pink Floyd, The Clash):
-   sort_name MUST remain the band name. If it begins with "The ", strip "The " for sorting (e.g. "The Clash" -> "Clash"). DO NOT reverse words in band names.
-2. INDIVIDUAL SOLO ARTISTS (e.g., David Bowie, Kate Bush, Bruce Springsteen, Neil Young, Michael Jackson):
-   sort_name MUST be "Surname, First Name" (e.g. "Bowie, David", "Bush, Kate", "Springsteen, Bruce").
-3. SOLO ARTIST WITH BACKING BAND (e.g., Tom Petty and the Heartbreakers, Nick Cave & The Bad Seeds):
-   sort_name MUST be "Surname, First Name & The [Band]" (e.g. "Petty, Tom & The Heartbreakers").
-4. MONONYMS / STAGE MONIKERS (e.g., Prince, Madonna, Cher, Sting, Bjork, Beck, Seal):
-   sort_name is the moniker as-is (e.g. "Prince").
-5. VARIOUS ARTISTS / COMPILATIONS / SOUNDTRACKS (e.g., Various Artists, Various, Soundtrack, V/A):
-   sort_name MUST be "Various Artists", is_group: true, sort_letter: "VA".
-
-Artists to catalog:
-${JSON.stringify(batch)}
-
-Respond ONLY with a JSON array of objects with these keys:
-- "artist": exact string from input
-- "is_group": boolean (true if band/group/ensemble, false if individual solo artist)
-- "sort_name": string (the exact formatted sort name)
-- "sort_letter": single uppercase character A-Z or # (or "VA" for Various Artists)`;
-
-      const response: GenerateContentResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-          responseMimeType: 'application/json'
-        }
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'normalize-artists',
+          batch
+        })
       });
 
-      const text = response.text || '';
-      try {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) {
-          parsed.forEach((item: any) => {
-            if (item && item.artist && item.sort_name) {
-              const isVA = isVariousArtists(item.artist) || isVariousArtists(item.sort_name) || String(item.sort_letter || '').toUpperCase() === 'VA';
-              const letter = (item.sort_letter || item.sort_name.charAt(0)).toUpperCase();
-              results[item.artist] = {
-                artist: item.artist,
-                sort_name: isVA ? 'Various Artists' : item.sort_name,
-                isGroup: isVA ? true : Boolean(item.is_group),
-                groupChar: isVA ? 'VA' : (/[A-ZÅÄÖ]/.test(letter) ? letter : '#'),
-                reason: isVA ? 'Various Artists collection (end of shelf)' : (item.is_group ? 'AI verified band/group' : 'AI verified solo artist')
-              };
-            }
-          });
-        }
-      } catch (err) {
-        console.warn("Failed to parse Gemini response as JSON for artist batch:", err);
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = await response.json();
+      const items = data?.normalized;
+      if (Array.isArray(items)) {
+        items.forEach((item: any) => {
+          if (item && item.artist && item.sort_name) {
+            const isVA = isVariousArtists(item.artist) || isVariousArtists(item.sort_name) || String(item.sort_letter || '').toUpperCase() === 'VA';
+            const letter = (item.sort_letter || item.sort_name.charAt(0)).toUpperCase();
+            results[item.artist] = {
+              artist: item.artist,
+              sort_name: isVA ? 'Various Artists' : item.sort_name,
+              isGroup: isVA ? true : Boolean(item.is_group),
+              groupChar: isVA ? 'VA' : (/[A-ZÅÄÖ]/.test(letter) ? letter : '#'),
+              reason: isVA ? 'Various Artists collection (end of shelf)' : (item.is_group ? 'AI verified band/group' : 'AI verified solo artist')
+            };
+          }
+        });
       }
     }
   } catch (error) {
