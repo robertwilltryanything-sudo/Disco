@@ -743,7 +743,7 @@ const AppContent: React.FC = () => {
   const isGoogleDriveSelectedButLoggedOut = syncProvider === 'google_drive' && !driveSignedIn;
 
   return (
-    <PlexProvider driveSignedIn={driveSignedIn} loadPlexData={driveLoadPlexData}>
+    <PlexProvider driveSignedIn={driveSignedIn} needsTokenRefresh={driveNeedsTokenRefresh} loadPlexData={driveLoadPlexData}>
       <div className="min-h-screen pb-20 md:pb-0 font-sans selection:bg-zinc-200 overflow-x-hidden w-full">
       <Header 
         onAddClick={() => {

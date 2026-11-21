@@ -162,10 +162,56 @@ export const usePlex = () => useContext(PlexContext);
 interface PlexProviderProps {
   children: React.ReactNode;
   driveSignedIn: boolean;
+  needsTokenRefresh?: boolean;
   loadPlexData: () => Promise<Map<string, PlexAlbumRecord> | null>;
 }
 
-export const PlexProvider: React.FC<PlexProviderProps> = ({ children, driveSignedIn, loadPlexData }) => {
+const normalizePlexText = (str: string): string => {
+  return str
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2018\u2019\u201A\u201B\u2032\u0060]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"')
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/\s*&\s*/g, ' and ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+};
+
+const normalizeArtistKey = (artist: string): string => {
+  let norm = normalizePlexText(artist);
+  // Handle "Beatles, The" -> "the beatles"
+  const trailingTheMatch = norm.match(/^(.+),\s*the$/i);
+  if (trailingTheMatch) {
+    norm = `the ${trailingTheMatch[1].trim()}`;
+  }
+  return norm;
+};
+
+const stripLeadingThe = (text: string): string => {
+  const match = text.match(/^the\s+(.+)$/i);
+  return match ? match[1].trim() : text;
+};
+
+const EDITION_TAG_PATTERN = /\s*[\(\[](?:[^)\]]*\b(?:remaster(?:ed)?|deluxe|expanded|anniversary|edition|bonus|mono|stereo|mix|version|disc\s*\d+|cd\s*\d*|lp|vinyl|sacd|explicit|clean|reissue|legacy|collector'?s?|special|super|box\s*set|original)\b[^)\]]*|\d{4}(?:\s*remaster(?:ed)?)?)[\)\]]\s*$/i;
+
+const stripEditionSuffix = (title: string): string => {
+  let current = title.trim();
+  while (EDITION_TAG_PATTERN.test(current)) {
+    const next = current.replace(EDITION_TAG_PATTERN, '').trim();
+    if (!next || next === current) break;
+    current = next;
+  }
+  return current;
+};
+
+export const PlexProvider: React.FC<PlexProviderProps> = ({
+  children,
+  driveSignedIn,
+  needsTokenRefresh = false,
+  loadPlexData,
+}) => {
   const [plexMap, setPlexMap] = useState<Map<string, PlexAlbumRecord> | null>(null);
 
   useEffect(() => {
@@ -173,6 +219,10 @@ export const PlexProvider: React.FC<PlexProviderProps> = ({ children, driveSigne
 
     if (!driveSignedIn) {
       setPlexMap(null);
+      return;
+    }
+
+    if (needsTokenRefresh) {
       return;
     }
 
@@ -189,32 +239,89 @@ export const PlexProvider: React.FC<PlexProviderProps> = ({ children, driveSigne
     return () => {
       isMounted = false;
     };
-  }, [driveSignedIn, loadPlexData]);
+  }, [driveSignedIn, needsTokenRefresh, loadPlexData]);
 
-  // Exact matching: Disco artist === Plex artist AND Disco title === Plex title
-  const isAvailableInPlex = useCallback((artist?: string | null, title?: string | null): boolean => {
-    if (!plexMap || !artist || !title) return false;
-    return plexMap.has(`${artist}:::${title}`);
+  // Build normalized & edition-flexible lookup indices from the loaded exact map
+  const { normalizedMap, flexibleMap } = useMemo(() => {
+    const normMap = new Map<string, PlexAlbumRecord>();
+    const flexMap = new Map<string, PlexAlbumRecord>();
+
+    if (!plexMap) {
+      return { normalizedMap: normMap, flexibleMap: flexMap };
+    }
+
+    for (const [exactKey, record] of plexMap.entries()) {
+      const sepIdx = exactKey.indexOf(':::');
+      if (sepIdx === -1) continue;
+      const rawArtist = exactKey.slice(0, sepIdx);
+      const rawTitle = exactKey.slice(sepIdx + 3);
+
+      const normArtist = normalizeArtistKey(rawArtist);
+      const normTitle = normalizePlexText(rawTitle);
+      if (normArtist && normTitle) {
+        const normKey = `${normArtist}:::${normTitle}`;
+        if (!normMap.has(normKey)) {
+          normMap.set(normKey, record);
+        }
+
+        const flexArtist = stripLeadingThe(normArtist);
+        const flexTitle = stripLeadingThe(stripEditionSuffix(normTitle));
+        if (flexArtist && flexTitle) {
+          const flexKey = `${flexArtist}:::${flexTitle}`;
+          if (!flexMap.has(flexKey)) {
+            flexMap.set(flexKey, record);
+          }
+        }
+      }
+    }
+
+    return { normalizedMap: normMap, flexibleMap: flexMap };
   }, [plexMap]);
+
+  const findPlexRecord = useCallback((artist?: string | null, title?: string | null): PlexAlbumRecord | null => {
+    if (!plexMap || !artist || !title) return null;
+
+    // 1. Exact match (highest priority)
+    const exact = plexMap.get(`${artist}:::${title}`);
+    if (exact) return exact;
+
+    // 2. Normalized match (case, whitespace, quotes/dashes, accents, &, "Artist, The")
+    const normArtist = normalizeArtistKey(artist);
+    const normTitle = normalizePlexText(title);
+    if (normArtist && normTitle) {
+      const normalized = normalizedMap.get(`${normArtist}:::${normTitle}`);
+      if (normalized) return normalized;
+
+      // 3. Edition-stripped & leading-"The" flexible match
+      const flexArtist = stripLeadingThe(normArtist);
+      const flexTitle = stripLeadingThe(stripEditionSuffix(normTitle));
+      if (flexArtist && flexTitle) {
+        const flexible = flexibleMap.get(`${flexArtist}:::${flexTitle}`);
+        if (flexible) return flexible;
+      }
+    }
+
+    return null;
+  }, [plexMap, normalizedMap, flexibleMap]);
+
+  const isAvailableInPlex = useCallback((artist?: string | null, title?: string | null): boolean => {
+    return findPlexRecord(artist, title) !== null;
+  }, [findPlexRecord]);
 
   const getPlexKey = useCallback((artist?: string | null, title?: string | null): string | null => {
-    if (!plexMap || !artist || !title) return null;
-    return plexMap.get(`${artist}:::${title}`)?.plexKey || null;
-  }, [plexMap]);
+    return findPlexRecord(artist, title)?.plexKey || null;
+  }, [findPlexRecord]);
 
   const getPlexGuid = useCallback((artist?: string | null, title?: string | null): string | null => {
-    if (!plexMap || !artist || !title) return null;
-    return plexMap.get(`${artist}:::${title}`)?.plexGuid || null;
-  }, [plexMap]);
+    return findPlexRecord(artist, title)?.plexGuid || null;
+  }, [findPlexRecord]);
 
   const getPlexRecord = useCallback((artist?: string | null, title?: string | null): PlexAlbumRecord | null => {
-    if (!plexMap || !artist || !title) return null;
-    return plexMap.get(`${artist}:::${title}`) || null;
-  }, [plexMap]);
+    return findPlexRecord(artist, title);
+  }, [findPlexRecord]);
 
   const getPlexUrl = useCallback((artist?: string | null, title?: string | null): string | null => {
-    if (!plexMap || !artist || !title) return null;
-    const record = plexMap.get(`${artist}:::${title}`);
+    const record = findPlexRecord(artist, title);
     if (!record) return null;
 
     // Mobile (iPhone / iPad / iPod): open in Plexamp using listen.plex.tv/album/<guid>
@@ -228,7 +335,7 @@ export const PlexProvider: React.FC<PlexProviderProps> = ({ children, driveSigne
 
     // Desktop: open in Plex Web using existing server ID and plexKey
     return buildPlexWebUrl(record.plexKey);
-  }, [plexMap]);
+  }, [findPlexRecord]);
 
   const value = useMemo(() => ({
     isAvailableInPlex,

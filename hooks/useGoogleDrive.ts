@@ -614,7 +614,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     try {
       // Strictly read-only file query (never creates or writes)
       const query = encodeURIComponent(`name = '${PLEX_DATA_FILENAME}' and trashed = false`);
-      const listUrl = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name,mimeType,size,modifiedTime)`;
+      const listUrl = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&orderBy=modifiedTime%20desc&fields=files(id,name,mimeType,size,modifiedTime)`;
       
       const listResponse = await fetch(listUrl, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
@@ -749,7 +749,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
     try {
       const query = encodeURIComponent(`name = '${PLEX_DATA_FILENAME}' and trashed = false`);
-      const listUrl = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name)`;
+      const listUrl = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&orderBy=modifiedTime%20desc&fields=files(id,name)`;
       
       const listResponse = await fetch(listUrl, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
@@ -782,10 +782,13 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
       const lookupMap = new Map<string, PlexAlbumRecord>();
       for (const item of albumList) {
-        if (item && typeof item.artist === 'string' && typeof item.title === 'string') {
-          const key = `${item.artist}:::${item.title}`;
+        const artistVal = item?.artist ?? item?.albumArtist ?? item?.parentTitle;
+        const titleVal = item?.title ?? item?.album;
+        if (item && typeof artistVal === 'string' && typeof titleVal === 'string') {
+          const key = `${artistVal}:::${titleVal}`;
           const plexKey = item.plexKey ?? item.ratingKey ?? item.key ?? (item.id != null ? String(item.id) : '');
-          const plexGuid = typeof item.plexGuid === 'string' ? item.plexGuid.trim() : undefined;
+          const rawGuid = item.plexGuid ?? item.guid;
+          const plexGuid = typeof rawGuid === 'string' ? rawGuid.trim() : undefined;
           const rawPlayCount = item.playCount ?? item.viewCount;
           const playCount = typeof rawPlayCount === 'number' && !isNaN(rawPlayCount)
             ? Math.max(0, Math.floor(rawPlayCount))
