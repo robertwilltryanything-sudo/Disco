@@ -5,6 +5,7 @@ import { XIcon } from './icons/XIcon';
 import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import { SearchIcon } from './icons/SearchIcon';
 import { sanitizeHttpUrl } from '../utils';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface DriveImagePickerModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
   const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEscapeKey(isOpen, onClose);
 
   const loadMore = useCallback(async (token?: string, clear = false) => {
     setIsLoading(true);
@@ -71,7 +74,13 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-[110] p-4 overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-[110] p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="drive-picker-title"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col h-[85vh] overflow-hidden border border-zinc-200">
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
@@ -79,11 +88,11 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
               <GoogleDriveIcon className="w-6 h-6 text-zinc-600" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-zinc-900 uppercase tracking-tight">Drive Artwork</h2>
+              <h2 id="drive-picker-title" className="text-xl font-black text-zinc-900 uppercase tracking-tight">Drive Artwork</h2>
               <p className="text-xs text-zinc-500 font-medium">Select an image from your Google Drive</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors">
+          <button type="button" onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors" aria-label="Close drive artwork picker">
             <XIcon className="w-6 h-6" />
           </button>
         </div>
@@ -94,6 +103,7 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
             <input 
               type="text"
               placeholder="Search images in your Drive..."
+              aria-label="Search images in your Drive"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-zinc-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-zinc-900 transition-all"

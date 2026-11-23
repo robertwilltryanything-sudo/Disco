@@ -2,6 +2,7 @@ import React from 'react';
 import { CD } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { TrashIcon } from './icons/TrashIcon';
+import { sanitizeImageUrl } from '../utils';
 
 interface DuplicateGroupProps {
   group: CD[];
@@ -20,12 +21,14 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
         <p className="text-sm text-zinc-500">{group.length} similar items found</p>
       </div>
       <div className="p-4 space-y-3">
-        {group.map(cd => (
+        {group.map(cd => {
+          const safeCoverUrl = sanitizeImageUrl(cd.cover_art_url);
+          return (
           <div key={cd.id} className="flex items-center gap-4 p-3 border border-zinc-200 rounded-lg bg-white">
             <div className="flex-shrink-0">
-                {cd.cover_art_url ? (
+                {safeCoverUrl ? (
                     <img 
-                      src={cd.cover_art_url} 
+                      src={safeCoverUrl} 
                       alt={`${cd.title} cover`} 
                       className="w-16 h-16 object-cover rounded-md" 
                       referrerPolicy="no-referrer"
@@ -46,6 +49,7 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
               </div>
             </div>
             <button 
+                type="button"
                 onClick={() => onRequestDelete(cd)}
                 className="p-2 text-red-500 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 aria-label={`Delete ${cd.title}`}
@@ -53,7 +57,8 @@ const DuplicateGroup: React.FC<DuplicateGroupProps> = ({ group, onRequestDelete 
                 <TrashIcon className="w-5 h-5" />
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

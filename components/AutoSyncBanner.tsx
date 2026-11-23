@@ -49,9 +49,11 @@ export const AutoSyncBanner: React.FC<AutoSyncBannerProps> = ({ notification, on
           </span>
         )}
         <button 
+          type="button"
           onClick={onDismiss}
           className="ml-1 p-0.5 rounded-full text-zinc-400 hover:text-white transition-colors"
           title="Dismiss"
+          aria-label="Dismiss notification"
         >
           <XIcon className="w-3.5 h-3.5" />
         </button>

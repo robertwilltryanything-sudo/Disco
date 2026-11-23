@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CD } from '../types';
 import { getAlbumTrivia } from '../gemini';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
+import { sanitizeImageUrl } from '../utils';
 
 interface FeaturedAlbumProps {
   cd: CD;
@@ -14,8 +15,10 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const safeCoverUrl = useMemo(() => sanitizeImageUrl(cd.cover_art_url), [cd.cover_art_url]);
 
     useEffect(() => {
+        let isCancelled = false;
         const fetchTrivia = async () => {
             if (!cd) return;
             setIsLoading(true);
@@ -25,23 +28,30 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
             const cacheKey = `trivia-cache-${cd.id}`;
 
             try {
-                // Check cache first
                 const cachedTrivia = localStorage.getItem(cacheKey);
                 if (cachedTrivia) {
-                    setTrivia(cachedTrivia);
-                    setIsLoading(false);
+                    if (!isCancelled) {
+                        setTrivia(cachedTrivia);
+                        setIsLoading(false);
+                    }
                     return;
                 }
 
-                // If not in cache, fetch from API
                 const result = await getAlbumTrivia(cd.artist, cd.title);
-                const triviaText = result || "No trivia found for this album.";
-                setTrivia(triviaText);
-                
-                // Store result in cache
-                localStorage.setItem(cacheKey, triviaText);
+                if (isCancelled) return;
 
+                if (result) {
+                    setTrivia(result);
+                    try {
+                        localStorage.setItem(cacheKey, result);
+                    } catch {
+                        // Ignore quota errors on trivia cache
+                    }
+                } else {
+                    setTrivia("No trivia found for this album.");
+                }
             } catch (err: any) {
+                if (isCancelled) return;
                 const msg = err.message || String(err);
                 if (msg.includes('Quota') || msg.includes('429')) {
                     setError("Trivia paused (API limit).");
@@ -49,14 +59,23 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                     setError("Trivia unavailable.");
                 }
             } finally {
-                setIsLoading(false);
+                if (!isCancelled) {
+                    setIsLoading(false);
+                }
             }
         };
         fetchTrivia();
-    }, [cd.id]);
+        return () => {
+            isCancelled = true;
+        };
+    }, [cd]);
+
+    const handleCardClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if ((e.target as HTMLElement).closest('a, button')) return;
+        navigate(`/cd/${cd.id}`);
+    }, [cd.id, navigate]);
 
     const handleArtistClick = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
         e.stopPropagation();
         navigate({
             pathname: '/',
@@ -65,15 +84,18 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
     }, [cd.artist, navigate]);
 
     return (
-        <Link
-          to={`/cd/${cd.id}`}
-          className="block bg-white rounded-lg border border-zinc-200 overflow-hidden flex flex-col md:flex-row shadow-sm hover:shadow-md transition-shadow"
-          aria-label={`View details for featured album: ${cd.title} by ${cd.artist}`}
+        <div
+          onClick={handleCardClick}
+          className="block bg-white rounded-lg border border-zinc-200 overflow-hidden flex flex-col md:flex-row shadow-sm hover:shadow-md transition-shadow cursor-pointer"
         >
-            <div className="md:w-64 flex-shrink-0">
-                {cd.cover_art_url ? (
+            <Link
+              to={`/cd/${cd.id}`}
+              className="md:w-64 flex-shrink-0 block"
+              aria-label={`View details for featured album: ${cd.title} by ${cd.artist}`}
+            >
+                {safeCoverUrl ? (
                     <img 
-                        src={cd.cover_art_url} 
+                        src={safeCoverUrl} 
                         alt={`${cd.title} cover`} 
                         className="w-full object-cover aspect-square" 
                         referrerPolicy="no-referrer"
@@ -83,13 +105,16 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                         <MusicNoteIcon className="w-16 h-16 text-zinc-400" />
                     </div>
                 )}
-            </div>
+            </Link>
             <div className="p-6 flex flex-col justify-center flex-grow">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Featured Album</p>
-                <h3 className="text-xl font-bold text-zinc-950 leading-tight">{cd.title}</h3>
+                <Link to={`/cd/${cd.id}`} className="text-xl font-bold text-zinc-950 leading-tight hover:underline">
+                    {cd.title}
+                </Link>
                 <button
+                    type="button"
                     onClick={handleArtistClick}
-                    className="text-left text-base text-zinc-600 hover:text-zinc-950 transition-colors"
+                    className="text-left text-base text-zinc-600 hover:text-zinc-950 hover:underline transition-colors self-start"
                     title={cd.artist}
                 >
                     {cd.artist}
@@ -107,7 +132,7 @@ const FeaturedAlbum: React.FC<FeaturedAlbumProps> = ({ cd }) => {
                     )}
                 </div>
             </div>
-        </Link>
+        </div>
     );
 };
 

@@ -5,6 +5,7 @@ import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { EditIcon } from './icons/EditIcon';
 import { PlexIcon } from './icons/PlexIcon';
 import { usePlex } from '../context/PlexContext';
+import { sanitizeImageUrl } from '../utils';
 
 interface CDTableRowProps {
   cd: CD;
@@ -17,12 +18,22 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
   const inPlex = isAvailableInPlex(cd.artist, cd.title);
   const plexUrl = inPlex ? getPlexUrl(cd.artist, cd.title) : null;
 
+  const safeCoverUrl = sanitizeImageUrl(cd.cover_art_url);
+
   const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
     // Prevent navigation when clicking on a button or link inside the row
     if ((e.target as HTMLElement).closest('button, a')) {
       return;
     }
     navigate(`/cd/${cd.id}`);
+  };
+
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+    if ((e.target as HTMLElement).closest('button, a')) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      navigate(`/cd/${cd.id}`);
+    }
   };
 
   const handleEditClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -32,8 +43,10 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
 
   return (
     <tr
-      className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border md:border-b border-zinc-200 rounded-md md:rounded-none shadow-sm md:shadow-none cursor-pointer"
+      tabIndex={0}
+      className="block md:table-row mb-4 md:mb-0 bg-white md:bg-transparent border md:border-b border-zinc-200 rounded-md md:rounded-none shadow-sm md:shadow-none cursor-pointer focus:outline-none focus:bg-zinc-50"
       onClick={handleRowClick}
+      onKeyDown={handleRowKeyDown}
       aria-label={`View details for ${cd.title}`}
     >
       {/* This single cell contains the entire mobile card layout */}
@@ -41,11 +54,12 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
         <div className="flex items-center gap-4">
           {/* Image */}
           <div className="flex-shrink-0">
-            {cd.cover_art_url ? (
+            {safeCoverUrl ? (
               <img 
-                src={cd.cover_art_url} 
+                src={safeCoverUrl} 
                 alt={`${cd.title} cover`} 
                 className="w-16 h-16 md:w-12 md:h-12 object-cover rounded-md" 
+                loading="lazy"
                 referrerPolicy="no-referrer"
               />
             ) : (
@@ -76,6 +90,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
               )}
             </div>
             <button 
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` });
@@ -92,6 +107,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
            {/* Edit button is part of the flex layout on mobile */}
            <div className="ml-auto md:hidden">
              <button
+                type="button"
                 onClick={handleEditClick}
                 className="p-2 text-zinc-600 rounded-full"
                 aria-label={`Edit ${cd.title}`}
@@ -126,6 +142,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
       </td>
       <td className="hidden md:table-cell p-3 text-zinc-800 align-middle" title={cd.artist}>
         <button 
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` });
@@ -139,6 +156,7 @@ const CDTableRow: React.FC<CDTableRowProps> = ({ cd, onRequestEdit }) => {
       <td className="hidden md:table-cell p-3 text-zinc-700 align-middle">{cd.year}</td>
       <td className="hidden md:table-cell p-3 text-right align-middle">
         <button
+          type="button"
           onClick={handleEditClick}
           className="p-2 text-zinc-600 rounded-full"
           aria-label={`Edit ${cd.title}`}

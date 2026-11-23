@@ -27,7 +27,11 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
     const navigate = useNavigate();
 
     useEffect(() => {
-        localStorage.setItem(WANTLIST_VIEW_MODE_KEY, view);
+        try {
+            localStorage.setItem(WANTLIST_VIEW_MODE_KEY, view);
+        } catch (e) {
+            console.warn('Failed to persist wantlist view mode:', e);
+        }
     }, [view]);
 
     useEffect(() => {
@@ -73,17 +77,21 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
                 <h1 className="text-3xl font-bold text-zinc-800">My {albumType} Wantlist</h1>
                 <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
                     <button
+                        type="button"
                         onClick={() => setView('grid')}
                         className={`p-1.5 rounded-md ${view === 'grid' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                         aria-label="Grid View"
+                        aria-pressed={view === 'grid'}
                         title="Grid View"
                     >
                         <Squares2x2Icon className="w-5 h-5" />
                     </button>
                     <button
+                        type="button"
                         onClick={() => setView('list')}
                         className={`p-1.5 rounded-md ${view === 'list' ? 'bg-white text-zinc-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                         aria-label="List View"
+                        aria-pressed={view === 'list'}
                         title="List View"
                     >
                         <QueueListIcon className="w-5 h-5" />

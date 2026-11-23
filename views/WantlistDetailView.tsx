@@ -357,7 +357,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                   )}
                   <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-2">
-                          <button onClick={handleMoveToCollection} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors shadow-sm text-sm">
+                          <button type="button" onClick={handleMoveToCollection} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors shadow-sm text-sm">
                               <CheckIcon className="w-5 h-5" />
                               Found it!
                           </button>
@@ -369,6 +369,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
 
                       <div className="flex items-center gap-1 ml-auto">
                         <button 
+                          type="button"
                           onClick={handleUpdateInfo} 
                           disabled={isUpdating}
                           className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
@@ -377,20 +378,25 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
                               : 'text-zinc-400 hover:bg-zinc-100 hover:text-blue-500'
                           }`}
                           title="Update wantlist info using Wikipedia & Gemini"
+                          aria-label="Update wantlist info using Wikipedia and Gemini"
                         >
                           {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
                         </button>
                         <button 
+                          type="button"
                           onClick={handleEdit} 
                           className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-all transform hover:scale-110 active:scale-95" 
                           title="Edit manual details"
+                          aria-label="Edit manual details"
                         >
                           <EditIcon className="w-5 h-5" />
                         </button>
                         <button 
+                          type="button"
                           onClick={() => setIsDeleteModalOpen(true)} 
                           className="p-2 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
                           title="Delete from wantlist"
+                          aria-label="Delete from wantlist"
                         >
                           <TrashIcon className="w-5 h-5" />
                         </button>

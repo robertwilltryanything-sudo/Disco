@@ -2,12 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CD } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
+import { sanitizeImageUrl } from '../utils';
 
 interface RecommendedCDItemProps {
   cd: CD;
 }
 
 const RecommendedCDItem: React.FC<RecommendedCDItemProps> = ({ cd }) => {
+  const safeCoverUrl = sanitizeImageUrl(cd.cover_art_url);
   return (
     <Link 
       to={`/cd/${cd.id}`} 
@@ -16,11 +18,12 @@ const RecommendedCDItem: React.FC<RecommendedCDItemProps> = ({ cd }) => {
     >
       <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
         <div className="relative">
-          {cd.cover_art_url ? (
+          {safeCoverUrl ? (
             <img 
-              src={cd.cover_art_url} 
+              src={safeCoverUrl} 
               alt={`${cd.title} cover`} 
               className="w-full h-auto aspect-square object-cover" 
+              loading="lazy"
               referrerPolicy="no-referrer"
             />
           ) : (

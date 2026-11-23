@@ -90,6 +90,14 @@ const generateId = () => {
     catch (e) { return Math.random().toString(36).substring(2) + Date.now().toString(36); }
 };
 
+const safeSetLocalStorage = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn(`Failed to write ${key} to localStorage:`, e);
+  }
+};
+
 const INITIAL_COLLECTION: CD[] = [
   {
     id: '1',
@@ -289,7 +297,7 @@ const AppContent: React.FC = () => {
   // Background auto-upload helper
   const triggerAutoUpload = useCallback(async (updatedCollection: CD[], updatedWantlist: WantlistItem[], actionLabel = 'Changes') => {
     const timestamp = new Date().toISOString();
-    localStorage.setItem(LOCAL_UPDATED_AT_KEY, timestamp);
+    safeSetLocalStorage(LOCAL_UPDATED_AT_KEY, timestamp);
 
     if (syncProvider !== 'google_drive' || !driveSignedIn) return;
 
@@ -328,20 +336,25 @@ const AppContent: React.FC = () => {
       return cd;
     });
 
+    let wantlistChanges = 0;
     const newWantlist = wantlist.map(item => {
       const art = (item.artist || '').trim();
       const resolved = updates[art] !== undefined ? updates[art] : lowerMap[art.toLowerCase()];
       if (resolved !== undefined && resolved !== item.sort_name) {
+        wantlistChanges++;
         return { ...item, sort_name: resolved };
       }
       return item;
     });
 
+    const totalChanges = collectionChanges + wantlistChanges;
     setCollection(newCollection);
     setWantlist(newWantlist);
     triggerAutoUpload(newCollection, newWantlist, `Normalized artist sorting for ${Object.keys(updates).length} artists`);
-    showBanner('synced', `Updated artist sorting for ${collectionChanges} album(s)`, undefined, 4000);
-  }, [collection, wantlist, triggerAutoUpload, showBanner]);
+    if (syncProvider !== 'google_drive' || !driveSignedIn) {
+      showBanner('synced', `Updated artist sorting for ${totalChanges} item(s)`, undefined, 4000);
+    }
+  }, [collection, wantlist, triggerAutoUpload, showBanner, syncProvider, driveSignedIn]);
 
   // Check remote Google Drive for newer save on login or page load
   const checkForNewerRemoteSave = useCallback(async () => {
@@ -365,7 +378,7 @@ const AppContent: React.FC = () => {
           
           setCollection(remoteCol);
           setWantlist(remoteWant);
-          localStorage.setItem(LOCAL_UPDATED_AT_KEY, remoteData.lastUpdated || metadata.modifiedTime);
+          safeSetLocalStorage(LOCAL_UPDATED_AT_KEY, remoteData.lastUpdated || metadata.modifiedTime);
           
           const totalCount = remoteCol.length + remoteWant.length;
           showBanner('downloaded', 'Updated collection from Google Drive', `${totalCount} items loaded`, 4500);
@@ -426,7 +439,7 @@ const AppContent: React.FC = () => {
               const pulledWant = (pendingCloudData.wantlist || []).map(normalizeData<WantlistItem>);
               setCollection(pulledCol);
               setWantlist(pulledWant);
-              localStorage.setItem(LOCAL_UPDATED_AT_KEY, pendingCloudData.lastUpdated || new Date().toISOString());
+              safeSetLocalStorage(LOCAL_UPDATED_AT_KEY, pendingCloudData.lastUpdated || new Date().toISOString());
               showBanner('downloaded', 'Updated collection from Google Drive', `${pulledCol.length + pulledWant.length} items loaded`, 4000);
           }
       } else {
@@ -437,7 +450,7 @@ const AppContent: React.FC = () => {
               lastUpdated: timestamp 
           });
           if (ok) {
-              localStorage.setItem(LOCAL_UPDATED_AT_KEY, timestamp);
+              safeSetLocalStorage(LOCAL_UPDATED_AT_KEY, timestamp);
               showBanner('synced', 'Saved to Google Drive', 'Synced just now', 3500);
           } else {
               showBanner('error', 'Failed to upload to Google Drive', 'Saved locally', 5000);
@@ -515,12 +528,12 @@ const AppContent: React.FC = () => {
     migrateData();
   }, []);
 
-  useEffect(() => { localStorage.setItem('disco_mode', collectionMode); }, [collectionMode]);
-  useEffect(() => { localStorage.setItem('disco_sync_provider', syncProvider); }, [syncProvider]);
+  useEffect(() => { safeSetLocalStorage('disco_mode', collectionMode); }, [collectionMode]);
+  useEffect(() => { safeSetLocalStorage('disco_sync_provider', syncProvider); }, [syncProvider]);
 
   useEffect(() => {
-    localStorage.setItem('disco_collection', JSON.stringify(collection));
-    localStorage.setItem('disco_wantlist', JSON.stringify(wantlist));
+    safeSetLocalStorage('disco_collection', JSON.stringify(collection));
+    safeSetLocalStorage('disco_wantlist', JSON.stringify(wantlist));
   }, [collection, wantlist]);
 
   const handleToggleMode = useCallback(() => { setCollectionMode(prev => prev === 'cd' ? 'vinyl' : 'cd'); }, []);
@@ -857,7 +870,6 @@ const AppContent: React.FC = () => {
         collectionMode={collectionMode}
         onToggleMode={handleToggleMode}
         lastSyncTime={driveLastSyncTime}
-        onSearchClick={() => setIsSearchOpen(true)}
         onOpenArtistSorter={() => setIsArtistSorterOpen(true)}
       />
       <main className="container mx-auto p-4 md:p-6 max-w-full overflow-x-hidden">
@@ -870,6 +882,7 @@ const AppContent: React.FC = () => {
               </span>
             </div>
             <button
+              type="button"
               onClick={driveSignIn}
               className="bg-zinc-950 text-white font-bold text-xs py-2 px-3.5 rounded-lg hover:bg-black transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
             >
@@ -899,6 +912,7 @@ const AppContent: React.FC = () => {
                         </div>
                         <div className="flex gap-4 ml-7">
                             <button 
+                                type="button"
                                 onClick={() => {
                                     driveResetStatus();
                                 }} 
@@ -908,6 +922,7 @@ const AppContent: React.FC = () => {
                             </button>
                             {driveReady && (
                                 <button 
+                                    type="button"
                                     onClick={driveSignIn} 
                                     className="text-xs font-bold underline hover:text-red-800"
                                 >
@@ -931,6 +946,7 @@ const AppContent: React.FC = () => {
                         </p>
                         {driveError && (
                             <button 
+                                type="button"
                                 onClick={driveResetStatus} 
                                 className="w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all"
                             >
@@ -940,7 +956,7 @@ const AppContent: React.FC = () => {
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3 mt-6">
-                        <button onClick={driveSignIn} disabled={driveStatus === 'authenticating'} className="w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+                        <button type="button" onClick={driveSignIn} disabled={driveStatus === 'authenticating'} className="w-full bg-zinc-900 text-white font-bold py-3 px-6 rounded-lg hover:bg-black transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
                             {driveStatus === 'authenticating' && <SpinnerIcon className="w-5 h-5" />}
                             {driveStatus === 'authenticating' 
                               ? 'Signing in...' 
@@ -949,7 +965,7 @@ const AppContent: React.FC = () => {
                                 : 'Sign in with Google'}
                         </button>
                         {driveUserProfile?.email && (
-                          <button onClick={driveSignOut} className="text-xs text-zinc-500 hover:text-red-600 underline">
+                          <button type="button" onClick={driveSignOut} className="text-xs text-zinc-500 hover:text-red-600 underline">
                             Use a different Google account
                           </button>
                         )}
@@ -970,7 +986,19 @@ const AppContent: React.FC = () => {
         </Routes>
       </main>
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={cdToEdit ? 'Edit album' : 'Add album'}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsAddModalOpen(false);
+              setCdToEdit(null);
+              setPrefillData(null);
+            }
+          }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto"
+        >
           <div className="w-full max-w-3xl my-8 shadow-2xl">
             <AddCDForm 
               onSave={handleSaveCD} 
@@ -982,12 +1010,24 @@ const AppContent: React.FC = () => {
               onPickFromDrive={initiateDrivePick}
               existingCds={collection}
               existingWantlist={wantlist}
+              disableEscape={isDrivePickerOpen}
             />
           </div>
         </div>
       )}
       {isAddWantlistModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={wantlistItemToEdit ? 'Edit wantlist item' : 'Add to wantlist'}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsAddWantlistModalOpen(false);
+              setWantlistItemToEdit(null);
+            }
+          }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto"
+        >
             <div className="w-full max-w-3xl my-8 shadow-2xl">
                 <AddWantlistItemForm 
                   onSave={handleSaveWantlistItem} 
@@ -998,6 +1038,7 @@ const AppContent: React.FC = () => {
                   onPickFromDrive={initiateDrivePick}
                   existingCds={collection}
                   existingWantlist={wantlist}
+                  disableEscape={isDrivePickerOpen}
                 />
             </div>
         </div>
@@ -1016,8 +1057,6 @@ const AppContent: React.FC = () => {
         onClose={() => setIsSyncSettingsOpen(false)} 
         currentProvider={syncProvider} 
         onProviderChange={setSyncProvider} 
-        syncMode="manual" 
-        onSyncModeChange={() => {}} 
         isSignedIn={driveSignedIn}
         userEmail={driveUserProfile?.email}
         onSignIn={driveSignIn}
@@ -1061,7 +1100,15 @@ const AppContent: React.FC = () => {
       />
 
       <BottomNavBar collectionMode={collectionMode} onToggleMode={handleToggleMode} onSearchClick={() => setIsSearchOpen(true)} />
-      <button onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }} className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30"><PlusIcon className="h-6 w-6" /></button>
+      <button
+        type="button"
+        onClick={() => { if (isOnWantlistPage) { setWantlistItemToEdit(null); setIsAddWantlistModalOpen(true); } else { setCdToEdit(null); setPrefillData(null); setIsAddModalOpen(true); } }}
+        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-zinc-900 text-white rounded-full shadow-xl flex items-center justify-center z-30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
+        aria-label={isOnWantlistPage ? 'Add to wantlist' : 'Add album'}
+        title={isOnWantlistPage ? 'Add to wantlist' : 'Add album'}
+      >
+        <PlusIcon className="h-6 w-6" />
+      </button>
 
       {/* Non-intrusive auto-sync toast indicator */}
       <AutoSyncBanner 

@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CameraIcon } from './icons/CameraIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { XIcon } from './icons/XIcon';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface AlbumScannerProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
   const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEscapeKey(isOpen, onClose);
 
   useEffect(() => {
     const cleanupCamera = () => {
@@ -115,6 +118,8 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
       className="fixed inset-0 bg-black bg-opacity-70 flex items-start justify-center z-50 p-2 md:p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="scanner-dialog-title"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-xl w-full max-w-3xl flex flex-col relative overflow-hidden shadow-2xl max-h-[95vh]">
         <button
@@ -127,7 +132,7 @@ const AlbumScanner: React.FC<AlbumScannerProps> = ({ isOpen, onClose, onCapture 
         </button>
 
         <div className="p-4 border-b border-zinc-200 flex-shrink-0 bg-white">
-            <h2 className="text-xl font-bold text-center text-zinc-800">Scan Album Cover</h2>
+            <h2 id="scanner-dialog-title" className="text-xl font-bold text-center text-zinc-800">Scan Album Cover</h2>
         </div>
         
         <div className="flex-grow bg-zinc-900 relative flex items-center justify-center overflow-hidden min-h-[300px]">

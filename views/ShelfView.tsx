@@ -145,6 +145,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
 
         <div className="flex items-center">
           <button 
+            type="button"
             onClick={() => {
               const allExpanded = SHELF_SECTIONS.reduce((acc, sec) => ({ ...acc, [sec]: true }), {});
               setExpandedSections(allExpanded);
@@ -154,6 +155,7 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
             Expand All
           </button>
           <button 
+            type="button"
             onClick={() => {
               const allCollapsed = SHELF_SECTIONS.reduce((acc, sec) => ({ ...acc, [sec]: false }), {});
               setExpandedSections(allCollapsed);
@@ -211,6 +213,8 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
               className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
               <button 
+                type="button"
+                aria-expanded={isExpanded}
                 onClick={() => toggleSection(section)}
                 className="w-full flex items-center justify-between p-5 text-left hover:bg-zinc-50 transition-colors cursor-pointer"
               >

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface ImportConfirmModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface ImportConfirmModalProps {
 }
 
 const ImportConfirmModal: React.FC<ImportConfirmModalProps> = ({ isOpen, onClose, onMerge, onReplace, importCount, wantlistCount = 0 }) => {
+  useEscapeKey(isOpen, onClose);
+
   if (!isOpen) {
     return null;
   }
@@ -20,6 +23,7 @@ const ImportConfirmModal: React.FC<ImportConfirmModalProps> = ({ isOpen, onClose
       role="dialog"
       aria-modal="true"
       aria-labelledby="import-dialog-title"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-lg border border-zinc-200 p-6 m-4 max-w-md w-full">
         <h2 id="import-dialog-title" className="text-xl font-bold text-zinc-800">Confirm Import</h2>
@@ -35,6 +39,7 @@ const ImportConfirmModal: React.FC<ImportConfirmModalProps> = ({ isOpen, onClose
 
         <div className="mt-6 flex flex-col sm:flex-row-reverse gap-3">
           <button
+            type="button"
             onClick={onReplace}
             className="w-full sm:w-auto py-2 px-4 rounded-lg bg-red-600 text-white font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             title="Deletes your current collection and replaces it with the imported data."
@@ -42,6 +47,7 @@ const ImportConfirmModal: React.FC<ImportConfirmModalProps> = ({ isOpen, onClose
             Replace
           </button>
            <button
+            type="button"
             onClick={onMerge}
             className="w-full sm:w-auto py-2 px-4 rounded-lg bg-zinc-900 text-white font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
             title="Adds the imported albums to your current collection."
@@ -49,6 +55,7 @@ const ImportConfirmModal: React.FC<ImportConfirmModalProps> = ({ isOpen, onClose
             Merge
           </button>
           <button
+            type="button"
             onClick={onClose}
             className="w-full sm:w-auto sm:mr-auto py-2 px-4 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
           >

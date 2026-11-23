@@ -5,6 +5,7 @@ import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { CheckIcon } from './icons/CheckIcon';
+import { sanitizeImageUrl } from '../utils';
 
 interface WantlistTableRowProps {
   item: WantlistItem;
@@ -15,28 +16,41 @@ interface WantlistTableRowProps {
 
 const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit, onDelete, onMoveToCollection }) => {
   const navigate = useNavigate();
-  const details = [item.genre, item.year].filter(Boolean).join(' • ');
+  const safeCoverUrl = sanitizeImageUrl(item.cover_art_url);
+  const genreStr = Array.isArray(item.genre) ? item.genre.join(', ') : item.genre;
+  const details = [genreStr, item.year].filter(Boolean).join(' • ');
 
   const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
     // Prevent navigation when clicking on a button inside the row
-    if ((e.target as HTMLElement).closest('button')) {
+    if ((e.target as HTMLElement).closest('button, a')) {
       return;
     }
     navigate(`/wantlist/${item.id}`);
   };
 
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+    if ((e.target as HTMLElement).closest('button, a')) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      navigate(`/wantlist/${item.id}`);
+    }
+  };
+
   return (
     <tr
-      className="border-b border-zinc-200 last:border-b-0 cursor-pointer"
+      tabIndex={0}
+      className="border-b border-zinc-200 last:border-b-0 cursor-pointer focus:outline-none focus:bg-zinc-50"
       onClick={handleRowClick}
+      onKeyDown={handleRowKeyDown}
       aria-label={`View details for ${item.title}`}
     >
       <td className="p-2">
-        {item.cover_art_url ? (
+        {safeCoverUrl ? (
           <img 
-            src={item.cover_art_url} 
+            src={safeCoverUrl} 
             alt={`${item.title} cover`} 
             className="w-12 h-12 object-cover rounded-md" 
+            loading="lazy"
             referrerPolicy="no-referrer"
           />
         ) : (
@@ -48,6 +62,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
       <td className="p-3">
         <p className="font-bold text-zinc-900" title={item.title}>{item.title}</p>
         <button 
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             navigate({ pathname: '/', search: `?artist=${encodeURIComponent(item.artist)}&sort=year&order=asc` });
@@ -61,6 +76,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
       <td className="p-3 text-right">
         <div className="flex items-center justify-end gap-2">
             <button
+                type="button"
                 onClick={() => onMoveToCollection(item)}
                 className="p-2 text-green-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                 title="Found It!"
@@ -69,6 +85,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
                 <CheckIcon className="w-5 h-5" />
             </button>
             <button 
+                type="button"
                 onClick={() => onRequestEdit(item)}
                 className="p-2 text-zinc-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
                 title="Edit Item"
@@ -77,6 +94,7 @@ const WantlistTableRow: React.FC<WantlistTableRowProps> = ({ item, onRequestEdit
                 <EditIcon className="w-5 h-5" />
             </button>
             <button 
+                type="button"
                 onClick={() => onDelete(item.id)}
                 className="p-2 text-zinc-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 title="Delete from Wantlist"

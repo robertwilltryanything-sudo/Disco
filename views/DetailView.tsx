@@ -235,12 +235,13 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       </a>
                     )}
                   </div>
-                  <h2 
-                    className="text-base text-zinc-600 hover:text-zinc-950 transition-colors mt-1 cursor-pointer" 
+                  <button
+                    type="button"
+                    className="text-base text-zinc-600 hover:text-zinc-950 transition-colors mt-1 cursor-pointer text-left self-start"
                     onClick={() => navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` })}
                   >
                     {cd.artist}
-                  </h2>
+                  </button>
               </div>
 
               <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm border-t border-zinc-100 pt-6">
@@ -248,6 +249,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                     <div>
                       <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Year</p>
                       <button 
+                        type="button"
                         onClick={() => handleSearchFilter(cd.year)}
                         className="text-zinc-950 font-medium hover:text-zinc-700 transition-colors"
                       >
@@ -261,6 +263,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         {cd.genre.map((g, idx) => (
                           <button 
+                            type="button"
                             key={idx}
                             onClick={() => handleSearchFilter(g)}
                             className={`${getBrandColor(g)} text-zinc-950 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
@@ -311,6 +314,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <div className="flex flex-wrap gap-2">
                     {mediaTraits.map(attr => (
                       <button 
+                        type="button"
                         key={attr} 
                         onClick={() => handleSearchFilter(attr)}
                         className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity cursor-pointer`}
@@ -328,6 +332,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <div className="flex flex-wrap gap-2">
                     {coverTraits.map(attr => (
                       <button 
+                        type="button"
                         key={attr} 
                         onClick={() => handleSearchFilter(attr)}
                         className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity cursor-pointer`}
@@ -345,6 +350,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <div className="flex flex-wrap gap-2">
                     {physicalAttributes.map(attr => (
                       <button 
+                        type="button"
                         key={attr} 
                         onClick={() => handleSearchFilter(attr)}
                         className={`${getBrandColor(attr)} text-zinc-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tight shadow-sm border border-black/5 hover:opacity-80 transition-opacity cursor-pointer`}
@@ -364,6 +370,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                   <div className="flex flex-wrap gap-2">
                     {cd.tags.map(tag => (
                       <button
+                        type="button"
                         key={tag}
                         onClick={() => handleSearchFilter(tag)}
                         className={`${getBrandColor(tag)} text-zinc-950 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm border border-black/5 hover:opacity-80 transition-opacity`}
@@ -411,6 +418,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
                   <div className="flex items-center gap-1">
                     <button 
+                      type="button"
                       onClick={handleUpdateInfo} 
                       disabled={isUpdating}
                       className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
@@ -419,20 +427,25 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
                           : 'text-zinc-500 hover:bg-zinc-100 hover:text-blue-500'
                       }`}
                       title="Update album info using Wikipedia & Gemini"
+                      aria-label="Update album info using Wikipedia and Gemini"
                     >
                       {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
                     </button>
                     <button 
+                      type="button"
                       onClick={() => navigate('/', { state: { editCdId: cd.id } })} 
                       className="p-2 rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 transition-all transform hover:scale-110 active:scale-95" 
                       title="Edit manual details"
+                      aria-label="Edit manual details"
                     >
                       <EditIcon className="w-5 h-5" />
                     </button>
                     <button 
+                      type="button"
                       onClick={() => setIsDeleteModalOpen(true)} 
                       className="p-2 rounded-full text-zinc-500 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
                       title="Delete album"
+                      aria-label="Delete album"
                     >
                       <TrashIcon className="w-5 h-5" />
                     </button>

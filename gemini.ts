@@ -9,6 +9,14 @@ const MIN_REQUEST_GAP = 1500;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const safeSetCache = (key: string, value: string) => {
+    try {
+        localStorage.setItem(key, value);
+    } catch (e) {
+        console.warn("Unable to write Gemini cache to localStorage:", e);
+    }
+};
+
 /**
  * Normalizes API errors for user feedback.
  */
@@ -72,7 +80,7 @@ export async function getAlbumTrivia(artist: string, title: string): Promise<str
         const result = await callGeminiProxy<{ trivia: string | null }>('trivia', { artist, title });
         const trivia = result?.trivia || null;
         if (trivia) {
-            localStorage.setItem(cacheKey, trivia);
+            safeSetCache(cacheKey, trivia);
         }
         return trivia;
     } catch (error) {
@@ -107,10 +115,9 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
         console.warn("Wikipedia metadata fetch failed:", e);
     }
 
-    // If we found good data from Wikipedia, return immediately
     if (wikiData && wikiData.year && wikiData.genre && wikiData.genre.length > 0) {
         console.log("Found sufficient metadata on Wikipedia. Returning immediately.");
-        localStorage.setItem(cacheKey, JSON.stringify(wikiData));
+        safeSetCache(cacheKey, JSON.stringify(wikiData));
         return wikiData;
     }
 
@@ -125,7 +132,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
 
         const details = result?.details || null;
         if (details && (details.genre || details.year || details.review)) {
-            localStorage.setItem(cacheKey, JSON.stringify(details));
+            safeSetCache(cacheKey, JSON.stringify(details));
             return details;
         }
 
@@ -143,7 +150,7 @@ export async function getAlbumDetails(artist: string, title: string): Promise<an
                 });
                 const details = fallbackResult?.details || null;
                 if (details) {
-                    localStorage.setItem(cacheKey, JSON.stringify(details));
+                    safeSetCache(cacheKey, JSON.stringify(details));
                     return details;
                 }
             } catch (innerError) {
@@ -202,13 +209,13 @@ export async function getArtistStudioDiscography(artist: string): Promise<{ titl
 
         const discography = result?.discography;
         if (Array.isArray(discography)) {
-            localStorage.setItem(cacheKey, JSON.stringify(discography));
+            safeSetCache(cacheKey, JSON.stringify(discography));
             return discography;
         }
 
         return null;
     } catch (error) {
-        handleApiError(error, 'getArtistStudioDiscography');
-        return null;
+        const msg = handleApiError(error, 'getArtistStudioDiscography');
+        throw new Error(msg);
     }
 }

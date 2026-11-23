@@ -9,7 +9,6 @@ interface StatusIndicatorProps {
   status: SyncStatus;
   error: string | null;
   syncProvider: SyncProvider;
-  onManualSync: () => void;
   lastSyncTime?: string | null;
 }
 

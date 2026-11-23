@@ -1,5 +1,6 @@
 import React from 'react';
 import { CD, WantlistItem } from '../types';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -9,6 +10,8 @@ interface ConfirmDeleteModalProps {
 }
 
 const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose, onConfirm, item }) => {
+  useEscapeKey(isOpen, onClose);
+
   if (!isOpen || !item) {
     return null;
   }
@@ -19,6 +22,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-dialog-title"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-lg border border-zinc-200 p-6 m-4 max-w-sm w-full">
         <h2 id="delete-dialog-title" className="text-xl font-bold text-red-600">Confirm Deletion</h2>
@@ -27,12 +31,14 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
         </p>
         <div className="mt-6 flex justify-end space-x-3">
           <button
+            type="button"
             onClick={onClose}
             className="py-2 px-4 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-800"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             className="py-2 px-4 rounded-lg bg-red-600 text-white font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-red-500"
           >

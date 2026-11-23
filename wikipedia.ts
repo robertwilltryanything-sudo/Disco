@@ -106,9 +106,11 @@ async function getCoverFilenameFromInfobox(pageTitle: string): Promise<string | 
     });
     
     const response = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+    if (!response.ok) return null;
     const data = await response.json();
     
-    const pages = data.query.pages;
+    const pages = data.query?.pages;
+    if (!pages) return null;
     const pageId = Object.keys(pages)[0];
     if (pageId === '-1' || !pages[pageId].revisions) {
         return null;
@@ -146,9 +148,11 @@ async function getAllImageFilesFromArticle(pageTitle: string): Promise<string[]>
     });
     
     const response = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+    if (!response.ok) return [];
     const data = await response.json();
     
-    const pages = data.query.pages;
+    const pages = data.query?.pages;
+    if (!pages) return [];
     const pageId = Object.keys(pages)[0];
     if (pageId === '-1' || !pages[pageId].images) {
         return [];
@@ -173,9 +177,11 @@ async function getImageUrlFromFileTitle(fileTitle: string): Promise<string | nul
     });
 
     const response = await fetchWithTimeout(`${WIKIPEDIA_API_ENDPOINT}?${params}`);
+    if (!response.ok) return null;
     const data = await response.json();
 
-    const pages = data.query.pages;
+    const pages = data.query?.pages;
+    if (!pages) return null;
     const pageId = Object.keys(pages)[0];
     
     if (pageId === '-1' || !pages[pageId].imageinfo) {

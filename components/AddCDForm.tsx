@@ -15,6 +15,7 @@ import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { findDefinedArtistSortName, compareStrings, isVariousArtists, sanitizeImageUrl } from '../utils';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import {
   VINYL_MEDIA_CONDITION,
   VINYL_COVER_CONDITION,
@@ -34,9 +35,10 @@ interface AddCDFormProps {
   onPickFromDrive?: () => Promise<string | null>;
   existingCds?: CD[];
   existingWantlist?: WantlistItem[];
+  disableEscape?: boolean;
 }
 
-const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill, isVinyl, driveSignedIn, onPickFromDrive, existingCds = [], existingWantlist = [] }) => {
+const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefill, isVinyl, driveSignedIn, onPickFromDrive, existingCds = [], existingWantlist = [], disableEscape = false }) => {
   const [artist, setArtist] = useState('');
   const [sort_name, setSortName] = useState('');
   const [appliedSortFromExisting, setAppliedSortFromExisting] = useState<string | null>(null);
@@ -64,6 +66,10 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [coverArtOptions, setCoverArtOptions] = useState<string[]>([]);
   const [isSubmittingWithArtSelection, setIsSubmittingWithArtSelection] = useState(false);
+
+  useEscapeKey(!isScannerOpen && !isSelectorOpen && !disableEscape, onCancel);
+
+  const safeCoverPreviewUrl = useMemo(() => sanitizeImageUrl(cover_art_url), [cover_art_url]);
 
   const uniqueArtistNames = useMemo(() => {
     const names = new Set<string>();
@@ -468,10 +474,10 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="md:w-1/3 w-1/2 mx-auto md:mx-0 flex flex-col items-center">
                 <div className="relative w-full group">
-                  {cover_art_url ? (
+                  {safeCoverPreviewUrl ? (
                       <>
                         <img 
-                          src={cover_art_url} 
+                          src={safeCoverPreviewUrl} 
                           alt="Album cover preview" 
                           className="w-full h-auto aspect-square object-cover rounded-lg" 
                           referrerPolicy="no-referrer"
@@ -500,6 +506,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                             </div>
                             <input
                                 type="url"
+                                aria-label="Image URL"
                                 placeholder="Paste image URL"
                                 value={manualUrl}
                                 onChange={(e) => setManualUrl(e.target.value)}
@@ -553,6 +560,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 <div>
                   <input
                     type="text"
+                    aria-label="Artist"
                     placeholder="Artist*"
                     list="existing-artists-cd-list"
                     value={artist}
@@ -577,6 +585,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 </div>
                 <input
                   type="text"
+                  aria-label="Title"
                   placeholder="Title*"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -588,6 +597,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
               <div className="w-full">
                 <input
                   type="text"
+                  aria-label="Sort Name"
                   placeholder="Sort Name (e.g. Bowie, David)"
                   value={sort_name}
                   onChange={(e) => handleSortNameChange(e.target.value)}
@@ -606,6 +616,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
+                  aria-label="Country"
                   placeholder="Country"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
@@ -613,6 +624,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 />
                 <input
                   type="text"
+                  aria-label="Record Label"
                   placeholder="Record Label"
                   value={record_label}
                   onChange={(e) => setRecordLabel(e.target.value)}
@@ -620,6 +632,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 />
                 <input
                   type="text"
+                  aria-label={isVinyl ? "Edition" : "Version"}
                   placeholder={isVinyl ? "Edition (e.g., Gatefold, 180g)" : "Version (e.g., Remaster, Deluxe)"}
                   value={version}
                   onChange={(e) => setVersion(e.target.value)}
@@ -627,6 +640,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 />
                 <input
                   type="text"
+                  aria-label="Producer"
                   placeholder="Producer"
                   value={producer}
                   onChange={(e) => setProducer(e.target.value)}
@@ -692,6 +706,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                   <div className="flex gap-2">
                     <input
                       type="text"
+                      aria-label="Add Genre"
                       placeholder="Add Genre..."
                       value={currentGenre}
                       onChange={(e) => setCurrentGenre(e.target.value)}
@@ -726,6 +741,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 </div>
                 <input
                   type="number"
+                  aria-label="Release Year"
                   placeholder="Year"
                   value={year}
                   onChange={(e) => setYear(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
@@ -737,6 +753,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    aria-label="Add custom tag"
                     placeholder="Add a custom tag..."
                     value={currentTag}
                     onChange={(e) => setCurrentTag(e.target.value)}
@@ -773,6 +790,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
                 )}
               </div>
               <textarea
+                aria-label="Personal notes"
                 placeholder="Personal notes..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}

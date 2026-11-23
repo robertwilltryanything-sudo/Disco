@@ -4,6 +4,10 @@ import { ArrowDownCircleIcon } from './icons/ArrowDownCircleIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { AlbumIcon } from './icons/AlbumIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
+import { ArrowRightIcon } from './icons/ArrowRightIcon';
+import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
+import { SpinnerIcon } from './icons/SpinnerIcon';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface SyncStats {
     count: number;
@@ -66,6 +70,10 @@ const StatCard: React.FC<{
 const SyncConfirmationModal: React.FC<SyncConfirmationModalProps> = ({ 
     isOpen, onClose, onConfirm, type, localStats, cloudStats, isProcessing 
 }) => {
+    useEscapeKey(isOpen, () => {
+        if (!isProcessing) onClose();
+    });
+
     if (!isOpen) return null;
 
     const isPush = type === 'push';
@@ -77,16 +85,22 @@ const SyncConfirmationModal: React.FC<SyncConfirmationModalProps> = ({
     const directionIcon = isPush ? <ArrowUpCircleIcon className="w-5 h-5" /> : <ArrowDownCircleIcon className="w-5 h-5" />;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-[100] p-4 overflow-y-auto">
+        <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-[100] p-4 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sync-confirm-title"
+            onClick={(e) => { if (e.target === e.currentTarget && !isProcessing) onClose(); }}
+        >
             <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-zinc-200">
                 <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
                     <div>
-                        <h2 className="text-xl font-black text-zinc-900 uppercase tracking-tight flex items-center gap-2">
+                        <h2 id="sync-confirm-title" className="text-xl font-black text-zinc-900 uppercase tracking-tight flex items-center gap-2">
                             {actionLabel}
                         </h2>
                         <p className="text-zinc-500 text-sm font-medium mt-1">Review changes before proceeding</p>
                     </div>
-                    <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors">
+                    <button type="button" onClick={onClose} disabled={isProcessing} className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors disabled:opacity-40" aria-label="Close confirmation dialog">
                         <XCircleIcon className="w-6 h-6" />
                     </button>
                 </div>
@@ -156,10 +170,5 @@ const SyncConfirmationModal: React.FC<SyncConfirmationModalProps> = ({
         </div>
     );
 };
-
-// Helper components for the icons used in the new modal
-import { ArrowRightIcon } from './icons/ArrowRightIcon';
-import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
-import { SpinnerIcon } from './icons/SpinnerIcon';
 
 export default SyncConfirmationModal;

@@ -38,7 +38,6 @@ interface HeaderProps {
     collectionMode: CollectionMode;
     onToggleMode: () => void;
     lastSyncTime?: string | null;
-    onSearchClick?: () => void;
     onOpenArtistSorter?: () => void;
 }
 
@@ -70,8 +69,15 @@ const Header: React.FC<HeaderProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsMenuOpen(false);
     };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMenuOpen(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -93,7 +99,13 @@ const Header: React.FC<HeaderProps> = ({
           <a href="/" onClick={handleLogoClick} className="text-xl md:text-2xl font-black text-zinc-950 uppercase tracking-wider shrink-0" style={{ fontFamily: "'Montserrat', sans-serif" }}>disco</a>
           <div className="flex items-center ml-2 md:ml-4 shrink-0">
               <span className="text-[10px] md:text-xs font-semibold text-zinc-600 bg-zinc-200 py-0.5 px-2 rounded-full mr-1 md:mr-2">{collectionCount}</span>
-              <button onClick={onToggleMode} className="p-1 rounded-full text-zinc-700 focus:outline-none" title={`Switch to ${collectionMode === 'cd' ? 'Vinyl' : 'CD'} mode`}>
+              <button
+                type="button"
+                onClick={onToggleMode}
+                className="p-1 rounded-full text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                title={`Switch to ${collectionMode === 'cd' ? 'Vinyl' : 'CD'} mode`}
+                aria-label={`Switch to ${collectionMode === 'cd' ? 'Vinyl' : 'CD'} mode`}
+              >
                 {collectionMode === 'cd' ? <CompactDiscIcon className="w-5 h-5 md:w-6 md:h-6" /> : <VinylIcon className="w-5 h-5 md:w-6 md:h-6" />}
               </button>
           </div>
@@ -118,18 +130,22 @@ const Header: React.FC<HeaderProps> = ({
             {syncProvider === 'google_drive' && (
               <div className="flex items-center bg-zinc-50 border border-zinc-100 rounded-full px-1 py-0.5 mr-0.5 md:mr-1">
                 <button 
+                  type="button"
                   onClick={onCloudPush}
                   disabled={isSyncBusy}
                   className="p-1 md:p-1.5 rounded-full hover:bg-zinc-200 transition-colors text-zinc-700 disabled:opacity-30"
                   title="Save to Cloud (Push)"
+                  aria-label="Save to Cloud"
                 >
                   <ArrowUpCircleIcon className={`w-4 h-4 md:w-5 md:h-5 ${syncStatus === 'saving' ? 'animate-bounce text-blue-600' : ''}`} />
                 </button>
                 <button 
+                  type="button"
                   onClick={onCloudPull}
                   disabled={isSyncBusy}
                   className="p-1 md:p-1.5 rounded-full hover:bg-zinc-200 transition-colors text-zinc-700 disabled:opacity-30"
                   title="Load from Cloud (Pull)"
+                  aria-label="Load from Cloud"
                 >
                   <ArrowDownCircleIcon className={`w-4 h-4 md:w-5 md:h-5 ${syncStatus === 'loading' ? 'animate-bounce text-blue-600' : ''}`} />
                 </button>
@@ -141,13 +157,12 @@ const Header: React.FC<HeaderProps> = ({
                 status={syncStatus} 
                 error={syncError} 
                 syncProvider={syncProvider}
-                onManualSync={() => {}}
                 lastSyncTime={lastSyncTime}
               />
             )}
             
             <div ref={menuRef} className="relative">
-                <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-2 md:p-3 rounded-full text-zinc-700 hover:bg-zinc-100 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-800" aria-haspopup="true" aria-expanded={isMenuOpen} aria-label="Open menu">
+                <button type="button" onClick={() => setIsMenuOpen(prev => !prev)} className="p-2 md:p-3 rounded-full text-zinc-700 hover:bg-zinc-100 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-800" aria-haspopup="true" aria-expanded={isMenuOpen} aria-label="Open menu">
                     <MenuIcon className="h-6 w-6" />
                 </button>
                 {isMenuOpen && (

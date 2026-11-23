@@ -9,6 +9,7 @@ import { SpinnerIcon } from './icons/SpinnerIcon';
 import { UserIcon } from './icons/UserIcon';
 import { UserGroupIcon } from './icons/UserGroupIcon';
 import { SearchIcon } from './icons/SearchIcon';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface ArtistSorterModalProps {
   isOpen: boolean;
@@ -40,6 +41,8 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'changes-only'>('all');
   const [aiError, setAiError] = useState<string | null>(null);
+
+  useEscapeKey(isOpen, onClose);
 
   // Compute unique artists and their album counts across collection and wantlist
   const uniqueArtistsData = useMemo(() => {
@@ -238,6 +241,7 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="artist-sorter-title"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
@@ -274,6 +278,7 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search artists..."
+                aria-label="Search artists"
                 className="w-full pl-9 pr-3 py-1.5 text-sm bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all"
               />
             </div>
@@ -433,6 +438,7 @@ export const ArtistSorterModal: React.FC<ArtistSorterModalProps> = ({
                         type="text"
                         value={item.sortName}
                         onChange={e => handleSortNameChange(item.originalArtist, e.target.value)}
+                        aria-label={`Sort name for ${item.originalArtist}`}
                         className="text-xs font-semibold px-2.5 py-1.5 border border-zinc-300 rounded-lg bg-white text-zinc-900 w-44 sm:w-52 focus:outline-none focus:ring-2 focus:ring-zinc-900"
                         title="Click to manually edit sort name if desired"
                       />

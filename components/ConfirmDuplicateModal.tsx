@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CD } from '../types';
-import { capitalizeWords } from '../utils';
+import { capitalizeWords, sanitizeImageUrl } from '../utils';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface ConfirmDuplicateModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface ConfirmDuplicateModalProps {
 const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, onClose, onConfirm, newCdData, existingCd }) => {
   const [version, setVersion] = useState('');
 
+  useEscapeKey(isOpen, onClose);
+
   useEffect(() => {
     if (isOpen && newCdData) {
       // Pre-populate with version from form, allowing user to override.
@@ -25,12 +28,15 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
     return null;
   }
 
+  const safeCoverUrl = sanitizeImageUrl(existingCd.cover_art_url);
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-60 flex items-start justify-center z-50 p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="duplicate-dialog-title"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-lg border border-zinc-200 p-6 m-4 max-w-md w-full">
         <h2 id="duplicate-dialog-title" className="text-xl font-bold text-zinc-800">Potential Duplicate</h2>
@@ -40,9 +46,9 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
 
         <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center gap-4">
             <div className="flex-shrink-0">
-                {existingCd.cover_art_url ? (
+                {safeCoverUrl ? (
                     <img 
-                      src={existingCd.cover_art_url} 
+                      src={safeCoverUrl} 
                       alt={`${existingCd.title} cover`} 
                       className="w-16 h-16 object-cover rounded-lg" 
                       referrerPolicy="no-referrer"
@@ -80,12 +86,14 @@ const ConfirmDuplicateModal: React.FC<ConfirmDuplicateModalProps> = ({ isOpen, o
 
         <div className="mt-6 flex justify-end space-x-3">
           <button
+            type="button"
             onClick={onClose}
             className="py-2 px-4 rounded-lg bg-white text-zinc-700 font-medium border border-zinc-300 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-800"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => onConfirm(version)}
             className="py-2 px-4 rounded-lg bg-zinc-900 text-white font-bold hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-zinc-900"
           >

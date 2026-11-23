@@ -7,14 +7,13 @@ import { QuestionMarkCircleIcon } from './icons/QuestionMarkCircleIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface SyncSettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     currentProvider: SyncProvider;
     onProviderChange: (provider: SyncProvider) => void;
-    syncMode: string;
-    onSyncModeChange: (mode: string) => void;
     isSignedIn: boolean;
     userEmail?: string | null;
     onSignIn: () => void;
@@ -77,6 +76,8 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     const [confirmingRevId, setConfirmingRevId] = useState<string | null>(null);
     const [isRestoringRevId, setIsRestoringRevId] = useState<string | null>(null);
     const [restoreError, setRestoreError] = useState<string | null>(null);
+
+    useEscapeKey(isOpen, onClose);
 
     const activeSignedIn = isSignedIn;
     const activeEmail = userEmail;
@@ -142,6 +143,7 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby="sync-dialog-title"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
             <div className="bg-white rounded-lg border border-zinc-200 w-full max-w-lg relative shadow-2xl my-8">
                 <div className="p-6 border-b border-zinc-200">

@@ -53,11 +53,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
     setDiscographyError(null);
     try {
       const disc = await getArtistStudioDiscography(urlArtistFilter);
-      if (disc) {
-        setFullDiscography(disc);
-      } else {
-        setDiscographyError("To view missing albums, please ensure your Gemini API key is configured.");
-      }
+      setFullDiscography(disc || []);
     } catch (err: any) {
       setDiscographyError(err?.message || "Failed to load discography.");
     } finally {
@@ -126,7 +122,11 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
   }, [urlSortBy, urlSortOrder]);
 
   useEffect(() => {
-    localStorage.setItem(VIEW_MODE_KEY, view);
+    try {
+      localStorage.setItem(VIEW_MODE_KEY, view);
+    } catch (e) {
+      console.warn('Failed to persist view mode:', e);
+    }
   }, [view]);
 
   useEffect(() => {
@@ -203,10 +203,14 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
         const newSelection = pool[randomIndex];
         
         if (newSelection) {
-            localStorage.setItem(storageKey, JSON.stringify({
-                cdId: newSelection.id,
-                date: today,
-            }));
+            try {
+                localStorage.setItem(storageKey, JSON.stringify({
+                    cdId: newSelection.id,
+                    date: today,
+                }));
+            } catch (e) {
+                console.warn('Failed to persist featured album:', e);
+            }
             if (featuredCd?.id !== newSelection.id) {
                 setFeaturedCd(newSelection);
             }
@@ -387,6 +391,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
                 <h3 className="text-xl font-bold text-zinc-950">Welcome to DiscO!</h3>
                 <p className="text-zinc-700 mt-2">Your {collectionMode} collection is empty. Add your first {albumType} to get started.</p>
                 <button
+                  type="button"
                   onClick={() => onRequestAdd()}
                   className="mt-4 flex items-center justify-center gap-2 bg-zinc-900 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
                 >
@@ -417,17 +422,21 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
             <div className="flex items-center gap-1 p-1 bg-zinc-200 rounded-lg">
                 <button 
+                  type="button"
                   onClick={() => setView('grid')} 
                   className={`p-1.5 rounded-md transition-all ${view === 'grid' ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-600 hover:text-zinc-800'}`}
                   aria-label="Grid View"
+                  aria-pressed={view === 'grid'}
                   title="Grid View"
                 >
                     <Squares2x2Icon className="w-5 h-5" />
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setView('list')}
                   className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-600 hover:text-zinc-800'}`}
                   aria-label="List View"
+                  aria-pressed={view === 'list'}
                   title="List View"
                 >
                     <QueueListIcon className="w-5 h-5" />
@@ -452,6 +461,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
             </div>
             {fullDiscography === null && !isLoadingDiscography && (
               <button
+                type="button"
                 onClick={handleFetchDiscography}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 text-white hover:bg-zinc-800 rounded-md text-sm font-medium transition-colors shrink-0 shadow-xs"
               >
@@ -473,6 +483,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
             <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-100 border border-zinc-200 rounded-md p-3">
               <p className="text-xs text-zinc-600">{discographyError}</p>
               <button
+                type="button"
                 onClick={handleFetchDiscography}
                 className="text-xs font-semibold text-zinc-800 hover:text-zinc-900 underline shrink-0"
               >
@@ -481,7 +492,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
             </div>
           )}
 
-          {!isLoadingDiscography && !discographyError && fullDiscography !== null && missingAlbums.length === 0 && (
+          {!isLoadingDiscography && !discographyError && fullDiscography !== null && fullDiscography.length === 0 && (
+            <div className="text-center py-4 bg-white border border-dashed border-zinc-200 rounded-md mt-4">
+              <p className="text-zinc-600 text-sm font-medium">No studio discography found for this artist.</p>
+            </div>
+          )}
+
+          {!isLoadingDiscography && !discographyError && fullDiscography !== null && fullDiscography.length > 0 && missingAlbums.length === 0 && (
             <div className="text-center py-4 bg-white border border-dashed border-zinc-200 rounded-md mt-4">
               <p className="text-zinc-600 text-sm font-medium">🎉 Congratulations! You have all of their main studio albums.</p>
             </div>

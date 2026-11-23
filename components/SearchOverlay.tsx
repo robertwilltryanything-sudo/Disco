@@ -50,6 +50,9 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose, onSearch
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-white/90 backdrop-blur-xl p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Global search"
           onClick={onClose}
         >
           <motion.div
@@ -76,6 +79,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose, onSearch
                             type="button"
                             onClick={() => setQuery('')}
                             className="p-2 text-zinc-400 hover:text-zinc-600 transition-colors"
+                            aria-label="Clear search query"
                         >
                             <XIcon className="w-6 h-6 md:w-8 md:h-8" />
                         </button>

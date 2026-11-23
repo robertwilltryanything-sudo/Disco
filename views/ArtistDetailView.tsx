@@ -53,11 +53,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
         setError(null);
         try {
             const disc = await getArtistStudioDiscography(artistName);
-            if (disc) {
-                setFullDiscography(disc);
-            } else {
-                setError("To view missing albums, please ensure your Gemini API key is configured.");
-            }
+            setFullDiscography(disc || []);
         } catch (err: any) {
             setError(err?.message || "Failed to load discography.");
         } finally {
@@ -84,6 +80,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                 </div>
                 {onRequestAdd && (
                     <button
+                        type="button"
                         onClick={() => onRequestAdd(artistName)}
                         className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-black text-white rounded-lg text-sm font-semibold transition-colors shadow-xs shrink-0 self-start sm:self-auto"
                     >
@@ -115,6 +112,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     </div>
                     {fullDiscography === null && !isLoading && (
                         <button
+                            type="button"
                             onClick={handleFetchDiscography}
                             className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 text-white hover:bg-zinc-800 rounded-md text-sm font-medium transition-colors shrink-0 shadow-xs"
                         >
@@ -136,6 +134,7 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-100 border border-zinc-200 rounded-md p-3">
                         <p className="text-xs text-zinc-600">{error}</p>
                         <button
+                            type="button"
                             onClick={handleFetchDiscography}
                             className="text-xs font-semibold text-zinc-800 hover:text-zinc-900 underline shrink-0"
                         >
@@ -144,7 +143,13 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
                     </div>
                 )}
 
-                {!isLoading && !error && fullDiscography !== null && missingAlbums.length === 0 && (
+                {!isLoading && !error && fullDiscography !== null && fullDiscography.length === 0 && (
+                    <div className="text-center py-4 bg-white border border-dashed border-zinc-200 rounded-md mt-4">
+                        <p className="text-zinc-600 text-sm font-medium">No studio discography found for this artist.</p>
+                    </div>
+                )}
+
+                {!isLoading && !error && fullDiscography !== null && fullDiscography.length > 0 && missingAlbums.length === 0 && (
                     <div className="text-center py-4 bg-white border border-dashed border-zinc-200 rounded-md mt-4">
                         <p className="text-zinc-600 text-sm font-medium">🎉 Congratulations! You have all of their main studio albums.</p>
                     </div>

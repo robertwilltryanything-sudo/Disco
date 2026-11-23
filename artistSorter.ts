@@ -258,9 +258,9 @@ export function determineArtistSortName(rawArtist: string): ArtistSortResult {
     return {
       artist,
       sort_name: artist,
-      isGroup: MONONYMS.has(lower) ? false : false,
+      isGroup: false,
       groupChar: /[A-ZÅÄÖ]/.test(char) ? char : '#',
-      reason: 'Single name / mononym'
+      reason: MONONYMS.has(lower) ? 'Known solo artist / mononym' : 'Single name / mononym'
     };
   }
 
