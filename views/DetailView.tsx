@@ -13,7 +13,7 @@ import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { PlexIcon } from '../components/icons/PlexIcon';
 import { usePlex, formatPlexDate } from '../context/PlexContext';
-import { getBrandColor } from '../utils';
+import { getBrandColor, sanitizeHttpUrl, sanitizeImageUrl } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
 
@@ -36,6 +36,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const { isAvailableInPlex, getPlexUrl, getPlexTarget, getPlexRel, getPlexRecord } = usePlex();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [updateFeedback, setUpdateFeedback] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
 
   const { cd, previousCd, nextCd } = useMemo(() => {
     const currentIndex = cds.findIndex(c => c.id === id);
@@ -114,12 +115,19 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   
   const wikipediaUrl = useMemo(() => {
     if (!cd) return '';
-    if (cd.wikipedia_url) return cd.wikipedia_url;
+    const safeUrl = sanitizeHttpUrl(cd.wikipedia_url);
+    if (safeUrl) return safeUrl;
     // Using Special:Search with go=Go attempts to redirect directly to the article if a match is found
     return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(cd.artist)}+${encodeURIComponent(cd.title)}+album&go=Go`;
   }, [cd]);
 
+  const safeCoverArtUrl = useMemo(() => sanitizeImageUrl(cd?.cover_art_url), [cd?.cover_art_url]);
+
   // Auto-resolve missing Wikipedia URL
+  React.useEffect(() => {
+    setUpdateFeedback(null);
+  }, [id]);
+
   React.useEffect(() => {
     if (!cd || cd.wikipedia_url) return;
     let isCancelled = false;
@@ -149,6 +157,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const handleUpdateInfo = useCallback(async () => {
     if (!cd || isUpdating) return;
     setIsUpdating(true);
+    setUpdateFeedback(null);
     try {
       const details = await getAlbumDetails(cd.artist, cd.title);
       if (details) {
@@ -158,17 +167,17 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
           year: details.year || cd.year,
           record_label: cd.record_label || details.record_label,
           producer: details.producer || cd.producer,
-          wikipedia_url: details.wikipedia_url || cd.wikipedia_url,
+          wikipedia_url: sanitizeHttpUrl(details.wikipedia_url) || cd.wikipedia_url,
           review: details.review || cd.review,
           tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])]
         };
         await onUpdateCD(updatedCd, true);
       } else {
-        alert("Gemini couldn't find any additional info for this album.");
+        setUpdateFeedback({ type: 'info', message: "Gemini couldn't find any additional info for this album." });
       }
     } catch (error: any) {
       console.error("Update error:", error);
-      alert(error.message || "Failed to connect to the AI service. Please check your internet and try again.");
+      setUpdateFeedback({ type: 'error', message: error.message || "Failed to connect to the AI service. Please check your internet and try again." });
     } finally {
       setIsUpdating(false);
     }
@@ -194,9 +203,9 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm relative group/card">
         <div className="md:flex">
             <div className="md:flex-shrink-0 md:w-80">
-                {cd.cover_art_url ? (
+                {safeCoverArtUrl ? (
                     <img 
-                      src={cd.cover_art_url} 
+                      src={safeCoverArtUrl} 
                       alt={`${cd.title} cover`} 
                       className="w-full aspect-square object-cover" 
                       referrerPolicy="no-referrer"
@@ -367,7 +376,26 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
               )}
 
               {/* Bottom Actions Row - Aligned Straight */}
-              <div className="mt-auto pt-8 flex flex-col gap-2 border-t border-zinc-50">
+              <div className="mt-auto pt-8 flex flex-col gap-3 border-t border-zinc-50">
+                {updateFeedback && (
+                  <div
+                    role="alert"
+                    className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg border text-xs font-medium ${
+                      updateFeedback.type === 'error'
+                        ? 'bg-red-50 border-red-200 text-red-700'
+                        : 'bg-zinc-50 border-zinc-200 text-zinc-700'
+                    }`}
+                  >
+                    <span>{updateFeedback.message}</span>
+                    <button
+                      type="button"
+                      onClick={() => setUpdateFeedback(null)}
+                      className="font-bold underline shrink-0 hover:opacity-75"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <a 

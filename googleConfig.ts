@@ -10,7 +10,8 @@ if (!clientId) {
 
 export const GOOGLE_CLIENT_ID = clientId;
 
-// Updated scope to allow browsing of existing files for the image picker
+// drive.file covers app-created collection backups; drive.readonly enables automatic discovery of
+// externally uploaded files such as disco_plex_data.json and browsing existing Drive artwork.
 export const GOOGLE_DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 
 // The name of the file where the collection data will be stored in Google Drive.

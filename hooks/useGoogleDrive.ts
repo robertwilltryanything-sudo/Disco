@@ -316,7 +316,8 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
             accessTokenRef.current = token;
             
             // Google access tokens are valid for expiresInSec (typically 3600 seconds)
-            const expiresInSec = Number(tokenResponse.expires_in) || 3600;
+            const parsedExpires = Number(tokenResponse.expires_in);
+            const expiresInSec = Number.isFinite(parsedExpires) && parsedExpires > 60 ? parsedExpires : 3600;
             const expiresAt = Date.now() + expiresInSec * 1000;
 
             localStorage.setItem(ACCESS_TOKEN_KEY, token);
@@ -435,8 +436,9 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
     const lookupPromise = (async () => {
       try {
+        const query = encodeURIComponent(`name='${COLLECTION_FILENAME}' and trashed=false`);
         const listResponse = await driveApiFetch(
-          `/drive/v3/files?q=name='${COLLECTION_FILENAME}' and trashed=false&spaces=drive&orderBy=modifiedTime%20desc&fields=files(id)`
+          `/drive/v3/files?q=${query}&spaces=drive&orderBy=modifiedTime%20desc&fields=files(id)`
         );
 
         if (listResponse.files && listResponse.files.length > 0) {
@@ -465,7 +467,8 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     if (!isSignedIn) return null;
     try {
       const id = await getOrCreateFileId();
-      const metadata = await driveApiFetch(`/drive/v3/files/${id}?fields=id,modifiedTime,version`);
+      const safeId = encodeURIComponent(id);
+      const metadata = await driveApiFetch(`/drive/v3/files/${safeId}?fields=id,modifiedTime,version`);
       return {
         id: metadata.id,
         modifiedTime: metadata.modifiedTime,
@@ -482,18 +485,19 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
+      const safeId = encodeURIComponent(id);
       
       const activeToken = accessTokenRef.current || getValidStoredToken();
       if (!activeToken) throw new Error("Not authenticated");
 
-      const contentResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+      const contentResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${safeId}?alt=media`, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });
       
       if (!contentResponse.ok) throw new Error("Failed to load file content");
       
       const data = await contentResponse.json();
-      const metadata = await driveApiFetch(`/drive/v3/files/${id}?fields=modifiedTime`);
+      const metadata = await driveApiFetch(`/drive/v3/files/${safeId}?fields=modifiedTime`);
       
       const normalizedData = {
           collection: (Array.isArray(data) ? data : data.collection) || [],
@@ -516,10 +520,11 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
       updateSyncStatus('saving');
       try {
         const id = await getOrCreateFileId();
+        const safeId = encodeURIComponent(id);
         const activeToken = accessTokenRef.current || getValidStoredToken();
         if (!activeToken) throw new Error("Not authenticated");
 
-        const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
+        const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${safeId}?uploadType=media`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${activeToken}`,
@@ -535,7 +540,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
           throw error;
         }
 
-        const metadata = await driveApiFetch(`/drive/v3/files/${id}?fields=modifiedTime`);
+        const metadata = await driveApiFetch(`/drive/v3/files/${safeId}?fields=modifiedTime`);
         setLastSyncTime(metadata.modifiedTime || new Date().toISOString());
         updateSyncStatus('synced');
         return true;
@@ -554,7 +559,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     if (!isSignedIn) return [];
     try {
       const id = await getOrCreateFileId();
-      const response = await driveApiFetch(`/drive/v3/files/${id}/revisions?fields=revisions(id, modifiedTime)`);
+      const response = await driveApiFetch(`/drive/v3/files/${encodeURIComponent(id)}/revisions?fields=revisions(id, modifiedTime)`);
       return response.revisions || [];
     } catch (e) { 
       return []; 
@@ -566,17 +571,19 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     updateSyncStatus('loading');
     try {
       const id = await getOrCreateFileId();
+      const safeId = encodeURIComponent(id);
+      const safeRevId = encodeURIComponent(revisionId);
       const activeToken = accessTokenRef.current || getValidStoredToken();
       if (!activeToken) throw new Error("Not authenticated");
       
-      const contentResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${id}/revisions/${revisionId}?alt=media`, {
+      const contentResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${safeId}/revisions/${safeRevId}?alt=media`, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });
       
       if (!contentResponse.ok) throw new Error("Failed to load revision content");
       
       const data = await contentResponse.json();
-      const metadata = await driveApiFetch(`/drive/v3/files/${id}/revisions/${revisionId}?fields=modifiedTime`);
+      const metadata = await driveApiFetch(`/drive/v3/files/${safeId}/revisions/${safeRevId}?fields=modifiedTime`);
       
       updateSyncStatus('synced');
       return Array.isArray(data) ? { collection: data, wantlist: [], lastUpdated: metadata.modifiedTime || new Date().toISOString() } : (data as UnifiedStorage);
@@ -589,7 +596,8 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
   const fetchDriveImages = useCallback(async (pageToken?: string): Promise<{files: DriveFile[], nextPageToken?: string}> => {
     if (!isSignedIn) return { files: [] };
     try {
-      const path = `/drive/v3/files?q=mimeType contains 'image/' and trashed = false&fields=nextPageToken, files(id, name, thumbnailLink, mimeType)&pageSize=40${pageToken ? `&pageToken=${pageToken}` : ''}`;
+      const imageQuery = encodeURIComponent("mimeType contains 'image/' and trashed = false");
+      const path = `/drive/v3/files?q=${imageQuery}&fields=nextPageToken,files(id,name,thumbnailLink,mimeType)&pageSize=40${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
       const response = await driveApiFetch(path);
       return {
         files: response.files || [],
@@ -680,7 +688,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
       const fileId = targetFile.id;
 
       // Download file content (read-only)
-      const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+      const downloadUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`;
       const downloadResponse = await fetch(downloadUrl, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });
@@ -790,7 +798,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
       if (files.length === 0) return null;
 
       const fileId = files[0].id;
-      const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+      const downloadUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`;
       const downloadResponse = await fetch(downloadUrl, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });

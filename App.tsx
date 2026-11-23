@@ -9,7 +9,7 @@ import DashboardView from './views/DashboardView';
 import { getAlbumDetails } from './gemini';
 import AddCDForm from './components/AddCDForm';
 import ConfirmDuplicateModal from './components/ConfirmDuplicateModal';
-import { areStringsSimilar, findDefinedArtistSortName } from './utils';
+import { areStringsSimilar, findDefinedArtistSortName, sanitizeHttpUrl, sanitizeImageUrl } from './utils';
 import BottomNavBar from './components/BottomNavBar';
 import SyncSettingsModal from './components/SyncSettingsModal';
 import DuplicatesView from './views/DuplicatesView';
@@ -74,6 +74,10 @@ const normalizeData = <T extends CD | WantlistItem>(item: any): T => {
     } else if (!normalized.genre) {
         normalized.genre = [];
     }
+
+    normalized.cover_art_url = sanitizeImageUrl(normalized.cover_art_url);
+    normalized.wikipedia_url = sanitizeHttpUrl(normalized.wikipedia_url);
+    normalized.allmusic_url = sanitizeHttpUrl(normalized.allmusic_url);
 
     delete normalized.coverArtUrl;
     delete normalized.recordLabel;

@@ -7,7 +7,7 @@ import { EditIcon } from '../components/icons/EditIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
 import { WikipediaIcon } from '../components/icons/WikipediaIcon';
 import RecommendedCDItem from '../components/RecommendedCDItem';
-import { getBrandColor } from '../utils';
+import { getBrandColor, sanitizeHttpUrl, sanitizeImageUrl } from '../utils';
 import { CheckIcon } from '../components/icons/CheckIcon';
 import { TrashIcon } from '../components/icons/TrashIcon';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
@@ -36,6 +36,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
   const navigate = useNavigate();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [updateFeedback, setUpdateFeedback] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
 
   const { item, previousItem, nextItem } = useMemo(() => {
     const currentIndex = wantlist.findIndex(i => i.id === id);
@@ -93,10 +94,17 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
   
   const wikipediaUrl = useMemo(() => {
     if (!item) return '';
-    if (item.wikipedia_url) return item.wikipedia_url;
+    const safeUrl = sanitizeHttpUrl(item.wikipedia_url);
+    if (safeUrl) return safeUrl;
     // Using Special:Search with go=Go attempts to redirect directly to the article if a match is found
     return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(item.artist)}+${encodeURIComponent(item.title)}+album&go=Go`;
   }, [item]);
+
+  const safeCoverArtUrl = useMemo(() => sanitizeImageUrl(item?.cover_art_url), [item?.cover_art_url]);
+
+  React.useEffect(() => {
+    setUpdateFeedback(null);
+  }, [id]);
 
   // Auto-resolve missing Wikipedia URL
   React.useEffect(() => {
@@ -128,6 +136,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
   const handleUpdateInfo = useCallback(async () => {
     if (!item || isUpdating) return;
     setIsUpdating(true);
+    setUpdateFeedback(null);
     try {
       const details = await getAlbumDetails(item.artist, item.title);
       if (details) {
@@ -137,17 +146,17 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           year: details.year || item.year,
           record_label: item.record_label || details.record_label,
           producer: details.producer || item.producer,
-          wikipedia_url: details.wikipedia_url || item.wikipedia_url,
+          wikipedia_url: sanitizeHttpUrl(details.wikipedia_url) || item.wikipedia_url,
           review: details.review || item.review,
           tags: [...new Set([...(item.tags || []), ...(details.tags || [])])]
         };
         await onUpdate(updatedItem, true);
       } else {
-        alert("No additional info found.");
+        setUpdateFeedback({ type: 'info', message: "No additional info found." });
       }
     } catch (error: any) {
       console.error("Update error:", error);
-      alert(error.message || "Failed to update wantlist item.");
+      setUpdateFeedback({ type: 'error', message: error.message || "Failed to update wantlist item." });
     } finally {
       setIsUpdating(false);
     }
@@ -211,8 +220,8 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
       <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden shadow-sm relative group/card">
         <div className="md:flex">
             <div className="md:flex-shrink-0">
-                {item.cover_art_url ? (
-                    <img src={item.cover_art_url} alt={`${item.title} cover`} className="w-full aspect-square object-cover md:w-64" referrerPolicy="no-referrer" />
+                {safeCoverArtUrl ? (
+                    <img src={safeCoverArtUrl} alt={`${item.title} cover`} className="w-full aspect-square object-cover md:w-64" referrerPolicy="no-referrer" />
                 ) : (
                     <div className="w-full aspect-square bg-zinc-50 flex items-center justify-center md:w-64">
                         <MusicNoteIcon className="w-24 h-24 text-zinc-200" />
@@ -324,45 +333,66 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
               )}
 
               {/* Bottom Actions Row - Aligned Straight */}
-              <div className="mt-auto pt-8 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-50">
-                  <div className="flex flex-wrap items-center gap-2">
-                      <button onClick={handleMoveToCollection} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors shadow-sm text-sm">
-                          <CheckIcon className="w-5 h-5" />
-                          Found it!
-                      </button>
-                      <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
-                          <WikipediaIcon className="w-5 h-5" />
-                          Wikipedia
-                      </a>
-                  </div>
-
-                  <div className="flex items-center gap-1 ml-auto">
-                    <button 
-                      onClick={handleUpdateInfo} 
-                      disabled={isUpdating}
-                      className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
-                        isUpdating 
-                          ? 'bg-zinc-100 text-blue-500 animate-pulse' 
-                          : 'text-zinc-400 hover:bg-zinc-100 hover:text-blue-500'
+              <div className="mt-auto pt-8 flex flex-col gap-3 border-t border-zinc-50">
+                  {updateFeedback && (
+                    <div
+                      role="alert"
+                      className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg border text-xs font-medium ${
+                        updateFeedback.type === 'error'
+                          ? 'bg-red-50 border-red-200 text-red-700'
+                          : 'bg-zinc-50 border-zinc-200 text-zinc-700'
                       }`}
-                      title="Update wantlist info using Wikipedia & Gemini"
                     >
-                      {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
-                    </button>
-                    <button 
-                      onClick={handleEdit} 
-                      className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-all transform hover:scale-110 active:scale-95" 
-                      title="Edit manual details"
-                    >
-                      <EditIcon className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => setIsDeleteModalOpen(true)} 
-                      className="p-2 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
-                      title="Delete from wantlist"
-                    >
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
+                      <span>{updateFeedback.message}</span>
+                      <button
+                        type="button"
+                        onClick={() => setUpdateFeedback(null)}
+                        className="font-bold underline shrink-0 hover:opacity-75"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                          <button onClick={handleMoveToCollection} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors shadow-sm text-sm">
+                              <CheckIcon className="w-5 h-5" />
+                              Found it!
+                          </button>
+                          <a href={wikipediaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-100 text-zinc-700 font-semibold py-2 px-3 rounded-lg hover:bg-zinc-200 transition-colors text-sm">
+                              <WikipediaIcon className="w-5 h-5" />
+                              Wikipedia
+                          </a>
+                      </div>
+
+                      <div className="flex items-center gap-1 ml-auto">
+                        <button 
+                          onClick={handleUpdateInfo} 
+                          disabled={isUpdating}
+                          className={`p-2 rounded-full transition-all transform hover:scale-110 active:scale-95 ${
+                            isUpdating 
+                              ? 'bg-zinc-100 text-blue-500 animate-pulse' 
+                              : 'text-zinc-400 hover:bg-zinc-100 hover:text-blue-500'
+                          }`}
+                          title="Update wantlist info using Wikipedia & Gemini"
+                        >
+                          {isUpdating ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                        </button>
+                        <button 
+                          onClick={handleEdit} 
+                          className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 transition-all transform hover:scale-110 active:scale-95" 
+                          title="Edit manual details"
+                        >
+                          <EditIcon className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => setIsDeleteModalOpen(true)} 
+                          className="p-2 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-500 transition-all transform hover:scale-110 active:scale-95" 
+                          title="Delete from wantlist"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </div>
                   </div>
               </div>
             </div>

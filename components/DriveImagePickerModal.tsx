@@ -4,6 +4,7 @@ import { SpinnerIcon } from './icons/SpinnerIcon';
 import { XIcon } from './icons/XIcon';
 import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import { SearchIcon } from './icons/SearchIcon';
+import { sanitizeHttpUrl } from '../utils';
 
 interface DriveImagePickerModalProps {
   isOpen: boolean;
@@ -58,12 +59,13 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
 
   // Helper to get high-quality direct image URL from Google's thumbnail link
   const getHighResUrl = (file: DriveFile) => {
-    if (file.thumbnailLink) {
+    const safeThumb = sanitizeHttpUrl(file.thumbnailLink);
+    if (safeThumb) {
         // thumbnailLink usually ends with =s220. 
         // Replacing it with =s1000 gives a high-quality direct link that bypasses cookie auth issues.
-        return file.thumbnailLink.split('=')[0] + '=s1000';
+        return safeThumb.split('=')[0] + '=s1000';
     }
-    return `https://drive.google.com/thumbnail?id=${file.id}&sz=w1000`;
+    return `https://drive.google.com/thumbnail?id=${encodeURIComponent(file.id)}&sz=w1000`;
   };
 
   if (!isOpen) return null;
@@ -112,16 +114,18 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {filteredFiles.map((file) => (
+              {filteredFiles.map((file) => {
+                const safeThumb = sanitizeHttpUrl(file.thumbnailLink);
+                return (
                 <button
                   key={file.id}
                   onClick={() => onSelect(getHighResUrl(file))}
                   className="group relative bg-white border border-zinc-200 rounded-xl overflow-hidden hover:ring-2 hover:ring-zinc-900 transition-all text-left shadow-sm"
                 >
                   <div className="aspect-square bg-zinc-100 flex items-center justify-center overflow-hidden">
-                    {file.thumbnailLink ? (
+                    {safeThumb ? (
                       <img 
-                        src={file.thumbnailLink.replace('=s220', '=s400')} 
+                        src={safeThumb.replace('=s220', '=s400')} 
                         alt={file.name} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         loading="lazy"
@@ -137,7 +141,8 @@ const DriveImagePickerModal: React.FC<DriveImagePickerModalProps> = ({ isOpen, o
                     </p>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
 

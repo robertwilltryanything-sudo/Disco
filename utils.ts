@@ -240,4 +240,33 @@ export const isCdVariousArtists = (
   return isVariousArtists(item.sort_name) || isVariousArtists(item.artist);
 };
 
+/**
+ * Validates that a link URL uses an http: or https: scheme, rejecting javascript:, data:, etc.
+ */
+export const sanitizeHttpUrl = (url?: string | null): string | undefined => {
+  if (typeof url !== 'string') return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.toString();
+    }
+  } catch {
+    // Invalid URL
+  }
+  return undefined;
+};
 
+/**
+ * Validates that an image URL is http(s) or a safe raster data URI (no SVG/script data URIs).
+ */
+export const sanitizeImageUrl = (url?: string | null): string | undefined => {
+  if (typeof url !== 'string') return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+  if (/^data:image\/(jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(trimmed)) {
+    return trimmed;
+  }
+  return sanitizeHttpUrl(trimmed);
+};

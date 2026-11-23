@@ -4,7 +4,9 @@ export default {
     "./index.html",
     "./index.tsx",
     "./App.tsx",
+    "./utils.ts",
     "./components/**/*.{js,ts,jsx,tsx}",
+    "./context/**/*.{js,ts,jsx,tsx}",
     "./views/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
