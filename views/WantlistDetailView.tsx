@@ -15,6 +15,12 @@ import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { SpinnerIcon } from '../components/icons/SpinnerIcon';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
+import {
+  VINYL_MEDIA_CONDITION,
+  VINYL_COVER_CONDITION,
+  CD_MEDIA_CONDITION,
+  CD_COVER_CONDITION,
+} from '../constants';
 
 interface WantlistDetailViewProps {
   wantlist: WantlistItem[];
@@ -25,11 +31,7 @@ interface WantlistDetailViewProps {
   collectionMode: CollectionMode;
 }
 
-const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped", "Snap, Crackle & Pop"];
-const VINYL_COVER_CONDITION = ["Ringwear", "Unglued", "Price Sticker", "Water Damage", "Surface Tear", "Cut Out"];
-
-const CD_MEDIA_CONDITION = ["Scratches", "Hairlines", "Sticky"];
-const CD_COVER_CONDITION = ["Cracked Case", "Price Sticker", "Surface Tear"];
+const WANTLIST_CD_COVER_CONDITION: readonly string[] = [...CD_COVER_CONDITION, "Cracked Case"];
 
 const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, onDelete, onUpdate, onMoveToCollection, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
@@ -179,8 +181,8 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
 
   const { mediaTraits, coverTraits, physicalAttributes } = useMemo(() => {
     if (!item || !item.attributes) return { mediaTraits: [], coverTraits: [], physicalAttributes: [] };
-    const mediaList = item.format === 'vinyl' ? VINYL_MEDIA_CONDITION : CD_MEDIA_CONDITION;
-    const coverList = item.format === 'vinyl' ? VINYL_COVER_CONDITION : CD_COVER_CONDITION;
+    const mediaList: readonly string[] = item.format === 'vinyl' ? VINYL_MEDIA_CONDITION : CD_MEDIA_CONDITION;
+    const coverList: readonly string[] = item.format === 'vinyl' ? VINYL_COVER_CONDITION : WANTLIST_CD_COVER_CONDITION;
     
     const media = item.attributes.filter(a => mediaList.includes(a));
     const cover = item.attributes.filter(a => coverList.includes(a));

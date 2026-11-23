@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { WantlistItem } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { CheckIcon } from './icons/CheckIcon';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
+import { sanitizeImageUrl } from '../utils';
 
 interface WantlistItemCardProps {
   item: WantlistItem;
@@ -15,22 +16,34 @@ interface WantlistItemCardProps {
 
 const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit, onDelete, onMoveToCollection }) => {
   const navigate = useNavigate();
-  const details = [Array.isArray(item.genre) ? item.genre.join(', ') : item.genre, item.year].filter(Boolean).join(' • ');
+  const safeCoverUrl = useMemo(() => sanitizeImageUrl(item.cover_art_url), [item.cover_art_url]);
+  const details = useMemo(
+    () => [Array.isArray(item.genre) ? item.genre.join(', ') : item.genre, item.year].filter(Boolean).join(' • '),
+    [item.genre, item.year]
+  );
+
+  const handleCardClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('a, button')) return;
+    navigate(`/wantlist/${item.id}`);
+  }, [item.id, navigate]);
 
   const handleActionClick = (e: React.MouseEvent, action: () => void) => {
-    e.preventDefault();
     e.stopPropagation();
     action();
   };
 
   return (
-    <Link to={`/wantlist/${item.id}`} className="block relative bg-white rounded-lg border border-zinc-200 overflow-hidden">
+    <div
+      onClick={handleCardClick}
+      className="block relative bg-white rounded-lg border border-zinc-200 overflow-hidden cursor-pointer"
+    >
       <div className="relative">
-        {item.cover_art_url ? (
+        {safeCoverUrl ? (
           <img 
-            src={item.cover_art_url} 
+            src={safeCoverUrl} 
             alt={`${item.title} cover`} 
             className="w-full h-auto aspect-square object-cover" 
+            loading="lazy"
             referrerPolicy="no-referrer"
           />
         ) : (
@@ -42,6 +55,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
         <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
             <div className="flex items-center gap-2">
                 <button
+                    type="button"
                     onClick={(e) => handleActionClick(e, () => onMoveToCollection(item))}
                     className="p-2 rounded-full bg-green-500 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                     aria-label="Found it!"
@@ -50,6 +64,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
                     <CheckIcon className="w-5 h-5" />
                 </button>
                 <button 
+                    type="button"
                     onClick={(e) => handleActionClick(e, () => onRequestEdit(item))}
                     className="p-2 rounded-full bg-zinc-100 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-800"
                     title="Edit Item"
@@ -58,6 +73,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
                     <EditIcon className="w-5 h-5" />
                 </button>
                 <button 
+                    type="button"
                     onClick={(e) => handleActionClick(e, () => onDelete(item.id))}
                     className="p-2 rounded-full bg-zinc-100 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                     title="Delete from Wantlist"
@@ -69,10 +85,12 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
         </div>
       </div>
       <div className="p-3">
-        <h3 className="font-bold text-base text-zinc-900 truncate" title={item.title}>{item.title}</h3>
+        <Link to={`/wantlist/${item.id}`} className="block font-bold text-base text-zinc-900 truncate hover:underline" title={item.title}>
+          {item.title}
+        </Link>
         <button 
+          type="button"
           onClick={(e) => {
-            e.preventDefault();
             e.stopPropagation();
             navigate({ pathname: '/', search: `?artist=${encodeURIComponent(item.artist)}&sort=year&order=asc` });
           }}
@@ -83,7 +101,7 @@ const WantlistItemCard: React.FC<WantlistItemCardProps> = ({ item, onRequestEdit
         </button>
         {details && <p className="text-sm text-zinc-500 mt-1">{details}</p>}
       </div>
-    </Link>
+    </div>
   );
 };
 

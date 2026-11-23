@@ -1,4 +1,4 @@
-export interface CD {
+export interface AlbumItem {
   id: string;
   artist: string;
   title: string;
@@ -22,34 +22,9 @@ export interface CD {
   format?: 'cd' | 'vinyl';
 }
 
-export interface WantlistItem {
-  id: string;
-  artist: string;
-  title: string;
-  genre?: string[];
-  year?: number;
-  cover_art_url?: string;
-  allmusic_url?: string;
-  wikipedia_url?: string;
-  review?: string;
-  notes?: string;
-  version?: string;
-  record_label?: string;
-  country?: string;
-  producer?: string;
-  tags?: string[];
-  sort_name?: string;
-  condition?: string;
-  attributes?: string[];
-  user_id?: string;
-  created_at?: string;
-  format?: 'cd' | 'vinyl';
-}
+export interface CD extends AlbumItem {}
 
-export interface CollectionData {
-  collection: CD[];
-  lastUpdated: string | null;
-}
+export interface WantlistItem extends AlbumItem {}
 
 export interface DriveRevision {
   id: string;
@@ -62,7 +37,5 @@ export type SortOrder = 'asc' | 'desc';
 export type SyncStatus = 'idle' | 'loading' | 'saving' | 'synced' | 'error' | 'disabled' | 'authenticating';
 
 export type SyncProvider = 'google_drive' | 'none';
-
-export type SyncMode = 'realtime' | 'manual';
 
 export type CollectionMode = 'cd' | 'vinyl';

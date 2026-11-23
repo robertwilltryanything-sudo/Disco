@@ -123,7 +123,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
     const decadeCounts: Record<string, number> = {};
     let totalWithYear = 0;
     validCds.forEach((cd: CD) => {
-      if (cd.year && !isNaN(cd.year)) {
+      if (typeof cd.year === 'number' && Number.isFinite(cd.year)) {
         totalWithYear++;
         const decade = Math.floor(cd.year / 10) * 10;
         const decadeLabel = `${decade}s`;
@@ -498,4 +498,4 @@ const DashboardView: React.FC<DashboardViewProps> = ({ cds, collectionMode }) =>
   );
 };
 
-export default DashboardView;
+export default React.memo(DashboardView);

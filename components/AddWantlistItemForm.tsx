@@ -14,7 +14,15 @@ import CoverArtSelectorModal from './CoverArtSelectorModal';
 import { TrashIcon } from './icons/TrashIcon';
 import { XIcon } from './icons/XIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
-import { findDefinedArtistSortName, compareStrings, isVariousArtists } from '../utils';
+import { findDefinedArtistSortName, compareStrings, isVariousArtists, sanitizeImageUrl } from '../utils';
+import {
+  VINYL_MEDIA_CONDITION,
+  VINYL_COVER_CONDITION,
+  VINYL_ATTRIBUTES,
+  CD_MEDIA_CONDITION,
+  CD_COVER_CONDITION,
+  CD_ATTRIBUTES,
+} from '../constants';
 
 interface AddWantlistItemFormProps {
   onSave: (item: Omit<WantlistItem, 'id'> & { id?: string }) => Promise<void>;
@@ -26,14 +34,6 @@ interface AddWantlistItemFormProps {
   existingCds?: CD[];
   existingWantlist?: WantlistItem[];
 }
-
-const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped", "Snap, Crackle & Pop"];
-const VINYL_COVER_CONDITION = ["Ringwear", "Unglued", "Price Sticker", "Water Damage", "Surface Tear", "Cut Out"];
-const VINYL_ATTRIBUTES = ["Gatefold", "Coloured Vinyl", "Hype Sticker", "Obi Strip", "OIS", "Upgradable"];
-
-const CD_MEDIA_CONDITION = ["Scratches", "Hairlines", "Sticky"];
-const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Surface Tear", "Water damage"];
-const CD_ATTRIBUTES = ["Digipak", "Slipcase", "Obi Strip", "Promo", "Upgradable"];
 
 const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemToEdit, onCancel, isVinyl, driveSignedIn, onPickFromDrive, existingCds = [], existingWantlist = [] }) => {
   const [artist, setArtist] = useState('');
@@ -233,13 +233,13 @@ const AddWantlistItemForm: React.FC<AddWantlistItemFormProps> = ({ onSave, itemT
 
   const handleSetArtFromUrl = useCallback(() => {
     if (manualUrl.trim()) {
-      const url = manualUrl.trim();
-      if (url.startsWith('http') && /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url)) {
-        setCoverArtUrl(url);
+      const safeUrl = sanitizeImageUrl(manualUrl);
+      if (safeUrl) {
+        setCoverArtUrl(safeUrl);
         setFormError(null);
       } else {
         setFormErrorTitle("Invalid URL");
-        setFormError("Please enter a valid image URL.");
+        setFormError("Please enter a valid http(s) image URL.");
       }
     }
   }, [manualUrl]);

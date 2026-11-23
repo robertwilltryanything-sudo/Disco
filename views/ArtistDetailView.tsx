@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CD, CollectionMode } from '../types';
-import { areStringsSimilar, isCdSingle, compareStrings } from '../utils';
+import { areStringsSimilar, isCdSingle, compareStrings, findMissingStudioAlbums } from '../utils';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { PlusIcon } from '../components/icons/PlusIcon';
 import CDItem from '../components/CDItem';
@@ -65,36 +65,10 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
         }
     };
 
-    const missingAlbums = useMemo(() => {
-        if (!fullDiscography) return [];
-
-        return fullDiscography.filter(discAlbum => {
-            // Check if the user already owns this album
-            const isOwned = userAlbumsByArtist.some(userAlbum => {
-                const clean = (s: string) => s.toLowerCase()
-                    .replace(/\(.*?\)/g, '') // remove anything in parentheses (special editions, remasters, etc.)
-                    .replace(/\[.*?\]/g, '') // remove anything in brackets
-                    .replace(/[^a-z0-9]/g, '') // keep only alphanumeric for robust matching
-                    .trim();
-
-                const cleanDisc = clean(discAlbum.title);
-                const cleanUser = clean(userAlbum.title);
-
-                // Exact match on cleaned string
-                if (cleanDisc === cleanUser) return true;
-
-                // One is a close substring of the other (handles "The Album" vs "Album" or vice versa)
-                if (cleanDisc.includes(cleanUser) || cleanUser.includes(cleanDisc)) {
-                    if (Math.abs(cleanDisc.length - cleanUser.length) < 8) return true;
-                }
-
-                // Fallback to Levenshtein check
-                return areStringsSimilar(discAlbum.title, userAlbum.title, 0.8);
-            });
-
-            return !isOwned;
-        });
-    }, [fullDiscography, userAlbumsByArtist]);
+    const missingAlbums = useMemo(
+        () => findMissingStudioAlbums(fullDiscography, userAlbumsByArtist),
+        [fullDiscography, userAlbumsByArtist]
+    );
 
     const albumTypePlural = collectionMode === 'vinyl' ? 'Vinyl' : 'CDs';
 
@@ -207,4 +181,4 @@ const ArtistDetailView: React.FC<ArtistDetailViewProps> = ({ cds, collectionMode
     );
 };
 
-export default ArtistDetailView;
+export default React.memo(ArtistDetailView);

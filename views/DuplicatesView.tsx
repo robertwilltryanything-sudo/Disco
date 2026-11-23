@@ -49,11 +49,25 @@ const DuplicatesView: React.FC<DuplicatesViewProps> = ({ cds, onDeleteCD, collec
     setDuplicateGroups(groups);
   }, [cds]);
 
+  const scanTimerRef = React.useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scanTimerRef.current !== null) {
+        window.clearTimeout(scanTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleScan = useCallback(() => {
+    if (scanTimerRef.current !== null) {
+      window.clearTimeout(scanTimerRef.current);
+    }
     setScanStatus('scanning');
     
     // Use a timeout to allow the UI to update to the "scanning" state before the blocking loop starts
-    setTimeout(() => {
+    scanTimerRef.current = window.setTimeout(() => {
+        scanTimerRef.current = null;
         runScan();
         setScanStatus('done');
     }, 50); // Small delay

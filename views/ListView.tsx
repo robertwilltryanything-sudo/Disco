@@ -11,7 +11,7 @@ import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
 import { QueueListIcon } from '../components/icons/QueueListIcon';
 import CDTable from '../components/CDTable';
 import { getArtistStudioDiscography } from '../gemini';
-import { areStringsSimilar, isCdSingle, compareStrings, isCdVariousArtists } from '../utils';
+import { areStringsSimilar, isCdSingle, compareStrings, isCdVariousArtists, findMissingStudioAlbums } from '../utils';
 
 interface ListViewProps {
   cds: CD[];
@@ -70,53 +70,31 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
     return cds.filter(cd => areStringsSimilar(cd.artist, urlArtistFilter));
   }, [cds, urlArtistFilter]);
 
-  const missingAlbums = useMemo(() => {
-    if (!fullDiscography) return [];
-
-    return fullDiscography.filter(discAlbum => {
-      // Check if the user already owns this album
-      const isOwned = userAlbumsByArtist.some(userAlbum => {
-        const clean = (s: string) => s.toLowerCase()
-          .replace(/\(.*?\)/g, '') // remove anything in parentheses (special editions, remasters, etc.)
-          .replace(/\[.*?\]/g, '') // remove anything in brackets
-          .replace(/[^a-z0-9]/g, '') // keep only alphanumeric for robust matching
-          .trim();
-
-        const cleanDisc = clean(discAlbum.title);
-        const cleanUser = clean(userAlbum.title);
-
-        // Exact match on cleaned string
-        if (cleanDisc === cleanUser) return true;
-
-        // One is a close substring of the other (handles "The Album" vs "Album" or vice versa)
-        if (cleanDisc.includes(cleanUser) || cleanUser.includes(cleanDisc)) {
-          if (Math.abs(cleanDisc.length - cleanUser.length) < 8) return true;
-        }
-
-        // Fallback to Levenshtein check
-        return areStringsSimilar(discAlbum.title, userAlbum.title, 0.8);
-      });
-
-      return !isOwned;
-    });
-  }, [fullDiscography, userAlbumsByArtist]);
+  const missingAlbums = useMemo(
+    () => findMissingStudioAlbums(fullDiscography, userAlbumsByArtist),
+    [fullDiscography, userAlbumsByArtist]
+  );
 
   const handleSortBy = useCallback((key: SortKey) => {
     setSortBy(key);
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('sort', key);
-    setSearchParams(newParams, { replace: true });
-  }, [searchParams, setSearchParams]);
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('sort', key);
+      return newParams;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const handleSortOrder = useCallback((order: SortOrder | ((prev: SortOrder) => SortOrder)) => {
     setSortOrder(prev => {
       const next = typeof order === 'function' ? order(prev) : order;
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('order', next);
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(prevParams => {
+        const newParams = new URLSearchParams(prevParams);
+        newParams.set('order', next);
+        return newParams;
+      }, { replace: true });
       return next;
     });
-  }, [searchParams, setSearchParams]);
+  }, [setSearchParams]);
 
   const focusSearchIntent = searchParams.get('focus') === 'search';
 
@@ -124,18 +102,20 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
 
   const handleSearch = useCallback((query: string) => {
     startTransition(() => {
-      const newParams = new URLSearchParams(searchParams);
-      if (query) {
-        newParams.set('q', query);
-      } else {
-        newParams.delete('q');
-      }
-      // Clear artist filter when manual search is performed
-      newParams.delete('artist');
-      newParams.delete('focus');
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        if (query) {
+          newParams.set('q', query);
+        } else {
+          newParams.delete('q');
+        }
+        // Clear artist filter when manual search is performed
+        newParams.delete('artist');
+        newParams.delete('focus');
+        return newParams;
+      }, { replace: true });
     });
-  }, [searchParams, setSearchParams]);
+  }, [setSearchParams]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -156,11 +136,13 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
         if (input) {
             input.focus();
         }
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete('focus');
-        setSearchParams(newParams, { replace: true });
+        setSearchParams(prev => {
+          const newParams = new URLSearchParams(prev);
+          newParams.delete('focus');
+          return newParams;
+        }, { replace: true });
     }
-  }, [focusSearchIntent, searchParams, setSearchParams]);
+  }, [focusSearchIntent, setSearchParams]);
 
   useEffect(() => {
     const { editCdId, addAlbumForArtist } = location.state || {};
@@ -239,32 +221,35 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
   }, [urlSearchQuery, urlArtistFilter]);
 
   const filteredAndSortedCds = useMemo(() => {
-    const filtered = [...cds]
-      .filter(cd => {
+    const lowerArtistFilter = urlArtistFilter ? urlArtistFilter.toLowerCase() : '';
+    const trimmedQuery = urlSearchQuery.trim();
+    const lowerCaseQuery = trimmedQuery.toLowerCase();
+    const artistMatch = trimmedQuery ? trimmedQuery.match(/^artist:"(.+)"$/i) : null;
+    const exactArtist = artistMatch ? artistMatch[1].toLowerCase() : null;
+    const numericQueryVal = Number(lowerCaseQuery);
+    const isNumericQuery = lowerCaseQuery.length > 0 && !Number.isNaN(numericQueryVal);
+    const isDecadeSearch = isNumericQuery && lowerCaseQuery.length === 4 && lowerCaseQuery.endsWith('0');
+    const decadeStart = isDecadeSearch ? numericQueryVal : 0;
+    const decadeEnd = decadeStart + 9;
+
+    const filtered = cds.filter(cd => {
         if (!cd) return false;
 
         // Priority 1: Exact Artist Filter (from URL param 'artist')
-        if (urlArtistFilter) {
-            return cd.artist && cd.artist.toLowerCase() === urlArtistFilter.toLowerCase();
+        if (lowerArtistFilter) {
+          return Boolean(cd.artist && cd.artist.toLowerCase() === lowerArtistFilter);
         }
 
-        const trimmedQuery = urlSearchQuery.trim();
-        const lowerCaseQuery = trimmedQuery.toLowerCase();
-        
         if (!lowerCaseQuery) return true;
 
         // Check for exact artist match prefix: artist:"Artist Name"
-        const artistMatch = trimmedQuery.match(/^artist:"(.+)"$/i);
-        if (artistMatch) {
-            const exactArtist = artistMatch[1].toLowerCase();
-            return cd.artist && cd.artist.toLowerCase() === exactArtist;
+        if (exactArtist !== null) {
+          return Boolean(cd.artist && cd.artist.toLowerCase() === exactArtist);
         }
 
-        const isNumericQuery = !isNaN(Number(lowerCaseQuery)) && lowerCaseQuery.length > 0;
-        const isDecadeSearch = isNumericQuery && lowerCaseQuery.length === 4 && lowerCaseQuery.endsWith('0');
         const yearMatches = cd.year != null && (
           isDecadeSearch
-            ? (cd.year >= Number(lowerCaseQuery) && cd.year <= Number(lowerCaseQuery) + 9)
+            ? (cd.year >= decadeStart && cd.year <= decadeEnd)
             : cd.year.toString().includes(lowerCaseQuery)
         );
         return (
@@ -277,9 +262,8 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
           (cd.attributes && cd.attributes.some(attr => attr && attr.toLowerCase().includes(lowerCaseQuery)))
         );
       });
-    
-    const sorted = [...filtered]
-      .sort((a, b) => {
+
+    filtered.sort((a, b) => {
         let valA = a[sortBy];
         let valB = b[sortBy];
         
@@ -386,7 +370,7 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
         return sortOrder === 'asc' ? comparison : -comparison;
       });
 
-    return sorted;
+    return filtered;
   }, [cds, urlSearchQuery, urlArtistFilter, sortBy, sortOrder]);
 
   const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
@@ -523,4 +507,4 @@ const ListView: React.FC<ListViewProps> = ({ cds, onRequestAdd, onRequestEdit, c
   );
 };
 
-export default ListView;
+export default React.memo(ListView);

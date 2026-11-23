@@ -28,26 +28,29 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '', collection
       return { totalCDs: 0, uniqueArtists: 0, latestCD: null, mostProlificArtist: null };
     }
 
-    const latest = [...cds].sort((a, b) => {
-        const dateA = new Date(a?.created_at || 0).getTime();
-        const dateB = new Date(b?.created_at || 0).getTime();
-        return dateB - dateA;
-    })[0] || null;
+    let latest: CD | null = null;
+    let latestTime = -Infinity;
+    const artistCounts: Record<string, number> = {};
 
-    const artistCounts: { [key: string]: number } = {};
-    cds.forEach(cd => {
-      if (cd && cd.artist) {
+    for (const cd of cds) {
+      if (!cd) continue;
+      const t = cd.created_at ? Date.parse(cd.created_at) : 0;
+      const validTime = Number.isFinite(t) ? t : 0;
+      if (!latest || validTime > latestTime) {
+        latest = cd;
+        latestTime = validTime;
+      }
+      if (cd.artist) {
         artistCounts[cd.artist] = (artistCounts[cd.artist] || 0) + 1;
       }
-    });
+    }
 
-    const uniqueArtistCount = Object.keys(artistCounts).length;
+    const artistEntries = Object.entries(artistCounts);
+    const uniqueArtistCount = artistEntries.length;
 
     let prolificArtist: { name: string; count: number } | null = null;
-    if (uniqueArtistCount > 0) {
-      const sortedArtists = Object.entries(artistCounts).sort(([, a], [, b]) => b - a);
-      if (sortedArtists.length > 0) {
-        const [name, count] = sortedArtists[0];
+    for (const [name, count] of artistEntries) {
+      if (!prolificArtist || count > prolificArtist.count) {
         prolificArtist = { name, count };
       }
     }
@@ -109,4 +112,4 @@ const QuickStats: React.FC<QuickStatsProps> = ({ cds, className = '', collection
   );
 };
 
-export default QuickStats;
+export default React.memo(QuickStats);

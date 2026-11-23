@@ -4,6 +4,7 @@ import { CD } from '../types';
 import { MusicNoteIcon } from './icons/MusicNoteIcon';
 import { PlexIcon } from './icons/PlexIcon';
 import { usePlex } from '../context/PlexContext';
+import { sanitizeImageUrl } from '../utils';
 
 interface CDItemProps {
   cd: CD;
@@ -11,11 +12,12 @@ interface CDItemProps {
 
 const CDItem: React.FC<CDItemProps> = ({ cd }) => {
   const [isIntersecting, setIsIntersecting] = useState(false);
-  const ref = useRef<HTMLAnchorElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { isAvailableInPlex, getPlexUrl, getPlexTarget, getPlexRel } = usePlex();
   const inPlex = isAvailableInPlex(cd.artist, cd.title);
   const plexUrl = inPlex ? getPlexUrl(cd.artist, cd.title) : null;
+  const safeCoverUrl = useMemo(() => sanitizeImageUrl(cd.cover_art_url), [cd.cover_art_url]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
@@ -29,8 +31,12 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
     return () => observer.disconnect();
   }, []);
 
+  const handleCardClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('a, button')) return;
+    navigate(`/cd/${cd.id}`);
+  }, [cd.id, navigate]);
+
   const handleArtistClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
     e.stopPropagation();
     navigate({ pathname: '/', search: `?artist=${encodeURIComponent(cd.artist)}&sort=year&order=asc` });
   }, [cd.artist, navigate]);
@@ -41,16 +47,16 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
   }, [cd.genre, cd.year]);
 
   return (
-    <Link 
-        ref={ref} 
-        to={`/cd/${cd.id}`} 
-        className="block relative bg-white rounded-lg border border-zinc-200 overflow-hidden"
+    <div
+      ref={ref}
+      onClick={handleCardClick}
+      className="block relative bg-white rounded-lg border border-zinc-200 overflow-hidden cursor-pointer"
     >
-       <div className="relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center">
-        {cd.cover_art_url ? (
+       <Link to={`/cd/${cd.id}`} className="block relative aspect-square overflow-hidden bg-zinc-100 flex items-center justify-center" aria-label={`View ${cd.title}`}>
+        {safeCoverUrl ? (
             isIntersecting ? (
                 <img 
-                    src={cd.cover_art_url} 
+                    src={safeCoverUrl} 
                     alt={`${cd.title} cover`} 
                     className="w-full h-full object-cover" 
                     referrerPolicy="no-referrer"
@@ -61,10 +67,12 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
         ) : (
             <MusicNoteIcon className="w-10 h-10 text-zinc-400" />
         )}
-      </div>
+      </Link>
       <div className="p-4">
         <div className="flex items-center justify-between gap-1.5 mb-0.5">
-          <h3 className="font-bold text-sm text-zinc-950 truncate flex-1" title={cd.title}>{cd.title}</h3>
+          <Link to={`/cd/${cd.id}`} className="font-bold text-sm text-zinc-950 truncate flex-1 hover:underline" title={cd.title}>
+            {cd.title}
+          </Link>
           {inPlex && (
             <a
               href={plexUrl || undefined}
@@ -83,14 +91,15 @@ const CDItem: React.FC<CDItemProps> = ({ cd }) => {
           )}
         </div>
         <button
+          type="button"
           onClick={handleArtistClick}
-          className="text-left w-full text-xs text-zinc-500 font-bold uppercase tracking-tight truncate"
+          className="text-left w-full text-xs text-zinc-500 font-bold uppercase tracking-tight truncate hover:underline"
         >
           {cd.artist}
         </button>
         {details && <p className="text-[10px] text-zinc-400 font-medium mt-1.5">{details}</p>}
       </div>
-    </Link>
+    </div>
   );
 };
 

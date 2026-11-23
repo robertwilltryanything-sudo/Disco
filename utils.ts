@@ -76,9 +76,11 @@ const levenshteinDistance = (s1: string, s2: string): number => {
  */
 export const areStringsSimilar = (s1: string, s2: string, threshold = 0.85): boolean => {
     if (!s1 || !s2) return false;
-    const distance = levenshteinDistance(s1, s2);
     const maxLength = Math.max(s1.length, s2.length);
     if (maxLength === 0) return true;
+    const minSimilarityPossible = 1 - Math.abs(s1.length - s2.length) / maxLength;
+    if (minSimilarityPossible < threshold) return false;
+    const distance = levenshteinDistance(s1, s2);
     const similarity = 1 - (distance / maxLength);
     return similarity >= threshold;
 };
@@ -106,7 +108,7 @@ export const getBestCD = (cds: CD[]): CD => {
     return score;
   };
 
-  return cds.sort((a, b) => {
+  return [...cds].sort((a, b) => {
     const scoreA = scoreCD(a);
     const scoreB = scoreCD(b);
     if (scoreA !== scoreB) {
@@ -270,3 +272,44 @@ export const sanitizeImageUrl = (url?: string | null): string | undefined => {
   }
   return sanitizeHttpUrl(trimmed);
 };
+
+/**
+ * Filters a studio discography list to releases not already owned in the user's albums.
+ */
+export const findMissingStudioAlbums = <T extends { title: string; year: number }>(
+  fullDiscography: T[] | null,
+  ownedAlbums: Array<{ title: string }>
+): T[] => {
+  if (!fullDiscography) return [];
+
+  const cleanTitle = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/\(.*?\)/g, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .trim();
+
+  const cleanedOwned = ownedAlbums.map((a) => ({
+    raw: a.title,
+    clean: cleanTitle(a.title),
+  }));
+
+  return fullDiscography.filter((discAlbum) => {
+    const cleanDisc = cleanTitle(discAlbum.title);
+    const isOwned = cleanedOwned.some((userAlbum) => {
+      if (cleanDisc && cleanDisc === userAlbum.clean) return true;
+      if (
+        cleanDisc &&
+        userAlbum.clean &&
+        (cleanDisc.includes(userAlbum.clean) || userAlbum.clean.includes(cleanDisc)) &&
+        Math.abs(cleanDisc.length - userAlbum.clean.length) < 8
+      ) {
+        return true;
+      }
+      return areStringsSimilar(discAlbum.title, userAlbum.raw, 0.8);
+    });
+    return !isOwned;
+  });
+};
+

@@ -16,6 +16,12 @@ import { usePlex, formatPlexDate } from '../context/PlexContext';
 import { getBrandColor, sanitizeHttpUrl, sanitizeImageUrl } from '../utils';
 import { getAlbumDetails } from '../gemini';
 import { searchWikipediaForArticle } from '../wikipedia';
+import {
+  VINYL_MEDIA_CONDITION,
+  VINYL_COVER_CONDITION,
+  CD_MEDIA_CONDITION,
+  CD_COVER_CONDITION,
+} from '../constants';
 
 interface DetailViewProps {
   cds: CD[];
@@ -23,12 +29,6 @@ interface DetailViewProps {
   onUpdateCD: (cd: CD, syncToCloud?: boolean) => Promise<void>;
   collectionMode: CollectionMode;
 }
-
-const VINYL_MEDIA_CONDITION = ["Hairlines", "Scratches", "Warped", "Snap, Crackle & Pop"];
-const VINYL_COVER_CONDITION = ["Ringwear", "Unglued", "Price Sticker", "Water Damage", "Surface Tear", "Cut Out"];
-
-const CD_MEDIA_CONDITION = ["Scratches", "Hairlines", "Sticky"];
-const CD_COVER_CONDITION = ["Replace Case", "Price Sticker", "Surface Tear", "Water damage"];
 
 const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, collectionMode }) => {
   const { id } = useParams<{ id: string }>();
@@ -185,8 +185,8 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
   const { mediaTraits, coverTraits, physicalAttributes } = useMemo(() => {
     if (!cd || !cd.attributes) return { mediaTraits: [], coverTraits: [], physicalAttributes: [] };
-    const mediaList = cd.format === 'vinyl' ? VINYL_MEDIA_CONDITION : CD_MEDIA_CONDITION;
-    const coverList = cd.format === 'vinyl' ? VINYL_COVER_CONDITION : CD_COVER_CONDITION;
+    const mediaList: readonly string[] = cd.format === 'vinyl' ? VINYL_MEDIA_CONDITION : CD_MEDIA_CONDITION;
+    const coverList: readonly string[] = cd.format === 'vinyl' ? VINYL_COVER_CONDITION : CD_COVER_CONDITION;
     
     const media = cd.attributes.filter(a => mediaList.includes(a));
     const cover = cd.attributes.filter(a => coverList.includes(a));

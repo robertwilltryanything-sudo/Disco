@@ -1,14 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { CD, CollectionMode } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
 import { ChevronDownIcon } from '../components/icons/ChevronDownIcon';
 import { LibraryIcon } from '../components/icons/LibraryIcon';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { PlexIcon } from '../components/icons/PlexIcon';
 import { usePlex } from '../context/PlexContext';
-import { isCdSingle, compareStrings, isVariousArtists, isSoundtrackTagged } from '../utils';
+import { isCdSingle, compareStrings, isVariousArtists, isSoundtrackTagged, sanitizeImageUrl } from '../utils';
 
 interface ShelfViewProps {
   cds: CD[];
@@ -22,63 +22,63 @@ const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
 const SHELF_SECTIONS = [...ALPHABET, VARIOUS_ARTISTS_SECTION, SOUNDTRACK_SECTION];
 
 const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtistSorter }) => {
+  const navigate = useNavigate();
   const { isAvailableInPlex, getPlexUrl, getPlexTarget, getPlexRel } = usePlex();
   // Sections collapsed by default for a better "visual overlook"
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const groupedCds = useMemo(() => {
     const groups: Record<string, CD[]> = {};
+    const sortInfoById = new Map<string, { groupChar: string; sortKey: string; isSingle: boolean; artistLower: string }>();
     
     // Initialize groups for all alphabetical letters, Various Artists, and Soundtrack at the end
     SHELF_SECTIONS.forEach(sec => groups[sec] = []);
 
-    // The "Used for shelf organization and artist sorting" field in the Edit window is `sort_name`.
-    // It is the ONE AND ONLY authority for shelf organization and artist sorting.
-    // If empty or unset, it simply falls back to `artist`.
-    const getShelfSortInfo = (cd: CD) => {
-      // 1. Check if album is tagged with "Soundtrack" -> placed in dedicated Soundtrack section after Various Artists
+    const computeShelfSortInfo = (cd: CD) => {
       if (isSoundtrackTagged(cd)) {
         return {
           groupChar: SOUNDTRACK_SECTION,
-          sortKey: (cd.title || '').trim() || cd.artist || ''
+          sortKey: (cd.title || '').trim() || cd.artist || '',
         };
       }
 
       const rawSort = (cd.sort_name && cd.sort_name.trim()) ? cd.sort_name.trim() : '';
       const rawArtist = (cd.artist && cd.artist.trim()) ? cd.artist.trim() : '';
 
-      // 2. Check if this album belongs to Various Artists (section before Soundtrack)
       if (isVariousArtists(rawSort) || isVariousArtists(rawArtist)) {
         return {
           groupChar: VARIOUS_ARTISTS_SECTION,
-          sortKey: (cd.title || '').trim() || rawArtist
+          sortKey: (cd.title || '').trim() || rawArtist,
         };
       }
 
       const raw = rawSort || rawArtist;
       if (!raw) return { groupChar: '#', sortKey: '' };
 
-      // Strip leading "The " for alphabetical group letter and sorting (e.g. "The Clash" -> "Clash")
       const clean = raw.replace(/^the\s+/i, '').trim();
       const firstChar = (clean.charAt(0) || '#').toUpperCase();
       const groupChar = /[A-ZÅÄÖ]/.test(firstChar) ? firstChar : '#';
 
       return {
         groupChar,
-        sortKey: clean
+        sortKey: clean,
       };
     };
 
     cds.forEach(cd => {
-      const { groupChar } = getShelfSortInfo(cd);
-      const targetGroup = groups[groupChar] !== undefined ? groupChar : '#';
+      const info = computeShelfSortInfo(cd);
+      sortInfoById.set(cd.id, {
+        ...info,
+        isSingle: isCdSingle(cd),
+        artistLower: (cd.artist || '').trim().toLowerCase(),
+      });
+      const targetGroup = groups[info.groupChar] !== undefined ? info.groupChar : '#';
       groups[targetGroup].push(cd);
     });
 
-    // Sort items within each group
+    // Sort items within each group using precomputed keys
     Object.keys(groups).forEach(key => {
       if (key === SOUNDTRACK_SECTION || key === VARIOUS_ARTISTS_SECTION) {
-        // Both Various Artists and Soundtrack sections are sorted strictly by album titles
         groups[key].sort((a, b) => {
           const titleA = (a.title || '').trim();
           const titleB = (b.title || '').trim();
@@ -89,22 +89,17 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
           return compareStrings(titleA, titleB);
         });
       } else {
-        // Standard alphabetical shelf sorting: Sort Key then Year then Title using Swedish collation
         groups[key].sort((a, b) => {
-          const infoA = getShelfSortInfo(a);
-          const infoB = getShelfSortInfo(b);
+          const infoA = sortInfoById.get(a.id)!;
+          const infoB = sortInfoById.get(b.id)!;
           
           const artComp = compareStrings(infoA.sortKey, infoB.sortKey);
-          if (artComp !== 0) {
-            const sameArtist = (a.artist || '').trim().toLowerCase() === (b.artist || '').trim().toLowerCase();
-            if (!sameArtist) return artComp;
+          if (artComp !== 0 && infoA.artistLower !== infoB.artistLower) {
+            return artComp;
           }
           
-          // Custom tag "CD Single" albums are sorted after all full-length albums by the artist
-          const aIsSingle = isCdSingle(a);
-          const bIsSingle = isCdSingle(b);
-          if (aIsSingle !== bIsSingle) {
-            return aIsSingle ? 1 : -1;
+          if (infoA.isSingle !== infoB.isSingle) {
+            return infoA.isSingle ? 1 : -1;
           }
 
           const yearComp = (a.year || 0) - (b.year || 0);
@@ -240,40 +235,51 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                   >
                     <div className="p-5 pt-0 border-t border-zinc-100">
                       <div className="grid grid-cols-1 gap-3 mt-4">
-                        {items.map((item) => (
-                          <Link 
-                            key={item.id} 
-                            to={`/cd/${item.id}`}
-                            className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-colors group"
+                        {items.map((item) => {
+                          const safeCoverUrl = sanitizeImageUrl(item.cover_art_url);
+                          const plexUrl = isAvailableInPlex(item.artist, item.title) ? getPlexUrl(item.artist, item.title) : null;
+                          const inPlex = isAvailableInPlex(item.artist, item.title);
+                          return (
+                          <div
+                            key={item.id}
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).closest('a, button')) return;
+                              navigate(`/cd/${item.id}`);
+                            }}
+                            className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-colors group cursor-pointer"
                           >
-                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-200 shrink-0 shadow-sm">
-                              {item.cover_art_url ? (
-                                <img src={item.cover_art_url} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <Link to={`/cd/${item.id}`} className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-200 shrink-0 shadow-sm block" aria-label={`View ${item.title}`}>
+                              {safeCoverUrl ? (
+                                <img src={safeCoverUrl} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-zinc-400">
                                   <LibraryIcon className="w-5 h-5" />
                                 </div>
                               )}
-                            </div>
+                            </Link>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-bold text-zinc-950 truncate leading-tight group-hover:text-zinc-900">{item.artist}</p>
+                                <Link to={`/cd/${item.id}`} className="text-sm font-bold text-zinc-950 truncate leading-tight group-hover:text-zinc-900 hover:underline">
+                                  {item.artist}
+                                </Link>
                                 {section !== VARIOUS_ARTISTS_SECTION && section !== SOUNDTRACK_SECTION && item.sort_name && item.sort_name.trim().toLowerCase() !== (item.artist || '').trim().toLowerCase() && (
                                   <span className="text-[10px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                                     Sort: {item.sort_name}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-zinc-600 truncate flex items-center gap-1.5">
-                                <span className="truncate">{item.title} {item.year ? `(${item.year})` : ''}</span>
-                                {isAvailableInPlex(item.artist, item.title) && (
+                              <div className="text-xs text-zinc-600 truncate flex items-center gap-1.5">
+                                <Link to={`/cd/${item.id}`} className="truncate hover:underline">
+                                  {item.title} {item.year ? `(${item.year})` : ''}
+                                </Link>
+                                {inPlex && (
                                   <a
-                                    href={getPlexUrl(item.artist, item.title) || undefined}
+                                    href={plexUrl || undefined}
                                     target={getPlexTarget()}
                                     rel={getPlexRel()}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (!getPlexUrl(item.artist, item.title)) e.preventDefault();
+                                      if (!plexUrl) e.preventDefault();
                                     }}
                                     className="shrink-0 inline-flex items-center hover:opacity-75 transition-opacity cursor-pointer p-0.5 rounded"
                                     title="Open album in Plex"
@@ -282,10 +288,11 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
                                     <PlexIcon className="w-3 h-3" />
                                   </a>
                                 )}
-                              </p>
+                              </div>
                             </div>
-                          </Link>
-                        ))}
+                          </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </motion.div>
@@ -307,4 +314,4 @@ const ShelfView: React.FC<ShelfViewProps> = ({ cds, collectionMode, onOpenArtist
   );
 };
 
-export default ShelfView;
+export default React.memo(ShelfView);

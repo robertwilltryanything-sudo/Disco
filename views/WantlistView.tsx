@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { WantlistItem, CollectionMode } from '../types';
 import { Squares2x2Icon } from '../components/icons/Squares2x2Icon';
@@ -49,7 +49,7 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
 
     const albumType = collectionMode === 'vinyl' ? 'Vinyl' : 'CD';
 
-    const sortedWantlist = [...wantlist].sort((a, b) => {
+    const sortedWantlist = useMemo(() => [...wantlist].sort((a, b) => {
         const nameA = a.sort_name || a.artist || '';
         const nameB = b.sort_name || b.artist || '';
         const artComp = compareStrings(nameA, nameB);
@@ -65,7 +65,7 @@ const WantlistView: React.FC<WantlistViewProps> = ({ wantlist, onRequestEdit, on
         const yearComp = (a.year || 0) - (b.year || 0);
         if (yearComp !== 0) return yearComp;
         return compareStrings(a.title, b.title);
-    });
+    }), [wantlist]);
 
     return (
         <div className="max-w-4xl mx-auto">
