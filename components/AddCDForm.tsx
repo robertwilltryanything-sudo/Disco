@@ -93,6 +93,11 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     setFormError(null);
   }, []);
   
+  const existingCdsRef = React.useRef(existingCds);
+  existingCdsRef.current = existingCds;
+  const existingWantlistRef = React.useRef(existingWantlist);
+  existingWantlistRef.current = existingWantlist;
+
   useEffect(() => {
     if (cdToEdit) {
       setArtist(cdToEdit.artist);
@@ -112,7 +117,9 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
     } else {
       resetForm();
       if (prefill) {
-        const defined = findDefinedArtistSortName(prefill.artist, existingCds) || findDefinedArtistSortName(prefill.artist, existingWantlist);
+        const defined =
+          findDefinedArtistSortName(prefill.artist, existingCdsRef.current) ||
+          findDefinedArtistSortName(prefill.artist, existingWantlistRef.current);
         setArtist(prefill.artist || '');
         setSortName(defined || prefill.sort_name || '');
         if (defined) {
@@ -133,7 +140,7 @@ const AddCDForm: React.FC<AddCDFormProps> = ({ onSave, cdToEdit, onCancel, prefi
         setNotes(prefill.notes || '');
       }
     }
-  }, [cdToEdit, prefill, resetForm, existingCds, existingWantlist]);
+  }, [cdToEdit, prefill, resetForm]);
 
   const handleArtistChange = useCallback((newArtist: string) => {
     setArtist(newArtist);

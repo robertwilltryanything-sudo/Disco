@@ -7,7 +7,6 @@ import { QuestionMarkCircleIcon } from './icons/QuestionMarkCircleIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { SpinnerIcon } from './icons/SpinnerIcon';
 import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
-import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 interface SyncSettingsModalProps {
     isOpen: boolean;
@@ -20,6 +19,8 @@ interface SyncSettingsModalProps {
     userEmail?: string | null;
     onSignIn: () => void;
     onSignOut?: () => void;
+    getRevisions?: () => Promise<DriveRevision[]>;
+    onRestoreRevision?: (revisionId: string) => Promise<boolean>;
 }
 
 const ProviderOption: React.FC<{
@@ -66,32 +67,68 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
     userEmail,
     onSignIn,
     onSignOut,
+    getRevisions,
+    onRestoreRevision,
 }) => {
     const [showDriveHelp, setShowDriveHelp] = useState(false);
     const [showTroubleshooting, setShowTroubleshooting] = useState(false);
-    // Explicitly type the state to fix TS2339 errors
     const [revisions, setRevisions] = useState<DriveRevision[]>([]);
     const [isLoadingRevisions, setIsLoadingRevisions] = useState(false);
-    const googleDrive = useGoogleDrive();
+    const [confirmingRevId, setConfirmingRevId] = useState<string | null>(null);
+    const [isRestoringRevId, setIsRestoringRevId] = useState<string | null>(null);
+    const [restoreError, setRestoreError] = useState<string | null>(null);
 
-    const activeSignedIn = isSignedIn || googleDrive.isSignedIn;
-    const activeEmail = userEmail || googleDrive.userProfile.email;
+    const activeSignedIn = isSignedIn;
+    const activeEmail = userEmail;
 
     useEffect(() => {
-        if (isOpen && currentProvider === 'google_drive' && activeSignedIn) {
-            setIsLoadingRevisions(true);
-            googleDrive.getRevisions().then(revs => {
-                setRevisions(revs.sort((a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime()).slice(0, 10));
-                setIsLoadingRevisions(false);
-            });
+        if (!isOpen) {
+            setConfirmingRevId(null);
+            setRestoreError(null);
+            return;
         }
-    }, [isOpen, currentProvider, activeSignedIn, googleDrive]);
+        if (currentProvider === 'google_drive' && isSignedIn && getRevisions) {
+            let isCancelled = false;
+            setIsLoadingRevisions(true);
+            getRevisions()
+                .then(revs => {
+                    if (isCancelled) return;
+                    setRevisions(
+                        [...revs]
+                            .sort((a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime())
+                            .slice(0, 10)
+                    );
+                })
+                .catch(() => {
+                    if (!isCancelled) setRevisions([]);
+                })
+                .finally(() => {
+                    if (!isCancelled) setIsLoadingRevisions(false);
+                });
+            return () => {
+                isCancelled = true;
+            };
+        } else {
+            setRevisions([]);
+        }
+    }, [isOpen, currentProvider, isSignedIn, getRevisions]);
 
     const handleRestore = async (revId: string) => {
-        if (!window.confirm("Restore this version? Your current local changes will be replaced.")) return;
-        const data = await googleDrive.loadRevision(revId);
-        if (data) {
-            window.location.reload(); 
+        if (!onRestoreRevision || isRestoringRevId) return;
+        setIsRestoringRevId(revId);
+        setRestoreError(null);
+        try {
+            const restored = await onRestoreRevision(revId);
+            if (restored) {
+                setConfirmingRevId(null);
+                onClose();
+            } else {
+                setRestoreError("Could not restore this backup revision. Please try again.");
+            }
+        } catch (err: any) {
+            setRestoreError(err?.message || "Failed to restore this backup revision.");
+        } finally {
+            setIsRestoringRevId(null);
         }
     };
 
@@ -135,15 +172,14 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                                         </p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        if (onSignOut) onSignOut();
-                                        else googleDrive.signOut();
-                                    }}
-                                    className="text-xs text-emerald-800 hover:text-red-700 hover:underline font-medium ml-3 shrink-0"
-                                >
-                                    Sign Out
-                                </button>
+                                {onSignOut && (
+                                  <button
+                                      onClick={onSignOut}
+                                      className="text-xs text-emerald-800 hover:text-red-700 hover:underline font-medium ml-3 shrink-0"
+                                  >
+                                      Sign Out
+                                  </button>
+                                )}
                             </div>
                             <div className="mt-2 pt-2 border-t border-emerald-100 flex items-center justify-between text-[11px] text-emerald-800">
                                 <span>Stay Logged In: Enabled</span>
@@ -194,13 +230,19 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                         </div>
                     )}
 
-                    {currentProvider === 'google_drive' && googleDrive.isSignedIn && (
+                    {currentProvider === 'google_drive' && activeSignedIn && (
                         <div className="mt-4 p-4 bg-zinc-50 border border-zinc-200 rounded-lg">
                             <h4 className="text-sm font-bold text-zinc-800 flex items-center gap-2 mb-3">
                                 <ClockIcon className="w-4 h-4" />
                                 Version History (Cloud)
                             </h4>
                             
+                            {restoreError && (
+                                <p className="mb-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
+                                    {restoreError}
+                                </p>
+                            )}
+
                             {isLoadingRevisions ? (
                                 <div className="flex items-center gap-2 py-2 text-zinc-500 text-xs">
                                     <SpinnerIcon className="w-3 h-3 animate-spin" />
@@ -209,16 +251,38 @@ const SyncSettingsModal: React.FC<SyncSettingsModalProps> = ({
                             ) : revisions.length > 0 ? (
                                 <div className="space-y-2 max-h-48 overflow-y-auto">
                                     {revisions.map((rev) => (
-                                        <div key={rev.id} className="flex items-center justify-between p-2 bg-white border border-zinc-200 rounded text-xs">
+                                        <div key={rev.id} className="flex items-center justify-between gap-2 p-2 bg-white border border-zinc-200 rounded text-xs">
                                             <span className="text-zinc-600">
                                                 {new Date(rev.modifiedTime).toLocaleString()}
                                             </span>
-                                            <button 
-                                                onClick={() => handleRestore(rev.id)}
-                                                className="text-blue-600 font-bold hover:underline"
-                                            >
-                                                Restore
-                                            </button>
+                                            {confirmingRevId === rev.id ? (
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        disabled={isRestoringRevId === rev.id}
+                                                        onClick={() => handleRestore(rev.id)}
+                                                        className="text-red-600 font-bold hover:underline disabled:opacity-50"
+                                                    >
+                                                        {isRestoringRevId === rev.id ? 'Restoring...' : 'Confirm'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        disabled={isRestoringRevId === rev.id}
+                                                        onClick={() => setConfirmingRevId(null)}
+                                                        className="text-zinc-500 hover:text-zinc-800"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setConfirmingRevId(rev.id)}
+                                                    className="text-blue-600 font-bold hover:underline shrink-0"
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

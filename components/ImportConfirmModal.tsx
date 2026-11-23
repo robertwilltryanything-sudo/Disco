@@ -6,9 +6,10 @@ interface ImportConfirmModalProps {
   onMerge: () => void;
   onReplace: () => void;
   importCount: number;
+  wantlistCount?: number;
 }
 
-const ImportConfirmModal: React.FC<ImportConfirmModalProps> = ({ isOpen, onClose, onMerge, onReplace, importCount }) => {
+const ImportConfirmModal: React.FC<ImportConfirmModalProps> = ({ isOpen, onClose, onMerge, onReplace, importCount, wantlistCount = 0 }) => {
   if (!isOpen) {
     return null;
   }
@@ -23,7 +24,10 @@ const ImportConfirmModal: React.FC<ImportConfirmModalProps> = ({ isOpen, onClose
       <div className="bg-white rounded-lg border border-zinc-200 p-6 m-4 max-w-md w-full">
         <h2 id="import-dialog-title" className="text-xl font-bold text-zinc-800">Confirm Import</h2>
         <p className="mt-2 text-zinc-600">
-          You are about to import <strong className="font-semibold text-zinc-900">{importCount}</strong> album(s).
+          You are about to import <strong className="font-semibold text-zinc-900">{importCount}</strong> album(s)
+          {wantlistCount > 0 && (
+            <> and <strong className="font-semibold text-zinc-900">{wantlistCount}</strong> wantlist item(s)</>
+          )}.
         </p>
         <p className="mt-4 text-zinc-600">
           Would you like to <strong className="font-semibold text-zinc-900">merge</strong> this with your current collection or <strong className="font-semibold text-zinc-900">replace</strong> it entirely?

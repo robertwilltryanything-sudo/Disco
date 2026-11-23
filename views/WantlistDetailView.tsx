@@ -20,7 +20,7 @@ interface WantlistDetailViewProps {
   wantlist: WantlistItem[];
   cds: CD[];
   onDelete: (id: string) => void;
-  onUpdate: (item: WantlistItem) => Promise<void>;
+  onUpdate: (item: WantlistItem, syncToCloud?: boolean) => Promise<void>;
   onMoveToCollection: (item: WantlistItem) => void;
   collectionMode: CollectionMode;
 }
@@ -53,19 +53,36 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
     
     const MAX_RECOMMENDATIONS = 4;
     const recommendedMap = new Map<string, CD>();
+    const targetArtist = (item.artist || '').trim().toLowerCase();
 
     cds.forEach(c => {
-      if (c.id !== item.id && c.artist === item.artist) recommendedMap.set(c.id, c);
+      if (c.id !== item.id && (c.artist || '').trim().toLowerCase() === targetArtist) {
+        recommendedMap.set(c.id, c);
+      }
     });
-    if (recommendedMap.size < MAX_RECOMMENDATIONS && item.genre) {
+
+    const itemGenres = new Set(
+      (Array.isArray(item.genre) ? item.genre : [])
+        .map(g => (typeof g === 'string' ? g.trim().toLowerCase() : ''))
+        .filter(Boolean)
+    );
+    if (recommendedMap.size < MAX_RECOMMENDATIONS && itemGenres.size > 0) {
       cds.forEach(c => {
-        if (!recommendedMap.has(c.id) && c.id !== item.id && c.genre === item.genre) recommendedMap.set(c.id, c);
+        if (recommendedMap.size >= MAX_RECOMMENDATIONS || recommendedMap.has(c.id) || c.id === item.id) return;
+        const cGenres = Array.isArray(c.genre) ? c.genre : [];
+        if (cGenres.some(g => typeof g === 'string' && itemGenres.has(g.trim().toLowerCase()))) {
+          recommendedMap.set(c.id, c);
+        }
       });
     }
+
     if (recommendedMap.size < MAX_RECOMMENDATIONS && item.tags && item.tags.length > 0) {
-      const currentTags = new Set(item.tags);
+      const currentTags = new Set(item.tags.map(t => t.trim().toLowerCase()));
       cds.forEach(c => {
-        if (!recommendedMap.has(c.id) && c.id !== item.id && c.tags?.some(tag => currentTags.has(tag))) recommendedMap.set(c.id, c);
+        if (recommendedMap.size >= MAX_RECOMMENDATIONS || recommendedMap.has(c.id) || c.id === item.id) return;
+        if (c.tags?.some(tag => currentTags.has(tag.trim().toLowerCase()))) {
+          recommendedMap.set(c.id, c);
+        }
       });
     }
     
@@ -83,21 +100,24 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
 
   // Auto-resolve missing Wikipedia URL
   React.useEffect(() => {
-    if (item && !item.wikipedia_url) {
-      const resolveWiki = async () => {
-        try {
-          const title = await searchWikipediaForArticle(item.artist, item.title);
-          if (title) {
-            const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`;
-            onUpdate( { ...item, wikipedia_url: url });
-          }
-        } catch (e) {
-          console.warn("Failed to auto-resolve Wikipedia URL", e);
+    if (!item || item.wikipedia_url) return;
+    let isCancelled = false;
+    const resolveWiki = async () => {
+      try {
+        const title = await searchWikipediaForArticle(item.artist, item.title);
+        if (!isCancelled && title) {
+          const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`;
+          onUpdate({ ...item, wikipedia_url: url }, false);
         }
-      };
-      resolveWiki();
-    }
-  }, [item?.id, item?.wikipedia_url]);
+      } catch (e) {
+        console.warn("Failed to auto-resolve Wikipedia URL", e);
+      }
+    };
+    resolveWiki();
+    return () => {
+      isCancelled = true;
+    };
+  }, [item, onUpdate]);
 
   const handleEdit = useCallback(() => {
     if (item) {
@@ -121,7 +141,7 @@ const WantlistDetailView: React.FC<WantlistDetailViewProps> = ({ wantlist, cds, 
           review: details.review || item.review,
           tags: [...new Set([...(item.tags || []), ...(details.tags || [])])]
         };
-        await onUpdate(updatedItem);
+        await onUpdate(updatedItem, true);
       } else {
         alert("No additional info found.");
       }

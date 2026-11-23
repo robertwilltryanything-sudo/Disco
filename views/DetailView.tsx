@@ -20,7 +20,7 @@ import { searchWikipediaForArticle } from '../wikipedia';
 interface DetailViewProps {
   cds: CD[];
   onDeleteCD: (id: string) => void;
-  onUpdateCD: (cd: CD) => Promise<void>;
+  onUpdateCD: (cd: CD, syncToCloud?: boolean) => Promise<void>;
   collectionMode: CollectionMode;
 }
 
@@ -46,8 +46,46 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
   const recommendations = useMemo(() => {
     if (!cd) return [];
     const MAX = 4;
-    const recs = cds.filter(c => c.id !== cd.id && (c.artist === cd.artist || c.genre === cd.genre));
-    return recs.slice(0, MAX);
+    const recommendedMap = new Map<string, CD>();
+    const targetArtist = (cd.artist || '').trim().toLowerCase();
+
+    cds.forEach(c => {
+      if (c.id !== cd.id && (c.artist || '').trim().toLowerCase() === targetArtist) {
+        recommendedMap.set(c.id, c);
+      }
+    });
+
+    const cdGenres = new Set(
+      (Array.isArray(cd.genre) ? cd.genre : [])
+        .map(g => (typeof g === 'string' ? g.trim().toLowerCase() : ''))
+        .filter(Boolean)
+    );
+    if (recommendedMap.size < MAX && cdGenres.size > 0) {
+      cds.forEach(c => {
+        if (recommendedMap.size >= MAX || recommendedMap.has(c.id) || c.id === cd.id) return;
+        const cGenres = Array.isArray(c.genre) ? c.genre : [];
+        if (cGenres.some(g => typeof g === 'string' && cdGenres.has(g.trim().toLowerCase()))) {
+          recommendedMap.set(c.id, c);
+        }
+      });
+    }
+
+    const cdTags = new Set(
+      (Array.isArray(cd.tags) ? cd.tags : [])
+        .map(t => (typeof t === 'string' ? t.trim().toLowerCase() : ''))
+        .filter(Boolean)
+    );
+    if (recommendedMap.size < MAX && cdTags.size > 0) {
+      cds.forEach(c => {
+        if (recommendedMap.size >= MAX || recommendedMap.has(c.id) || c.id === cd.id) return;
+        const cTags = Array.isArray(c.tags) ? c.tags : [];
+        if (cTags.some(t => typeof t === 'string' && cdTags.has(t.trim().toLowerCase()))) {
+          recommendedMap.set(c.id, c);
+        }
+      });
+    }
+
+    return Array.from(recommendedMap.values()).slice(0, MAX);
   }, [cd, cds]);
 
   const plexHistory = useMemo(() => {
@@ -83,21 +121,24 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
 
   // Auto-resolve missing Wikipedia URL
   React.useEffect(() => {
-    if (cd && !cd.wikipedia_url) {
-      const resolveWiki = async () => {
-        try {
-          const title = await searchWikipediaForArticle(cd.artist, cd.title);
-          if (title) {
-            const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`;
-            onUpdateCD({ ...cd, wikipedia_url: url });
-          }
-        } catch (e) {
-          console.warn("Failed to auto-resolve Wikipedia URL", e);
+    if (!cd || cd.wikipedia_url) return;
+    let isCancelled = false;
+    const resolveWiki = async () => {
+      try {
+        const title = await searchWikipediaForArticle(cd.artist, cd.title);
+        if (!isCancelled && title) {
+          const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`;
+          onUpdateCD({ ...cd, wikipedia_url: url }, false);
         }
-      };
-      resolveWiki();
-    }
-  }, [cd?.id, cd?.wikipedia_url]);
+      } catch (e) {
+        console.warn("Failed to auto-resolve Wikipedia URL", e);
+      }
+    };
+    resolveWiki();
+    return () => {
+      isCancelled = true;
+    };
+  }, [cd, onUpdateCD]);
 
   const handleSearchFilter = (value: string | number | undefined) => {
     if (value) {
@@ -121,7 +162,7 @@ const DetailView: React.FC<DetailViewProps> = ({ cds, onDeleteCD, onUpdateCD, co
           review: details.review || cd.review,
           tags: [...new Set([...(cd.tags || []), ...(details.tags || [])])]
         };
-        await onUpdateCD(updatedCd);
+        await onUpdateCD(updatedCd, true);
       } else {
         alert("Gemini couldn't find any additional info for this album.");
       }

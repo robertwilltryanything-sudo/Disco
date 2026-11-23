@@ -109,6 +109,8 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
 
   const accessTokenRef = useRef<string | null>(initialValidToken);
   const fileIdRef = useRef<string | null>(null);
+  const fileIdPromiseRef = useRef<Promise<string> | null>(null);
+  const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
   const authTimeoutRef = useRef<number | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
   const syncStatusRef = useRef<SyncStatus>('idle');
@@ -139,6 +141,7 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     setNeedsTokenRefresh(false);
     setUserProfile({ email: null, name: null, picture: null });
     fileIdRef.current = null;
+    fileIdPromiseRef.current = null;
     updateSyncStatus('idle');
     setLastSyncTime(null);
 
@@ -426,23 +429,35 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     window.tokenClient.requestAccessToken(options);
   }, [updateSyncStatus, initializeSync]);
 
-  const getOrCreateFileId = useCallback(async () => {
+  const getOrCreateFileId = useCallback(async (): Promise<string> => {
     if (fileIdRef.current) return fileIdRef.current;
-    
-    const listResponse = await driveApiFetch(`/drive/v3/files?q=name='${COLLECTION_FILENAME}' and trashed=false&spaces=drive&fields=files(id)`);
-    
-    if (listResponse.files && listResponse.files.length > 0) {
-      fileIdRef.current = listResponse.files[0].id;
-      return fileIdRef.current;
-    } else {
-      const createResponse = await driveApiFetch('/drive/v3/files?fields=id', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: COLLECTION_FILENAME, mimeType: 'application/json' }),
-      });
-      fileIdRef.current = createResponse.id;
-      return fileIdRef.current;
-    }
+    if (fileIdPromiseRef.current) return fileIdPromiseRef.current;
+
+    const lookupPromise = (async () => {
+      try {
+        const listResponse = await driveApiFetch(
+          `/drive/v3/files?q=name='${COLLECTION_FILENAME}' and trashed=false&spaces=drive&orderBy=modifiedTime%20desc&fields=files(id)`
+        );
+
+        if (listResponse.files && listResponse.files.length > 0) {
+          fileIdRef.current = listResponse.files[0].id as string;
+          return fileIdRef.current;
+        }
+
+        const createResponse = await driveApiFetch('/drive/v3/files?fields=id', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: COLLECTION_FILENAME, mimeType: 'application/json' }),
+        });
+        fileIdRef.current = createResponse.id as string;
+        return fileIdRef.current;
+      } finally {
+        fileIdPromiseRef.current = null;
+      }
+    })();
+
+    fileIdPromiseRef.current = lookupPromise;
+    return lookupPromise;
   }, [driveApiFetch]);
 
   // Fast metadata check without loading entire file payload
@@ -495,31 +510,44 @@ export const useGoogleDrive = (onSignInSuccess?: () => void) => {
     }
   }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus, driveApiFetch]);
 
-  const saveData = useCallback(async (data: UnifiedStorage) => {
-    if (!isSignedIn) return;
-    updateSyncStatus('saving');
-    try {
-      const id = await getOrCreateFileId();
-      const activeToken = accessTokenRef.current || getValidStoredToken();
-      if (!activeToken) throw new Error("Not authenticated");
-      
-      const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
-        method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${activeToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!uploadResponse.ok) throw new Error("Failed to save data");
-      
-      const metadata = await driveApiFetch(`/drive/v3/files/${id}?fields=modifiedTime`);
-      setLastSyncTime(metadata.modifiedTime || new Date().toISOString());
-      updateSyncStatus('synced');
-    } catch (e: any) {
-      handleApiError(e, 'save_data');
-    }
+  const saveData = useCallback((data: UnifiedStorage): Promise<boolean> => {
+    const runSave = async (): Promise<boolean> => {
+      if (!isSignedIn) return false;
+      updateSyncStatus('saving');
+      try {
+        const id = await getOrCreateFileId();
+        const activeToken = accessTokenRef.current || getValidStoredToken();
+        if (!activeToken) throw new Error("Not authenticated");
+
+        const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${activeToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => ({}));
+          const error = new Error(errorData.error?.message || "Failed to save data") as any;
+          error.status = uploadResponse.status;
+          throw error;
+        }
+
+        const metadata = await driveApiFetch(`/drive/v3/files/${id}?fields=modifiedTime`);
+        setLastSyncTime(metadata.modifiedTime || new Date().toISOString());
+        updateSyncStatus('synced');
+        return true;
+      } catch (e: any) {
+        handleApiError(e, 'save_data');
+        return false;
+      }
+    };
+
+    const queued = saveQueueRef.current.then(runSave, runSave);
+    saveQueueRef.current = queued;
+    return queued;
   }, [isSignedIn, getOrCreateFileId, handleApiError, updateSyncStatus, driveApiFetch]);
 
   const getRevisions = useCallback(async (): Promise<DriveRevision[]> => {

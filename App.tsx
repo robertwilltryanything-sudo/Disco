@@ -183,15 +183,25 @@ const AppContent: React.FC = () => {
   });
 
   const [collection, setCollection] = useState<CD[]>(() => {
-    const saved = localStorage.getItem('disco_collection');
-    const data = saved ? JSON.parse(saved) : INITIAL_COLLECTION;
-    return Array.isArray(data) ? data.map(normalizeData<CD>) : [];
+    try {
+      const saved = localStorage.getItem('disco_collection');
+      const data = saved ? JSON.parse(saved) : INITIAL_COLLECTION;
+      return Array.isArray(data) ? data.map(normalizeData<CD>) : INITIAL_COLLECTION.map(normalizeData<CD>);
+    } catch (e) {
+      console.warn("Failed to parse saved collection from localStorage:", e);
+      return INITIAL_COLLECTION.map(normalizeData<CD>);
+    }
   });
 
   const [wantlist, setWantlist] = useState<WantlistItem[]>(() => {
+    try {
       const saved = localStorage.getItem('disco_wantlist');
       const data = saved ? JSON.parse(saved) : [];
       return Array.isArray(data) ? data.map(normalizeData<WantlistItem>) : [];
+    } catch (e) {
+      console.warn("Failed to parse saved wantlist from localStorage:", e);
+      return [];
+    }
   });
 
   const currentCollection = useMemo(() => 
@@ -208,7 +218,7 @@ const AppContent: React.FC = () => {
   const [isAddWantlistModalOpen, setIsAddWantlistModalOpen] = useState(false);
   const [wantlistItemToEdit, setWantlistItemToEdit] = useState<WantlistItem | null>(null);
   const [duplicateCheckResult, setDuplicateCheckResult] = useState<{ newCd: Omit<CD, 'id'>, existingCd: CD } | null>(null);
-  const [pendingImport, setPendingImport] = useState<CD[] | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ collection: CD[]; wantlist: WantlistItem[]; hasWantlist: boolean } | null>(null);
   const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isArtistSorterOpen, setIsArtistSorterOpen] = useState(false);
@@ -252,6 +262,8 @@ const AppContent: React.FC = () => {
     signOut: driveSignOut, 
     loadData: driveLoadData, 
     saveData: driveSaveData, 
+    getRevisions: driveGetRevisions,
+    loadRevision: driveLoadRevision,
     syncStatus: driveStatus,
     error: driveError,
     lastSyncTime: driveLastSyncTime,
@@ -279,12 +291,16 @@ const AppContent: React.FC = () => {
 
     showBanner('syncing', `Uploading ${actionLabel.toLowerCase()} to Google Drive...`, undefined, 0);
     try {
-      await driveSaveData({
+      const ok = await driveSaveData({
         collection: updatedCollection,
         wantlist: updatedWantlist,
         lastUpdated: timestamp
       });
-      showBanner('synced', 'Saved to Google Drive', 'Synced just now', 3500);
+      if (ok) {
+        showBanner('synced', 'Saved to Google Drive', 'Synced just now', 3500);
+      } else {
+        showBanner('error', 'Auto-save failed to upload to Google Drive', 'Saved locally', 5000);
+      }
     } catch (e: any) {
       console.error("Auto upload failed:", e);
       showBanner('error', 'Auto-save failed to upload to Google Drive', 'Saved locally', 5000);
@@ -402,19 +418,42 @@ const AppContent: React.FC = () => {
   const handleConfirmSync = useCallback(async () => {
       if (syncConfirmType === 'pull') {
           if (pendingCloudData) {
-              setCollection(pendingCloudData.collection || []);
-              setWantlist(pendingCloudData.wantlist || []);
+              const pulledCol = (pendingCloudData.collection || []).map(normalizeData<CD>);
+              const pulledWant = (pendingCloudData.wantlist || []).map(normalizeData<WantlistItem>);
+              setCollection(pulledCol);
+              setWantlist(pulledWant);
+              localStorage.setItem(LOCAL_UPDATED_AT_KEY, pendingCloudData.lastUpdated || new Date().toISOString());
+              showBanner('downloaded', 'Updated collection from Google Drive', `${pulledCol.length + pulledWant.length} items loaded`, 4000);
           }
       } else {
-          await driveSaveData({ 
+          const timestamp = new Date().toISOString();
+          const ok = await driveSaveData({ 
               collection, 
               wantlist, 
-              lastUpdated: new Date().toISOString() 
+              lastUpdated: timestamp 
           });
+          if (ok) {
+              localStorage.setItem(LOCAL_UPDATED_AT_KEY, timestamp);
+              showBanner('synced', 'Saved to Google Drive', 'Synced just now', 3500);
+          } else {
+              showBanner('error', 'Failed to upload to Google Drive', 'Saved locally', 5000);
+          }
       }
       setIsSyncConfirmOpen(false);
       setPendingCloudData(null);
-  }, [syncConfirmType, pendingCloudData, collection, wantlist, driveSaveData]);
+  }, [syncConfirmType, pendingCloudData, collection, wantlist, driveSaveData, showBanner]);
+
+  const handleRestoreRevision = useCallback(async (revisionId: string): Promise<boolean> => {
+      const data = await driveLoadRevision(revisionId);
+      if (!data || !Array.isArray(data.collection)) return false;
+
+      const restoredCol = data.collection.map(normalizeData<CD>);
+      const restoredWant = (data.wantlist || []).map(normalizeData<WantlistItem>);
+      setCollection(restoredCol);
+      setWantlist(restoredWant);
+      await triggerAutoUpload(restoredCol, restoredWant, 'Restored cloud backup');
+      return true;
+  }, [driveLoadRevision, triggerAutoUpload]);
 
   useEffect(() => {
     const migrateData = () => {
@@ -497,29 +536,59 @@ const AppContent: React.FC = () => {
           try {
             const content = event.target?.result as string;
             const importedData = JSON.parse(content);
-            const rawItems = Array.isArray(importedData) ? importedData : (importedData.collection || []);
-            setPendingImport(rawItems.map(normalizeData<CD>));
-          } catch (error) { alert("Failed to parse file."); }
+            const rawCollection = Array.isArray(importedData)
+              ? importedData
+              : Array.isArray(importedData?.collection)
+              ? importedData.collection
+              : null;
+            const hasWantlist = !Array.isArray(importedData) && Array.isArray(importedData?.wantlist);
+            const rawWantlist = hasWantlist ? importedData.wantlist : [];
+
+            if (!rawCollection && !hasWantlist) {
+              showBanner('error', 'Invalid backup file format', 'Expected a JSON collection array or backup object.', 5000);
+              return;
+            }
+
+            setPendingImport({
+              collection: (rawCollection || []).map(normalizeData<CD>),
+              wantlist: rawWantlist.map(normalizeData<WantlistItem>),
+              hasWantlist,
+            });
+          } catch (error) {
+            showBanner('error', 'Failed to parse JSON file', 'Please select a valid DiscO backup file.', 5000);
+          }
         };
         reader.readAsText(file);
       }
     };
     input.click();
-  }, []);
+  }, [showBanner]);
 
   const confirmImport = useCallback((strategy: 'merge' | 'replace') => {
       if (!pendingImport) return;
       let updatedCollection: CD[] = [];
+      let updatedWantlist: WantlistItem[] = wantlist;
+
       if (strategy === 'replace') { 
-        updatedCollection = pendingImport;
+        updatedCollection = pendingImport.collection;
+        if (pendingImport.hasWantlist) {
+          updatedWantlist = pendingImport.wantlist;
+        }
       } else {
         const existingIds = new Set(collection.map(c => c.id));
-        const newItems = pendingImport.filter(c => !existingIds.has(c.id));
+        const newItems = pendingImport.collection.filter(c => !existingIds.has(c.id));
         updatedCollection = [...collection, ...newItems];
+
+        if (pendingImport.wantlist.length > 0) {
+          const existingWantIds = new Set(wantlist.map(w => w.id));
+          const newWantItems = pendingImport.wantlist.filter(w => !existingWantIds.has(w.id));
+          updatedWantlist = [...wantlist, ...newWantItems];
+        }
       }
       setCollection(updatedCollection);
+      setWantlist(updatedWantlist);
       setPendingImport(null);
-      triggerAutoUpload(updatedCollection, wantlist, 'Imported items');
+      triggerAutoUpload(updatedCollection, updatedWantlist, 'Imported items');
   }, [pendingImport, collection, wantlist, triggerAutoUpload]);
 
   const handleExport = useCallback(() => {
@@ -538,36 +607,52 @@ const AppContent: React.FC = () => {
   }, [navigate]);
 
   const fetchAndApplyAlbumDetails = async (cd: CD) => {
-    if (!cd.genre || !cd.year || !cd.allmusic_url) {
+    const hasGenres = Array.isArray(cd.genre) && cd.genre.length > 0;
+    if (!hasGenres || !cd.year || !cd.record_label || !cd.wikipedia_url) {
         try {
             const details = await getAlbumDetails(cd.artist, cd.title);
             if (details) {
                 const normalizedDetails = normalizeData<CD>(details);
-                const updatedCd: CD = {
-                    ...cd,
-                    genre: cd.genre || normalizedDetails.genre,
-                    year: cd.year || normalizedDetails.year,
-                    record_label: cd.record_label || normalizedDetails.record_label,
-                    allmusic_url: cd.allmusic_url || normalizedDetails.allmusic_url,
-                    sort_name: cd.sort_name || normalizedDetails.sort_name,
-                    tags: [...new Set([...(cd.tags || []), ...(normalizedDetails.tags || [])])],
-                };
-                // Save locally only without triggering a background cloud upload
-                setCollection(prev => prev.map(c => c.id === cd.id ? updatedCd : c));
+                setCollection(prev => prev.map(c => {
+                    if (c.id !== cd.id) return c;
+                    const existingGenres = Array.isArray(c.genre) && c.genre.length > 0 ? c.genre : undefined;
+                    const mergedTags = [...new Set([...(c.tags || []), ...(normalizedDetails.tags || [])])];
+                    return {
+                        ...c,
+                        genre: existingGenres || normalizedDetails.genre || [],
+                        year: c.year || normalizedDetails.year,
+                        record_label: c.record_label || normalizedDetails.record_label,
+                        producer: c.producer || normalizedDetails.producer,
+                        wikipedia_url: c.wikipedia_url || normalizedDetails.wikipedia_url,
+                        review: c.review || normalizedDetails.review,
+                        allmusic_url: c.allmusic_url || normalizedDetails.allmusic_url,
+                        sort_name: c.sort_name || normalizedDetails.sort_name,
+                        tags: mergedTags,
+                    };
+                }));
             }
         } catch (e) { console.error("Detail fetch error:", e); }
     }
   };
 
-  // Passive update from album views (e.g., auto-resolving Wikipedia URL or viewing details)
-  // Saves to local state without triggering Google Drive upload
-  const handlePassiveUpdateCD = useCallback(async (updatedCd: CD) => {
-    setCollection(prev => prev.map(c => c.id === updatedCd.id ? updatedCd : c));
-  }, []);
+  // Updates an album from DetailView; passive background updates stay local while manual enrichment syncs to Drive
+  const handlePassiveUpdateCD = useCallback(async (updatedCd: CD, syncToCloud = false) => {
+    const nextCollection = collectionRef.current.map(c => c.id === updatedCd.id ? updatedCd : c);
+    collectionRef.current = nextCollection;
+    setCollection(nextCollection);
+    if (syncToCloud) {
+      await triggerAutoUpload(nextCollection, wantlistRef.current, `Updated ${updatedCd.title}`);
+    }
+  }, [triggerAutoUpload]);
 
-  const handlePassiveUpdateWantlistItem = useCallback(async (updatedItem: WantlistItem) => {
-    setWantlist(prev => prev.map(i => i.id === updatedItem.id ? updatedItem : i));
-  }, []);
+  const handlePassiveUpdateWantlistItem = useCallback(async (updatedItem: WantlistItem, syncToCloud = false) => {
+    const nextWantlist = wantlistRef.current.map(i => i.id === updatedItem.id ? updatedItem : i);
+    wantlistRef.current = nextWantlist;
+    setWantlist(nextWantlist);
+    if (syncToCloud) {
+      await triggerAutoUpload(collectionRef.current, nextWantlist, `Updated ${updatedItem.title}`);
+    }
+  }, [triggerAutoUpload]);
 
   const handleSaveCD = useCallback(async (cdData: Omit<CD, 'id'> & { id?: string }) => {
     if (!cdData.id && !duplicateCheckResult) {
@@ -914,7 +999,14 @@ const AppContent: React.FC = () => {
         </div>
       )}
       {duplicateCheckResult && <ConfirmDuplicateModal isOpen={true} onClose={() => setDuplicateCheckResult(null)} onConfirm={(version) => handleSaveCD({ ...duplicateCheckResult.newCd, version })} newCdData={duplicateCheckResult.newCd} existingCd={duplicateCheckResult.existingCd} />}
-      <ImportConfirmModal isOpen={!!pendingImport} onClose={() => setPendingImport(null)} onMerge={() => confirmImport('merge')} onReplace={() => confirmImport('replace')} importCount={pendingImport?.length || 0} />
+      <ImportConfirmModal
+        isOpen={!!pendingImport}
+        onClose={() => setPendingImport(null)}
+        onMerge={() => confirmImport('merge')}
+        onReplace={() => confirmImport('replace')}
+        importCount={pendingImport?.collection.length || 0}
+        wantlistCount={pendingImport?.wantlist.length || 0}
+      />
       <SyncSettingsModal 
         isOpen={isSyncSettingsOpen} 
         onClose={() => setIsSyncSettingsOpen(false)} 
@@ -926,6 +1018,8 @@ const AppContent: React.FC = () => {
         userEmail={driveUserProfile?.email}
         onSignIn={driveSignIn}
         onSignOut={driveSignOut}
+        getRevisions={driveGetRevisions}
+        onRestoreRevision={handleRestoreRevision}
       />
       <SyncConfirmationModal 
         isOpen={isSyncConfirmOpen}
@@ -935,7 +1029,7 @@ const AppContent: React.FC = () => {
         isProcessing={driveStatus === 'saving' || driveStatus === 'loading'}
         localStats={{
             count: collection.length + wantlist.length,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: localStorage.getItem(LOCAL_UPDATED_AT_KEY)
         }}
         cloudStats={{
             count: (pendingCloudData?.collection?.length || 0) + (pendingCloudData?.wantlist?.length || 0),
